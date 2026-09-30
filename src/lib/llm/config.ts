@@ -14,6 +14,12 @@ export interface ProviderConfig {
   kind: ProviderKind;
   /** Overridable per deploy, e.g. GEMINI_MODEL=gemini-3.5-flash. */
   model: string;
+  /**
+   * Same-provider models tried in order when the main one is overloaded (503)
+   * or over its rate limit (429). Gemini free-tier quotas are per model, so
+   * each fallback brings its own allowance.
+   */
+  fallbackModels?: string[];
   /** Env var holding the API key. The provider is skipped when it's unset. */
   apiKeyEnv: string;
   baseURL?: string;
@@ -27,6 +33,11 @@ export const PROVIDERS: ProviderConfig[] = [
     kind: "google",
     // Newest Flash in @ai-sdk/google's docs at the time of writing. Check AI Studio for your key's limits.
     model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+    // Override with GEMINI_FALLBACK_MODELS=comma,separated,ids.
+    fallbackModels: (process.env.GEMINI_FALLBACK_MODELS || "gemini-3.5-flash,gemini-3.5-flash-lite")
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean),
     apiKeyEnv: "GEMINI_API_KEY",
     vision: true,
   },
@@ -54,4 +65,9 @@ export const CHAT_LIMITS = {
   maxMessages: 40,
   maxOutputTokens: 2000,
   maxSteps: 4,
+  /**
+   * SDK-level retries per request. Kept low: every retry spends free-tier
+   * quota, and the fallback models already cover overload.
+   */
+  maxRetries: 1,
 };

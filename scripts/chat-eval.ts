@@ -188,6 +188,7 @@ async function main() {
           tools: buildTools(() => repo.get()),
           stopWhen: isStepCount(CHAT_LIMITS.maxSteps),
           maxOutputTokens: CHAT_LIMITS.maxOutputTokens,
+          maxRetries: CHAT_LIMITS.maxRetries,
         }),
       );
       messages.push(...res.response.messages);

@@ -9,7 +9,7 @@ import {
 import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
 import { buildInstructions, buildTools, todayAt, type ProposalOutcome } from "@/lib/chat/setup";
 import { CHAT_LIMITS } from "@/lib/llm/config";
-import { availableModels, isMockModel } from "@/lib/llm/provider";
+import { availableModels, chatErrorMessage, isMockModel } from "@/lib/llm/provider";
 import { getRepository } from "@/lib/repo";
 
 export const maxDuration = 60;
@@ -60,9 +60,16 @@ export async function POST(request: Request) {
     tools,
     stopWhen: isStepCount(CHAT_LIMITS.maxSteps),
     maxOutputTokens: CHAT_LIMITS.maxOutputTokens,
+    maxRetries: CHAT_LIMITS.maxRetries,
   });
 
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({ stream: result.stream }),
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onError: (error) => {
+        console.error("chat stream error", error);
+        return chatErrorMessage(error);
+      },
+    }),
   });
 }

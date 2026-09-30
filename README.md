@@ -40,6 +40,8 @@ Every edit is a list of **ops** (`add_segment`, `update_segment`, `remove_segmen
 
 The planner uses Google Gemini through the Vercel AI SDK. The model id and provider list live in [`src/lib/llm/config.ts`](src/lib/llm/config.ts). The default is `gemini-3.8-flash`; override it with `GEMINI_MODEL` if AI Studio shows a different id or limits for your key.
 
+If the main model is overloaded (503) or over its rate limit (429), the planner tries `gemini-3.5-flash` and then `gemini-3.5-flash-lite` before giving up. Gemini's free-tier limits are per model, so each fallback brings its own quota. Override the list with `GEMINI_FALLBACK_MODELS=id1,id2`. If every model is busy, the chat says so in plain words instead of "An error occurred".
+
 Groq and NVIDIA are listed there as commented-out entries. Both are OpenAI-compatible: to add one, install `@ai-sdk/openai-compatible`, add its case in `src/lib/llm/provider.ts`, uncomment its config entry, and set its key.
 
 If there's no key, or the provider is down, the planner shows a notice and everything else keeps working.
@@ -149,7 +151,9 @@ With no env vars set, local dev keeps edits in memory (they reset when the serve
    - `GEMINI_API_KEY`, from Google AI Studio.
 4. **Redeploy** so the new variables take effect. The first page load seeds the store from `trip.ts`.
 
-After that, every push to `main` redeploys. Without a passphrase, production shows a locked page. Without Redis, it refuses to start unless you set `ALLOW_MEMORY_STORE=1` (don't do that for the real site, because edits would vanish on every cold start).
+After that, every push to `main` redeploys. Without a passphrase, production shows a locked page. Without Redis, it refuses to start unless you set `ALLOW_MEMORY_STORE=1`. That's a stopgap only: on Vercel, in-memory edits vanish whenever a new server instance starts, and different instances can show different versions. Once Redis is connected, the app uses it automatically and `ALLOW_MEMORY_STORE` can be deleted.
+
+Environment variable changes only apply to new deployments. Redeploy after changing one.
 
 Changing `TRIP_PASSPHRASE` signs everyone out.
 
