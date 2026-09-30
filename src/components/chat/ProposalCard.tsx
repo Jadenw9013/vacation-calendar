@@ -15,12 +15,21 @@ const MARK: Record<Op["op"], string> = {
   complete_todo: "✓",
   resolve_question: "✓",
   update_trip: "~",
+  add_plan_item: "+",
+  update_plan_item: "~",
+  remove_plan_item: "−",
 };
 
 /** Segment ids a proposal adds or changes, for the post-apply flash. */
 function touched(ops: Op[]): string[] {
   return ops.flatMap((o) =>
-    o.op === "add_segment" ? [o.segment.id] : o.op === "update_segment" || o.op === "set_status" ? [o.id] : [],
+    o.op === "add_segment"
+      ? [o.segment.id]
+      : o.op === "add_plan_item"
+        ? [o.item.id]
+        : o.op === "update_segment" || o.op === "set_status" || o.op === "update_plan_item"
+          ? [o.id]
+          : [],
   );
 }
 

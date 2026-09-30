@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { OpenQuestion, Segment, Trip } from "@/data/types";
-import { formatDay, isValidMoment, parseMoment } from "./time";
+import type { OpenQuestion, PlanItem, Segment, Trip } from "@/data/types";
+import { formatDay, formatTime, isValidMoment, parseMoment } from "./time";
 
 // ---------------------------------------------------------------------------
 // Field schemas
@@ -70,6 +70,34 @@ const SegmentPatch = z
   .strict()
   .refine((p) => Object.keys(p).length > 0, "No fields to change");
 
+const PlanId = z.string().regex(/^plan-[a-z0-9][a-z0-9-]{0,63}$/, 'Starts with "plan-", then lowercase letters, digits and dashes');
+
+export const PlanItemSchema = z
+  .object({
+    id: PlanId,
+    start: moment,
+    end: moment.nullable().optional(),
+    title: Title,
+    notes: Notes.optional(),
+    owner: FirstName.optional(),
+    tentative: z.boolean().optional(),
+  })
+  .strict();
+
+/** For optional fields, null removes the field. */
+const PlanPatch = z
+  .object({
+    start: moment,
+    end: moment.nullable(),
+    title: Title,
+    notes: Notes.nullable(),
+    owner: FirstName.nullable(),
+    tentative: z.boolean().nullable(),
+  })
+  .partial()
+  .strict()
+  .refine((p) => Object.keys(p).length > 0, "No fields to change");
+
 /** "trip" targets the trip-wide to-do list; anything else is a segment id. */
 const TodoTarget = z.union([z.literal("trip"), SegmentId]);
 
@@ -123,6 +151,16 @@ export const OpSchema = z.discriminatedUnion("op", [
     })
     .strict(),
   z.object({ op: z.literal("complete_todo"), target: TodoTarget, text: TodoText }).strict(),
+  z
+    .object({
+      op: z.literal("add_plan_item"),
+      item: PlanItemSchema,
+      /** Position in the plan list; appends when omitted. Used by undo. */
+      index: z.number().int().nonnegative().optional(),
+    })
+    .strict(),
+  z.object({ op: z.literal("update_plan_item"), id: PlanId, changes: PlanPatch }).strict(),
+  z.object({ op: z.literal("remove_plan_item"), id: PlanId }).strict(),
   z
     .object({
       op: z.literal("update_trip"),
@@ -214,6 +252,11 @@ function applyPatch(seg: Segment, changes: Patch): Segment {
     else next[k] = v;
   }
   return next as unknown as Segment;
+}
+
+function planWhen(p: PlanItem): string {
+  const m = parseMoment(p.start);
+  return m.time ? `${formatDay(m.date)} ${formatTime(m)}` : formatDay(m.date);
 }
 
 function show(v: unknown): string {
@@ -342,6 +385,54 @@ export function applyOp(trip: Trip, op: Op): Applied {
         trip: set(trip, list.filter((_, j) => j !== at)),
         inverse: [{ op: "add_todo", target: op.target, text: op.text, index: at }],
         description: `Tick off for ${label}: “${op.text}”`,
+      };
+    }
+
+    case "add_plan_item": {
+      const plan = trip.plan ?? [];
+      if (plan.some((p) => p.id === op.item.id)) {
+        throw new OpError("duplicate", `A plan item with id "${op.item.id}" already exists`);
+      }
+      const at = op.index === undefined ? plan.length : Math.min(op.index, plan.length);
+      return {
+        trip: { ...trip, plan: [...plan.slice(0, at), op.item, ...plan.slice(at)] },
+        inverse: [{ op: "remove_plan_item", id: op.item.id }],
+        description: `Plan: ${planWhen(op.item)} ${op.item.title}${op.item.tentative ? " (suggested)" : ""}`,
+      };
+    }
+
+    case "update_plan_item": {
+      const plan = trip.plan ?? [];
+      const i = plan.findIndex((p) => p.id === op.id);
+      if (i < 0) throw new OpError("not_found", `No plan item with id "${op.id}"`);
+      const item = plan[i];
+      const before: Record<string, unknown> = {};
+      const next: Record<string, unknown> = { ...item };
+      const lines: string[] = [];
+      for (const [k, v] of Object.entries(op.changes)) {
+        const old = (item as unknown as Record<string, unknown>)[k];
+        before[k] = old === undefined ? null : old;
+        if (v === null) delete next[k];
+        else next[k] = v;
+        if (show(old) !== show(v)) lines.push(k === "tentative" && !v ? "kept" : `${k} ${show(old)} → ${show(v)}`);
+      }
+      const updated = [...plan];
+      updated[i] = next as unknown as PlanItem;
+      return {
+        trip: { ...trip, plan: updated },
+        inverse: [{ op: "update_plan_item", id: op.id, changes: before as never }],
+        description: `Plan “${item.title}”: ${lines.join("; ") || "no visible change"}`,
+      };
+    }
+
+    case "remove_plan_item": {
+      const plan = trip.plan ?? [];
+      const i = plan.findIndex((p) => p.id === op.id);
+      if (i < 0) throw new OpError("not_found", `No plan item with id "${op.id}"`);
+      return {
+        trip: { ...trip, plan: plan.filter((_, j) => j !== i) },
+        inverse: [{ op: "add_plan_item", item: plan[i], index: i }],
+        description: `Remove from plan: ${plan[i].title}`,
       };
     }
 

@@ -194,6 +194,50 @@ describe("resolve_question", () => {
   });
 });
 
+describe("plan items", () => {
+  const leave = {
+    id: "plan-leave-for-pana",
+    start: "2026-11-25T08:30:00-06:00",
+    title: "Leave for Panajachel",
+    tentative: true,
+  };
+
+  it("adds, updates (including keeping a suggestion) and removes, each undoable", () => {
+    const added = roundTrip([{ op: "add_plan_item", item: leave }]);
+    expect(added.trip.plan).toEqual([leave]);
+    expect(added.entry.summary[0]).toContain("(suggested)");
+
+    const withItem: TripState = { trip: added.trip, version: 2 };
+    const kept = roundTrip([{ op: "update_plan_item", id: leave.id, changes: { tentative: null, start: "2026-11-25T09:00:00-06:00" } }], withItem);
+    expect(kept.trip.plan![0]).toEqual({ ...leave, start: "2026-11-25T09:00:00-06:00", tentative: undefined });
+    expect("tentative" in kept.trip.plan![0]).toBe(false);
+
+    const removed = roundTrip([{ op: "remove_plan_item", id: leave.id }], withItem);
+    expect(removed.trip.plan).toEqual([]);
+  });
+
+  it("works on trips stored before plans existed", () => {
+    const old = base();
+    delete old.trip.plan;
+    const r = apply(old, [{ op: "add_plan_item", item: leave }]);
+    expect(r.trip.plan).toHaveLength(1);
+  });
+
+  it("never needs booked-item confirmation and doesn't touch gaps", () => {
+    const r = apply(base(), [{ op: "add_plan_item", item: { ...leave, id: "plan-x", start: "2026-11-24" } }]);
+    expect(r.trip.segments).toEqual(base().trip.segments);
+  });
+
+  it("rejects bad ids, duplicates and bad times", () => {
+    expect(prepareChange(base(), [{ op: "add_plan_item", item: { ...leave, id: "leave" } }], meta).ok).toBe(false);
+    expect(prepareChange(base(), [{ op: "add_plan_item", item: { ...leave, start: "8:30am" } }], meta).ok).toBe(false);
+    const twice = prepareChange(base(), [{ op: "add_plan_item", item: leave }, { op: "add_plan_item", item: leave }], meta);
+    expect(twice.ok || twice.issues[0].code).toBe("duplicate");
+    const missing = prepareChange(base(), [{ op: "remove_plan_item", id: "plan-nope" }], meta);
+    expect(missing.ok || missing.issues[0].code).toBe("not_found");
+  });
+});
+
 describe("update_trip", () => {
   it("moves the last day and sets party size, and undoes", () => {
     const r = roundTrip([{ op: "update_trip", changes: { lastDay: "2026-12-02", partySize: 4 } }]);

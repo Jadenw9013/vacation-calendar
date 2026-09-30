@@ -200,6 +200,35 @@ describe("validation", () => {
   });
 });
 
+describe("day plan rows", () => {
+  it("merges plan items with bookings in time order, untimed last", () => {
+    const t: Trip = {
+      ...realTrip,
+      plan: [
+        { id: "plan-dinner", start: "2026-11-25T19:00:00-06:00", title: "Dinner" },
+        { id: "plan-leave", start: "2026-11-25T08:30:00-06:00", title: "Leave for Panajachel" },
+        { id: "plan-swim", start: "2026-11-25", title: "Swim if it's warm" },
+      ],
+    };
+    const nov25 = timeline(t).find((d) => d.date === "2026-11-25")!;
+    const labels = nov25.rows.map((r) => (r.type === "plan" ? r.item.title : r.event.segment.id));
+    expect(labels).toEqual(["Leave for Panajachel", "lodging-atitlan", "Dinner", "transport-to-lake", "Swim if it's warm"]);
+    expect(nov25.plan).toHaveLength(3);
+  });
+
+  it("orders a Seattle departure and a Guatemala arrival by real time", () => {
+    const t: Trip = { ...realTrip, plan: [{ id: "plan-sea", start: "2026-11-24T09:00:00-08:00", title: "Leave for SEA" }] };
+    const nov24 = timeline(t)[0].rows.map((r) => (r.type === "plan" ? r.item.id : r.event.segment.id));
+    expect(nov24.slice(0, 3)).toEqual(["plan-sea", "flight-out", "transfer-arrival"]);
+  });
+
+  it("treats a trip without a plan as an empty plan", () => {
+    const t: Trip = { ...realTrip };
+    delete t.plan;
+    expect(timeline(t).every((d) => d.plan.length === 0)).toBe(true);
+  });
+});
+
 describe("timeline", () => {
   it("groups by local day with end events for multi-day segments and keeps unbooked lodging out of events", () => {
     const days = timeline(realTrip);

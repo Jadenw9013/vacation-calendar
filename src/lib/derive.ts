@@ -1,4 +1,4 @@
-import type { OpenQuestion, Segment, Trip } from "@/data/types";
+import type { OpenQuestion, PlanItem, Segment, Trip } from "@/data/types";
 import {
   addDays,
   dayRange,
@@ -40,6 +40,17 @@ export function validateTrip(trip: Trip): string[] {
     }
     if (s.status === "booked" && s.start === null) {
       errors.push(`Segment "${s.id}": booked but has no start date`);
+    }
+  }
+  const pids = new Set<string>();
+  for (const p of trip.plan ?? []) {
+    if (pids.has(p.id)) errors.push(`Duplicate plan item id "${p.id}"`);
+    pids.add(p.id);
+    for (const [field, value] of [
+      ["start", p.start],
+      ["end", p.end ?? null],
+    ] as const) {
+      if (value !== null && !isValidMoment(value)) errors.push(`Plan item "${p.id}": ${field} "${value}" is not a valid date or time`);
     }
   }
   const qids = new Set<string>();
@@ -289,11 +300,45 @@ export interface TimelineEvent {
   at: Moment;
 }
 
+/** One line of a day's schedule: a booking event or a plan item, in time order. */
+export type DayRow = { type: "event"; event: TimelineEvent } | { type: "plan"; item: PlanItem; at: Moment };
+
 export interface TimelineDay {
   date: string;
   events: TimelineEvent[];
+  /** Plan items starting this day. */
+  plan: PlanItem[];
+  /** Bookings and plan items merged into one schedule. */
+  rows: DayRow[];
   /** null on the last day: you fly home, there's no night to cover. */
   night: NightStatus | null;
+}
+
+/** Untimed rows: checkouts, then travel, activities, plans, and check-ins last. */
+const UNTIMED_ORDER = { end: 0, flight: 1, transport: 2, activity: 3, plan: 4, lodging: 5 } as const;
+
+function rowMoment(r: DayRow): Moment {
+  return r.type === "event" ? r.event.at : r.at;
+}
+
+function untimedRank(r: DayRow): number {
+  if (r.type === "plan") return UNTIMED_ORDER.plan;
+  return r.event.kind === "end" ? UNTIMED_ORDER.end : UNTIMED_ORDER[r.event.segment.kind];
+}
+
+/**
+ * Timed rows in time order (by instant, so a Seattle departure and a
+ * Guatemala arrival on the same day compare correctly); untimed rows after.
+ */
+export function compareRows(a: DayRow, b: DayRow): number {
+  const ma = rowMoment(a);
+  const mb = rowMoment(b);
+  if (ma.instant === null && mb.instant === null) return untimedRank(a) - untimedRank(b);
+  if (ma.instant === null) return 1;
+  if (mb.instant === null) return -1;
+  if (ma.instant !== mb.instant) return ma.instant - mb.instant;
+  // Same minute: the booking before the plan note about it.
+  return (a.type === "plan" ? 1 : 0) - (b.type === "plan" ? 1 : 0);
 }
 
 /**
@@ -320,17 +365,15 @@ export function timeline(trip: Trip): TimelineDay[] {
     }
     // Known times first in time order; "time TBD" items after them. Among
     // untimed items, getting somewhere comes before staying there.
-    const ORDER: Record<Segment["kind"], number> = { flight: 0, transport: 1, activity: 2, lodging: 3 };
-    events.sort((a, b) => {
-      if (a.at.time === null && b.at.time === null) {
-        if (a.kind !== b.kind) return a.kind === "end" ? -1 : 1; // checkouts before new arrivals
-        return ORDER[a.segment.kind] - ORDER[b.segment.kind];
-      }
-      if (a.at.time === null) return 1;
-      if (b.at.time === null) return -1;
-      return a.at.time < b.at.time ? -1 : a.at.time > b.at.time ? 1 : 0;
-    });
-    return { date, events, night: nights[i] ?? null };
+    events.sort((a, b) => compareRows({ type: "event", event: a }, { type: "event", event: b }));
+
+    const plan = (trip.plan ?? []).filter((p) => parseMoment(p.start).date === date);
+    const rows: DayRow[] = [
+      ...events.map((event) => ({ type: "event" as const, event })),
+      ...plan.map((item) => ({ type: "plan" as const, item, at: parseMoment(item.start) })),
+    ].sort(compareRows);
+
+    return { date, events, plan, rows, night: nights[i] ?? null };
   });
 }
 

@@ -47,6 +47,9 @@ export const FlatOpSchema = z.object({
     "add_todo",
     "complete_todo",
     "resolve_question",
+    "add_plan_item",
+    "update_plan_item",
+    "remove_plan_item",
   ])
     .optional()
     .describe("Required. Which operation this is."),
@@ -72,6 +75,21 @@ export const FlatOpSchema = z.object({
   target: z.string().optional().describe('add_todo / complete_todo: a segment id, or "trip" for the trip-wide list'),
   text: z.string().optional().describe("add_todo / complete_todo: the to-do text (exact text when completing)"),
   answer: z.string().optional().describe("resolve_question only: the decision"),
+  plan: z
+    .object({
+      id: z.string().optional().describe('add_plan_item: new id starting "plan-", e.g. plan-leave-for-pana'),
+      title: z.string().optional().describe("Short: 'Leave for Panajachel', 'Sunrise hike up Indian Nose'"),
+      start: z
+        .string()
+        .optional()
+        .describe('"YYYY-MM-DDTHH:MM:00-06:00" for a time, or "YYYY-MM-DD" for sometime that day'),
+      end: z.string().optional().describe("Optional end, same format"),
+      notes: z.string().optional(),
+      owner: z.string().optional().describe("First name only"),
+      tentative: z.boolean().optional().describe("true when you suggested the time; false when the person gave it"),
+    })
+    .optional()
+    .describe("add_plan_item: the step. update_plan_item: fields to change (with id)."),
 });
 
 export type FlatOp = z.infer<typeof FlatOpSchema>;
@@ -85,6 +103,19 @@ function segmentValues(s: SegmentInput): Record<string, unknown> {
   }
   if (s.costAmount !== undefined) out.cost = { amount: s.costAmount, currency: s.costCurrency ?? "USD" };
   return out;
+}
+
+/** Forgiving about ids: adds the "plan-" prefix, or makes one from the title. */
+function planId(given: string | undefined, title: string, index: number): string {
+  const base = (given ?? title)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50);
+  const id = base.startsWith("plan-") ? base : `plan-${base || `step-${index + 1}`}`;
+  return given ? id : `${id}-${index + 1}`;
 }
 
 /** Converts model ops to strict ops. Missing fields surface as issues the model can fix. */
@@ -133,6 +164,30 @@ export function toStrictOps(flat: FlatOp[]): { ops: Op[]; issues: OpIssue[] } {
       case "resolve_question":
         if (!f.id || !f.answer) return need(index, "id and answer");
         ops.push({ op: "resolve_question", id: f.id, answer: f.answer });
+        return;
+      case "add_plan_item": {
+        const p = f.plan;
+        if (!p?.title || !p.start) return need(index, "plan.title and plan.start");
+        const item: Record<string, unknown> = { id: planId(p.id, p.title, index), title: p.title, start: p.start };
+        if (p.end) item.end = p.end;
+        if (p.notes) item.notes = p.notes;
+        if (p.owner) item.owner = p.owner;
+        if (p.tentative) item.tentative = true;
+        ops.push({ op: "add_plan_item", item: item as never });
+        return;
+      }
+      case "update_plan_item": {
+        if (!f.id) return need(index, "id");
+        const changes: Record<string, unknown> = {};
+        for (const k of ["title", "start", "end", "notes", "owner"] as const) if (f.plan?.[k] !== undefined) changes[k] = f.plan[k];
+        if (f.plan?.tentative !== undefined) changes.tentative = f.plan.tentative ? true : null;
+        for (const c of f.clear ?? []) if (c === "end" || c === "notes" || c === "owner") changes[c] = null;
+        ops.push({ op: "update_plan_item", id: f.id, changes: changes as never });
+        return;
+      }
+      case "remove_plan_item":
+        if (!f.id) return need(index, "id");
+        ops.push({ op: "remove_plan_item", id: f.id });
         return;
     }
   });

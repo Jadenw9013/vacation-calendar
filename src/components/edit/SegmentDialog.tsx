@@ -13,18 +13,18 @@ const STATUSES: [SegmentStatus, string][] = [
 ];
 
 /** Split an IsoMoment into form fields. */
-function split(m: string | null, fallbackOffset: string, fallbackDate?: string) {
+export function split(m: string | null, fallbackOffset: string, fallbackDate?: string) {
   if (!m) return { date: fallbackDate ?? "", time: "", offset: fallbackOffset };
   return { date: m.slice(0, 10), time: m.length > 10 ? m.slice(11, 16) : "", offset: m.length > 10 ? m.slice(-6) : fallbackOffset };
 }
 
 /** Join form fields back: date only when no time, null when no date. */
-function join(date: string, time: string, offset: string): string | null {
+export function join(date: string, time: string, offset: string): string | null {
   if (!date) return null;
   return time ? `${date}T${time}:00${offset}` : date;
 }
 
-function slug(s: string): string {
+export function slug(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -34,10 +34,10 @@ function slug(s: string): string {
     .slice(0, 40);
 }
 
-const field = "mt-1 w-full rounded-xl border border-stone-border bg-stone-light/40 px-3 py-2 text-sm text-volcano outline-none focus:border-lake focus:bg-white focus:ring-2 focus:ring-lake/20 transition-all";
-const labelCls = "flex flex-col text-xs font-semibold text-gray-700";
+export const field = "mt-1 w-full rounded-xl border border-stone-border bg-stone-light/40 px-3 py-2 text-sm text-volcano outline-none focus:border-lake focus:bg-white focus:ring-2 focus:ring-lake/20 transition-all";
+export const labelCls = "flex flex-col text-xs font-semibold text-gray-700";
 
-function MomentFields({
+export function MomentFields({
   name,
   label,
   value,

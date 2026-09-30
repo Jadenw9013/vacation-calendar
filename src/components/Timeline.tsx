@@ -9,6 +9,8 @@ import { useTripChat } from "./chat/ChatProvider";
 import { TodoItem } from "./edit/Controls";
 import { useEditor } from "./edit/EditorProvider";
 import { SegmentDialog } from "./edit/SegmentDialog";
+import { PlanDialog } from "./plan/PlanDialog";
+import { PlanRow } from "./plan/PlanRow";
 import { OwnerTag, StatusDropdown, cardClass } from "./Status";
 
 export type Ghost = "added" | "changed" | "removed";
@@ -281,6 +283,35 @@ function Tonight({ night, date }: { night: NightStatus | null; date: string }) {
   );
 }
 
+/** Under each day: add a plan step by hand, or have the planner draft the day. */
+function DayPlanActions({ date, hasPlan }: { date: string; hasPlan: boolean }) {
+  const { available, send, setOpen } = useTripChat();
+  const { author, openPicker } = useEditor();
+  const day = `${weekday(date, true)} ${monthDay(date)}`;
+  function draft() {
+    if (!author) return openPicker();
+    setOpen(true);
+    send(
+      `${hasPlan ? "Tighten up" : "Draft"} a timed plan for ${day}: when to get up, leave, travel, arrive, eat and rest, around what's already booked. Keep it realistic for the group and mark any times you suggest as tentative.`,
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-1 text-xs">
+      <PlanDialog
+        mode="add"
+        date={date}
+        trigger="+ Add to plan"
+        triggerClassName="font-semibold text-lake underline-offset-2 hover:underline"
+      />
+      {available && (
+        <button type="button" onClick={draft} className="font-medium text-gray-500 underline-offset-2 hover:text-lake hover:underline">
+          {hasPlan ? "Refine with the planner" : "Draft with the planner"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** One line under the day title: where you are and where you sleep. */
 function DaySummary({ info }: { info: DayInfo }) {
   const s = info.sleep;
@@ -460,23 +491,32 @@ export function Timeline({
 
             {/* Day Events list */}
             <div className="flex flex-col gap-3">
-              {d.events.length > 0 ? (
+              {d.rows.length > 0 ? (
                 <ol className="flex flex-col gap-3">
-                  {d.events.map((e) => (
+                  {d.rows.map((row) =>
+                    row.type === "plan" ? (
+                      <PlanRow
+                        key={row.item.id}
+                        item={row.item}
+                        at={row.at}
+                        ghost={ghosts[row.item.id]}
+                        flash={!!highlight?.has(row.item.id)}
+                      />
+                    ) : (
                     <EventRow
-                      key={`${e.segment.id}-${e.kind}`}
-                      e={e}
+                      key={`${row.event.segment.id}-${row.event.kind}`}
+                      e={row.event}
                       dayDate={d.date}
                       tripOffset={tripOffset}
-                      ghost={ghosts[e.segment.id]}
-                      flash={!!highlight?.has(e.segment.id)}
-                      isDragging={draggingSegmentId === e.segment.id}
+                      ghost={ghosts[row.event.segment.id]}
+                      flash={!!highlight?.has(row.event.segment.id)}
+                      isDragging={draggingSegmentId === row.event.segment.id}
                       onDragStart={(evt) => {
                         evt.dataTransfer.setData(
                           "text/plain",
-                          JSON.stringify({ segmentId: e.segment.id, fromDate: d.date })
+                          JSON.stringify({ segmentId: row.event.segment.id, fromDate: d.date })
                         );
-                        setDraggingSegmentId(e.segment.id);
+                        setDraggingSegmentId(row.event.segment.id);
                       }}
                       onDragEnd={() => {
                         setDraggingSegmentId(null);
@@ -484,12 +524,15 @@ export function Timeline({
                       }}
                       onDelete={handleDelete}
                     />
-                  ))}
+                    ),
+                  )}
                 </ol>
               ) : null}
 
               {/* Tonight slot: either booked or No lodging booked dashed card */}
               <Tonight night={d.night} date={d.date} />
+
+              <DayPlanActions date={d.date} hasPlan={d.plan.length > 0} />
             </div>
           </section>
         );

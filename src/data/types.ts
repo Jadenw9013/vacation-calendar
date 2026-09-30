@@ -53,6 +53,29 @@ export interface OpenQuestion {
   answer?: string;
 }
 
+/**
+ * A timed step in a day's plan: "8:30 AM leave for Panajachel", "sunrise
+ * hike", "group dinner". Not a booking: no status, never counts toward gaps
+ * or beds. Lives alongside segments on the timeline.
+ */
+export interface PlanItem {
+  /** Starts with "plan-". */
+  id: string;
+  /** Datetime with offset when there's a time; date only for "sometime that day". */
+  start: IsoMoment;
+  /** Optional end, same format. */
+  end?: IsoMoment | null;
+  title: string;
+  notes?: string;
+  /** First name of whoever's running it. */
+  owner?: string;
+  /**
+   * A suggested time nobody has confirmed yet (from the planner, or a
+   * starting plan). Shown as "Suggested" until someone keeps it.
+   */
+  tentative?: boolean;
+}
+
 export interface Trip {
   name: string;
   /** First day shown on the timeline, "YYYY-MM-DD". */
@@ -71,4 +94,6 @@ export interface Trip {
   openQuestions: OpenQuestion[];
   /** Practical to-dos not tied to a date or segment. */
   todos: string[];
+  /** The timed day plan. Optional: trips stored before it existed have none. */
+  plan?: PlanItem[];
 }

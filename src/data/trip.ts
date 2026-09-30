@@ -175,6 +175,9 @@ export const trip: Trip = {
     },
   ],
 
+  // Timed day plan (see PlanItem). Added on the site or by the planner.
+  plan: [],
+
   todos: [
     "Get quetzales at the GUA airport ATM on arrival (Q100 + Q200–300 each for the hike)",
     "Travel insurance",

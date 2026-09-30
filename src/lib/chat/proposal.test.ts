@@ -79,6 +79,28 @@ describe("buildProposal", () => {
     expect(p.redacted).toEqual(expect.arrayContaining(["confirmation", "phone-or-card"]));
   });
 
+  it("turns planner plan steps into plan items, with forgiving ids and suggested times kept tentative", () => {
+    const p = buildProposal(state(), "Plan Nov 25", [
+      { op: "add_plan_item", plan: { title: "Leave for Panajachel", start: "2026-11-25T08:30:00-06:00", tentative: true } },
+      { op: "add_plan_item", plan: { id: "boat-to-san-marcos", title: "Boat to San Marcos", start: "2026-11-25T12:30:00-06:00" } },
+    ]);
+    expect(p.status).toBe("ready");
+    expect(p.ops).toEqual([
+      { op: "add_plan_item", item: { id: "plan-leave-for-panajachel-1", title: "Leave for Panajachel", start: "2026-11-25T08:30:00-06:00", tentative: true } },
+      { op: "add_plan_item", item: { id: "plan-boat-to-san-marcos", title: "Boat to San Marcos", start: "2026-11-25T12:30:00-06:00" } },
+    ]);
+    // Plans never change the gaps.
+    expect(p.gapDelta).toEqual({ closes: [], opens: [] });
+  });
+
+  it("keeping a suggestion clears tentative; missing fields come back as issues", () => {
+    const s = state();
+    s.trip.plan = [{ id: "plan-x", title: "X", start: "2026-11-25T08:30:00-06:00", tentative: true }];
+    const kept = buildProposal(s, "Keep", [{ op: "update_plan_item", id: "plan-x", plan: { tentative: false } }]);
+    expect(kept.ops).toEqual([{ op: "update_plan_item", id: "plan-x", changes: { tentative: null } }]);
+    expect(buildProposal(s, "x", [{ op: "add_plan_item", plan: { title: "No time" } }]).issues[0].message).toContain("plan.start");
+  });
+
   it("reports a missing op field as an issue instead of dropping it", () => {
     const p = buildProposal(state(), "x", [{ id: "flight-out", changes: { notes: "x" } } as FlatOp]);
     expect(p.status).toBe("invalid");

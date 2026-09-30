@@ -45,19 +45,29 @@ function usePreview(trip: Trip, version: number) {
     const preview = pending ? previewTrip({ trip, version }, pending.proposal.ops) : null;
     if (!preview) return { days: timeline(trip), ghosts: {} as Record<string, Ghost>, previewing: false };
 
-    const current = new Map(trip.segments.map((s) => [s.id, s]));
-    const next = new Set(preview.segments.map((s) => s.id));
+    // Segments and plan items share one ghost map; plan ids all start with "plan-".
     const ghosts: Record<string, Ghost> = {};
-    for (const s of preview.segments) {
-      const before = current.get(s.id);
-      if (!before) ghosts[s.id] = "added";
-      else if (JSON.stringify(before) !== JSON.stringify(s)) ghosts[s.id] = "changed";
+    function diff<T extends { id: string }>(before: T[], after: T[]): T[] {
+      const current = new Map(before.map((x) => [x.id, x]));
+      const next = new Set(after.map((x) => x.id));
+      for (const x of after) {
+        const old = current.get(x.id);
+        if (!old) ghosts[x.id] = "added";
+        else if (JSON.stringify(old) !== JSON.stringify(x)) ghosts[x.id] = "changed";
+      }
+      const removed = before.filter((x) => !next.has(x.id));
+      for (const x of removed) ghosts[x.id] = "removed";
+      return removed;
     }
-    const removed = trip.segments.filter((s) => !next.has(s.id));
-    for (const s of removed) ghosts[s.id] = "removed";
+    const removedSegments = diff(trip.segments, preview.segments);
+    const removedPlan = diff(trip.plan ?? [], preview.plan ?? []);
 
     const nights = nightCoverage(preview);
-    const days = timeline({ ...preview, segments: [...preview.segments, ...removed] }).map((d, i) => ({ ...d, night: nights[i] ?? null }));
+    const days = timeline({
+      ...preview,
+      segments: [...preview.segments, ...removedSegments],
+      plan: [...(preview.plan ?? []), ...removedPlan],
+    }).map((d, i) => ({ ...d, night: nights[i] ?? null }));
     return { days, ghosts, previewing: true };
   }, [pending, trip, version]);
 }

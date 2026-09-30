@@ -21,6 +21,17 @@ Every edit is a list of **ops** (`add_segment`, `update_segment`, `remove_segmen
 2. Use **+ Add item**, the **Edit** link on any item, the tick boxes on to-dos, and **Record the decision** on open questions.
 3. After a save, the notice at the bottom has an **Undo** button.
 
+## The day plan
+
+Each day can have timed plan steps alongside its bookings: "8:30 AM leave for Panajachel", "sunrise hike", "lights out". They're plans, not bookings, so they have no status and never count as gaps or beds.
+
+- **+ Add to plan** under any day adds one by hand.
+- **Draft with the planner** asks the assistant for that day's schedule around what's booked. It arrives as a proposal card like any other change.
+- Times the planner suggests are marked **Suggested** (with a dashed dot) until someone taps **Keep** or edits them.
+- Plan steps sit in the day's timeline in time order; steps with no time ("Anytime") go at the end.
+
+Plan items live in `trip.plan` and change through the `add_plan_item`, `update_plan_item` and `remove_plan_item` ops, with undo like everything else.
+
 ## The planner (chat assistant)
 
 **Ask the planner** (bottom right) opens a chat: a bottom sheet on phones, a side panel on desktop. It can answer questions about the trip and draft changes. It can't change anything by itself.

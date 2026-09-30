@@ -7,6 +7,7 @@ import { MockLanguageModelV4 } from "ai/test";
  *
  * - "hotel"  → proposes a booked Antigua hotel for the night of Nov 28
  * - "delete" → proposes removing the (booked) Atitlán Airbnb
+ * - "timed plan" → drafts three suggested plan steps for Nov 25
  * - "dinner" → asks which day, with options
  * - any screenshot → proposes a booked Antigua stay whose notes carry a
  *   confirmation code, full name and phone, to show the server strips them
@@ -68,6 +69,16 @@ function script(prompt: { role: string; content: unknown }[]): Chunk[] {
             notes: "Confirmation code HMX4Z9QK2P. Guest: Jordan Rivera. Host phone +502 5555 0199.",
           },
         },
+      ],
+    });
+  }
+  if (said.includes("timed plan")) {
+    return call("propose_changes", {
+      summary: "Draft plan for the day",
+      ops: [
+        { op: "add_plan_item", plan: { title: "Leave for Panajachel", start: "2026-11-25T08:30:00-06:00", tentative: true } },
+        { op: "add_plan_item", plan: { title: "Boat to San Marcos", start: "2026-11-25T12:30:00-06:00", tentative: true } },
+        { op: "add_plan_item", plan: { title: "Early dinner, then rest", start: "2026-11-25T18:30:00-06:00", tentative: true } },
       ],
     });
   }
