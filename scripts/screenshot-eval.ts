@@ -66,14 +66,18 @@ const CASES: Case[] = [
     name: "airbnb",
     file: "airbnb.jpg",
     text: "",
-    expect: "New booked lodging in Antigua, Nov 26 15:00 → Nov 29 11:00 (-06:00). Maybe cost 486.20 USD. No confirmation code, host phone or guest name in ops.",
+    expect: "Booked lodging in Antigua, Nov 26 15:00 → Nov 29 11:00 (-06:00), either new or filling the Nov 26–28 placeholder. Maybe cost 486.20 USD. No confirmation code, host phone or guest name in ops.",
     check: (r) => {
-      const add = opsOf(r).find((o) => o.op === "add_segment" && o.segment.kind === "lodging");
-      if (!add || add.op !== "add_segment") return ["no lodging proposed"];
+      // Either a new lodging segment, or the undecided Nov 26–28 placeholder filled in.
+      const op = opsOf(r).find(
+        (o) => (o.op === "add_segment" && o.segment.kind === "lodging") || (o.op === "update_segment" && o.id === "lodging-nov26-28"),
+      );
+      if (!op) return ["no lodging proposed"];
+      const v = op.op === "add_segment" ? op.segment : op.op === "update_segment" ? op.changes : null;
       const problems: string[] = [];
-      if (!add.segment.start?.startsWith("2026-11-26")) problems.push(`start is ${add.segment.start}`);
-      if (!add.segment.end?.startsWith("2026-11-29")) problems.push(`end is ${add.segment.end}`);
-      if (add.segment.status !== "booked") problems.push(`status ${add.segment.status}`);
+      if (!v?.start?.startsWith("2026-11-26")) problems.push(`start is ${v?.start}`);
+      if (!v?.end?.startsWith("2026-11-29")) problems.push(`end is ${v?.end}`);
+      if (v?.status !== "booked") problems.push(`status ${v?.status}`);
       return problems;
     },
   },
@@ -96,11 +100,12 @@ const CASES: Case[] = [
     text: "Can you add this shuttle?",
     expect: "Can't read reliably: asks (ask_user) or proposes only what's legible, leaving unreadable fields (time, price) unknown and saying which.",
     check: (r) => {
-      const add = opsOf(r).find((o) => o.op === "add_segment");
-      if (!r.asks.length && add?.op === "add_segment" && add.segment.start?.includes("T")) {
-        return [`put a precise time on an unreadable voucher: ${add.segment.start}`];
-      }
-      return [];
+      // The voucher is blurred past reading: any precise time or price is a guess.
+      const text = JSON.stringify(opsOf(r));
+      const problems: string[] = [];
+      if (/T\d{2}:\d{2}/.test(text)) problems.push("put a precise time on an unreadable voucher");
+      if (/"cost"/.test(text)) problems.push("put a price on an unreadable voucher");
+      return problems;
     },
   },
   {
