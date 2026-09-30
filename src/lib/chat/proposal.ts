@@ -34,6 +34,10 @@ const SegmentFields = {
   costCurrency: z.enum(["USD", "GTQ"]).optional(),
 };
 
+/**
+ * Deliberately forgiving: a malformed op must come back to the model as an
+ * issue it can fix, not fail schema validation and kill the whole reply.
+ */
 export const FlatOpSchema = z.object({
   op: z.enum([
     "add_segment",
@@ -43,7 +47,9 @@ export const FlatOpSchema = z.object({
     "add_todo",
     "complete_todo",
     "resolve_question",
-  ]),
+  ])
+    .optional()
+    .describe("Required. Which operation this is."),
   id: z
     .string()
     .optional()
@@ -89,6 +95,10 @@ export function toStrictOps(flat: FlatOp[]): { ops: Op[]; issues: OpIssue[] } {
     issues.push({ index, code: "invalid", message: `${flat[index].op} needs ${what}` });
 
   flat.forEach((f, index) => {
+    if (!f.op) {
+      issues.push({ index, code: "invalid", message: 'Every op needs an "op" field, e.g. "update_segment".' });
+      return;
+    }
     switch (f.op) {
       case "add_segment": {
         if (!f.segment) return need(index, "segment");

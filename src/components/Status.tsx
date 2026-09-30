@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import type { Segment, SegmentStatus } from "@/data/types";
+import { useEditor } from "./edit/EditorProvider";
 
 const LABEL: Record<SegmentStatus, string> = {
   booked: "Booked",
@@ -39,6 +43,83 @@ export function StatusTag({ status }: { status: SegmentStatus }) {
       </span>
       {LABEL[status]}
     </span>
+  );
+}
+
+/** Interactive 1-click status dropdown to quickly toggle Booked, Needs booking, or Undecided */
+export function StatusDropdown({ segment }: { segment: Segment }) {
+  const { submit, busy } = useEditor();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  async function handleSelect(newStatus: SegmentStatus) {
+    setOpen(false);
+    if (newStatus === segment.status) return;
+    await submit([
+      {
+        op: "set_status",
+        id: segment.id,
+        status: newStatus,
+      },
+    ]);
+  }
+
+  return (
+    <div className="relative inline-block" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        disabled={busy}
+        title="Click to change booking status"
+        className="group flex items-center gap-1 cursor-pointer transition-transform hover:scale-102 active:scale-98 focus:outline-none"
+      >
+        <StatusTag status={segment.status} />
+        <svg
+          className="size-3 text-gray-400 group-hover:text-gray-700 transition-colors"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-40 min-w-44 rounded-2xl border border-stone-border bg-white p-1.5 shadow-xl">
+          <p className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+            Set Status
+          </p>
+          {(["booked", "needs-booking", "undecided"] as SegmentStatus[]).map((st) => (
+            <button
+              key={st}
+              type="button"
+              onClick={() => handleSelect(st)}
+              className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                segment.status === st ? "bg-stone-light/80 text-volcano" : "hover:bg-stone-light/50 text-gray-600"
+              }`}
+            >
+              <StatusTag status={st} />
+              {segment.status === st && <span className="text-lake font-bold text-xs pr-1">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

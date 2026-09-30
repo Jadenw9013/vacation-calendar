@@ -63,7 +63,14 @@ export const PROVIDERS: ProviderConfig[] = [
 export const CHAT_LIMITS = {
   maxMessageChars: 6000,
   maxMessages: 40,
-  maxOutputTokens: 2000,
+  /**
+   * Gemini 3 "thinks" before answering, and thinking counts toward this cap.
+   * At 2000 it could run out before writing anything (finishReason "length"),
+   * especially on screenshots.
+   */
+  maxOutputTokens: 8000,
+  /** Gemini 3 thinking depth. "low" reads a confirmation fine and spends less quota. */
+  thinkingLevel: "low" as const,
   maxSteps: 4,
   /**
    * SDK-level retries per request. Kept low: every retry spends free-tier

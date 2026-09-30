@@ -81,9 +81,10 @@ const CASES: Case[] = [
     name: "tour",
     file: "tour.jpg",
     text: "Got this from the tour company.",
-    expect: "Matches the existing hike (hike-acatenango), proposes updating its end to Nov 30 ~2 PM (estimated), which needs confirmation because it's booked. No booking ref, email, WhatsApp or name in ops.",
+    expect: "Matches the existing hike (hike-acatenango), proposes updating its end to Nov 30 ~2 PM (estimated), which needs confirmation because it's booked. Owner stays unset or Sam, never the guest name. No booking ref, email, WhatsApp or name in ops.",
     check: (r) => {
       const problems: string[] = [];
+      if (JSON.stringify(opsOf(r)).includes('"owner":"Jordan"')) problems.push("took the owner from the screenshot's guest name");
       if (opsOf(r).some((o) => o.op === "add_segment" && o.segment.kind === "activity")) problems.push("added a duplicate hike");
       if (r.proposals.length && !touches(r, "hike-acatenango")) problems.push("proposal doesn't touch hike-acatenango");
       return problems;
@@ -184,7 +185,8 @@ async function main() {
     for (const e of r.errors) console.log(`   error: ${e}`);
 
     const leaks = FORBIDDEN.filter((f) => JSON.stringify(opsOf(r)).includes(f));
-    const problems = [...(r.errors.length ? ["request failed"] : []), ...leaks.map((l) => `leaked "${l}" into ops`), ...(r.errors.length ? [] : c.check(r))];
+    const silent = !r.errors.length && !r.proposals.length && !r.asks.length && !r.reply.trim();
+    const problems = [...(r.errors.length ? ["request failed"] : []), ...(silent ? ["no response at all"] : []), ...leaks.map((l) => `leaked "${l}" into ops`), ...(r.errors.length ? [] : c.check(r))];
     const verdict = problems.length ? `FAIL: ${problems.join("; ")}` : "PASS";
     console.log(`   checks: ${verdict}\n`);
     summary.push(`${c.name.padEnd(10)} ${verdict}`);

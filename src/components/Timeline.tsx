@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import type { OpenQuestion, Segment } from "@/data/types";
 import type { NightStatus, TimelineDay, TimelineEvent } from "@/lib/derive";
 import { formatMoment, formatTime, monthDay, parseMoment, weekday, type Moment } from "@/lib/time";
 import { useTripChat } from "./chat/ChatProvider";
 import { TodoItem } from "./edit/Controls";
+import { useEditor } from "./edit/EditorProvider";
 import { SegmentDialog } from "./edit/SegmentDialog";
-import { OwnerTag, StatusTag, cardClass } from "./Status";
+import { OwnerTag, StatusDropdown, cardClass } from "./Status";
 
 export type Ghost = "added" | "changed" | "removed";
 
@@ -93,19 +95,30 @@ function untilText(e: TimelineEvent): string | null {
 
 function EventRow({
   e,
+  dayDate,
   tripOffset,
   ghost,
   flash,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+  onDelete,
 }: {
   e: TimelineEvent;
+  dayDate: string;
   tripOffset: string;
   ghost?: Ghost;
   flash: boolean;
+  isDragging: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  onDelete: (s: Segment) => void;
 }) {
   const s = e.segment;
   const zone = zoneNote(e.at, tripOffset);
   const until = untilText(e);
   const isEnd = e.kind === "end";
+  const { busy } = useEditor();
 
   if (isEnd) {
     return (
@@ -118,16 +131,41 @@ function EventRow({
 
   const chrome = ghost
     ? ghost === "removed"
-      ? "border-2 border-dashed border-gray-300 p-3 line-through opacity-60 rounded-xl"
-      : "border-2 border-dashed border-lake bg-white p-3 rounded-xl"
-    : `${cardClass(s.status)} p-3.5`;
+      ? "border-2 border-dashed border-gray-300 p-3.5 line-through opacity-60 rounded-2xl"
+      : "border-2 border-dashed border-lake bg-white p-3.5 rounded-2xl"
+    : `${cardClass(s.status)} p-4`;
 
   return (
-    <li className={`flex flex-col gap-2 transition-all ${flash ? "flash" : ""}`}>
-      <article className={`${chrome} flex flex-col gap-2`}>
+    <li
+      draggable={!ghost}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`flex flex-col gap-2 transition-all group ${flash ? "flash" : ""} ${
+        isDragging ? "opacity-40 scale-98" : ""
+      }`}
+    >
+      <article className={`${chrome} flex flex-col gap-2 relative`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Drag Handle */}
+            {!ghost && (
+              <div
+                className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 transition-colors p-0.5 -ml-1 shrink-0"
+                title="Drag to move this event to another day"
+              >
+                <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="9" cy="6" r="1.5" />
+                  <circle cx="15" cy="6" r="1.5" />
+                  <circle cx="9" cy="12" r="1.5" />
+                  <circle cx="15" cy="12" r="1.5" />
+                  <circle cx="9" cy="18" r="1.5" />
+                  <circle cx="15" cy="18" r="1.5" />
+                </svg>
+              </div>
+            )}
+
             <SegmentIcon kind={s.kind} isGap={s.status === "needs-booking"} />
+
             <div className="min-w-0">
               <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug truncate">
                 {s.title}
@@ -146,21 +184,41 @@ function EventRow({
             </div>
           </div>
 
+          {/* Status Dropdown and Edit/Delete controls */}
           <div className="shrink-0 flex items-center gap-2">
-            <StatusTag status={s.status} />
-            {!ghost && <SegmentDialog mode="edit" segment={s} />}
+            <StatusDropdown segment={s} />
+
+            {!ghost && (
+              <div className="flex items-center gap-1">
+                <SegmentDialog mode="edit" segment={s} />
+
+                {/* Direct quick delete button on card */}
+                <button
+                  type="button"
+                  onClick={() => onDelete(s)}
+                  disabled={busy}
+                  title="Delete event"
+                  aria-label={`Delete ${s.title}`}
+                  className="flex size-7 items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {s.peakElevationM && (
-          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-maya pl-13">
+          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-maya pl-15">
             <span>▲ {s.peakElevationM.toLocaleString("en-US")} m</span>
             <span className="text-gray-400">· {Math.floor(s.peakElevationM * 3.28084).toLocaleString("en-US")} ft summit</span>
           </div>
         )}
 
         {(s.notes || (s.todos && s.todos.length > 0)) && (
-          <div className="pl-13 pt-1 border-t border-stone-border/60 flex flex-col gap-1.5 text-xs text-gray-600">
+          <div className="pl-15 pt-1 border-t border-stone-border/60 flex flex-col gap-1.5 text-xs text-gray-600">
             {s.notes && <p>{s.notes}</p>}
             {s.todos && s.todos.length > 0 && (
               <ul className="flex flex-col gap-1">
@@ -172,7 +230,7 @@ function EventRow({
           </div>
         )}
 
-        <div className="flex items-center justify-between pl-13 text-xs text-gray-400">
+        <div className="flex items-center justify-between pl-15 text-xs text-gray-400">
           <OwnerTag segment={s} />
           <AskButton about={`“${s.title}”`} />
         </div>
@@ -181,10 +239,10 @@ function EventRow({
   );
 }
 
-function Tonight({ night, questions }: { night: NightStatus; questions: OpenQuestion[] }) {
+function Tonight({ night, date }: { night: NightStatus; date: string }) {
   if (night.booked) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-border bg-white p-3.5 shadow-xs">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-border bg-white p-3.5 shadow-xs">
         <div className="flex items-center gap-3 min-w-0">
           <SegmentIcon kind="lodging" isGap={false} />
           <div className="min-w-0">
@@ -197,7 +255,7 @@ function Tonight({ night, questions }: { night: NightStatus; questions: OpenQues
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2">
-          <StatusTag status="booked" />
+          <StatusDropdown segment={night.booked} />
           <SegmentDialog mode="edit" segment={night.booked} />
         </div>
       </div>
@@ -208,7 +266,7 @@ function Tonight({ night, questions }: { night: NightStatus; questions: OpenQues
   const location = planned[0]?.location || "Guatemala City";
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-maya bg-maya-light/60 p-3.5 shadow-xs hover:bg-maya-light/90 transition-colors">
+    <div className="group rounded-2xl border-2 border-dashed border-maya bg-maya-light/60 p-3.5 shadow-xs hover:bg-maya-light/90 transition-all flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
         <SegmentIcon kind="lodging" isGap={true} />
         <div className="min-w-0">
@@ -220,19 +278,17 @@ function Tonight({ night, questions }: { night: NightStatus; questions: OpenQues
           </p>
         </div>
       </div>
-      <div className="shrink-0 flex items-center gap-2">
-        <StatusTag status="needs-booking" />
-        <svg
-          className="size-4 text-maya shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+
+      <div className="shrink-0 flex items-center gap-2.5">
+        {/* Quick action to add lodging for this night */}
+        <SegmentDialog
+          mode="add"
+          initialDate={date}
+          initialKind="lodging"
+          initialLocation={location}
+          triggerLabel="+ Book lodging"
+          triggerClassName="rounded-lg bg-maya px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-maya/90 transition-colors"
+        />
       </div>
     </div>
   );
@@ -251,30 +307,134 @@ export function Timeline({
   ghosts?: Record<string, Ghost>;
   highlight?: Set<string>;
 }) {
+  const { submit } = useEditor();
+  const [draggingSegmentId, setDraggingSegmentId] = useState<string | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+
+  async function handleDelete(s: Segment) {
+    const isBooked = s.status === "booked";
+    const confirmMsg = isBooked
+      ? `“${s.title}” is marked as BOOKED.\n\nAre you sure you want to delete it from the trip?`
+      : `Delete “${s.title}”?`;
+    if (!window.confirm(confirmMsg)) return;
+    await submit([{ op: "remove_segment", id: s.id, confirmBooked: true }]);
+  }
+
+  async function handleDropOnDay(targetDate: string, dataStr: string) {
+    try {
+      const data = JSON.parse(dataStr);
+      if (!data?.segmentId || data.fromDate === targetDate) return;
+
+      const allEvents = days.flatMap((d) => d.events);
+      const ev = allEvents.find((e) => e.segment.id === data.segmentId);
+      if (!ev) return;
+      const s = ev.segment;
+
+      // Retain time & timezone offset if present
+      let newStart: string | null = targetDate;
+      if (s.start && s.start.length > 10) {
+        const timePart = s.start.slice(10);
+        newStart = `${targetDate}${timePart}`;
+      }
+
+      let newEnd: string | null = null;
+      if (s.end && s.start) {
+        const startDate = new Date(s.start.slice(0, 10));
+        const endDate = new Date(s.end.slice(0, 10));
+        const diffMs = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+        const targetDateObj = new Date(targetDate);
+        targetDateObj.setDate(targetDateObj.getDate() + diffDays);
+        const newEndDateStr = targetDateObj.toISOString().slice(0, 10);
+        if (s.end.length > 10) {
+          newEnd = `${newEndDateStr}${s.end.slice(10)}`;
+        } else {
+          newEnd = newEndDateStr;
+        }
+      }
+
+      await submit([
+        {
+          op: "update_segment",
+          id: s.id,
+          changes: {
+            start: newStart,
+            ...(newEnd !== null ? { end: newEnd } : {}),
+          },
+          confirmBooked: true,
+        },
+      ]);
+    } catch (err) {
+      console.error("Failed to move segment:", err);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       {days.map((d) => {
         const elevation = DAY_ELEVATIONS[d.date] || "1,500 m";
+        const isTarget = dragOverDate === d.date;
+
         return (
-          <section key={d.date} id={`day-${d.date}`} className="relative pl-6">
+          <section
+            key={d.date}
+            id={`day-${d.date}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragOverDate !== d.date) setDragOverDate(d.date);
+            }}
+            onDragLeave={(e) => {
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+              if (dragOverDate === d.date) setDragOverDate(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverDate(null);
+              setDraggingSegmentId(null);
+              const dataStr = e.dataTransfer.getData("text/plain");
+              handleDropOnDay(d.date, dataStr);
+            }}
+            className={`relative pl-6 rounded-3xl transition-all duration-200 ${
+              isTarget ? "bg-lake/5 ring-2 ring-dashed ring-lake p-3 -ml-3" : ""
+            }`}
+          >
             {/* Timeline vertical rail line */}
             <div className="absolute left-2.5 top-3 bottom-0 w-0.5 bg-gray-200" aria-hidden="true" />
 
-            {/* Day Header with node dot & elevation */}
-            <div className="relative mb-3 flex items-center justify-between">
+            {/* Day Header with node dot, elevation, and + Add event button */}
+            <div className="relative mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <span className="absolute -left-6 size-3 rounded-full bg-lake ring-4 ring-stone-light" aria-hidden="true" />
                 <h3 className="font-serif font-bold text-lg sm:text-xl text-volcano">
                   {weekday(d.date, true)}, {monthDay(d.date)}
                 </h3>
               </div>
-              <div className="flex items-center gap-1 font-mono text-xs font-medium text-gray-500">
-                <svg className="size-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-                </svg>
-                <span>{elevation}</span>
+
+              <div className="flex items-center gap-2.5">
+                {/* Elevation Badge */}
+                <div className="flex items-center gap-1 font-mono text-xs font-medium text-gray-500">
+                  <svg className="size-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+                  </svg>
+                  <span>{elevation}</span>
+                </div>
+
+                {/* Easy + Add event to this day button */}
+                <SegmentDialog
+                  mode="add"
+                  initialDate={d.date}
+                  triggerLabel="+ Add event"
+                  triggerClassName="inline-flex items-center gap-1 rounded-lg border border-stone-border bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:border-lake hover:text-lake hover:bg-stone-light/50 transition-colors shadow-xs"
+                />
               </div>
             </div>
+
+            {/* Drop Indicator Zone when dragging over */}
+            {isTarget && (
+              <div className="mb-3 rounded-2xl border-2 border-dashed border-lake bg-lake/10 p-3 text-center text-xs font-semibold text-lake animate-pulse">
+                Drop to move event to {weekday(d.date, true)}, {monthDay(d.date)}
+              </div>
+            )}
 
             {/* Day Events list */}
             <div className="flex flex-col gap-3">
@@ -284,16 +444,30 @@ export function Timeline({
                     <EventRow
                       key={`${e.segment.id}-${e.kind}`}
                       e={e}
+                      dayDate={d.date}
                       tripOffset={tripOffset}
                       ghost={ghosts[e.segment.id]}
                       flash={!!highlight?.has(e.segment.id)}
+                      isDragging={draggingSegmentId === e.segment.id}
+                      onDragStart={(evt) => {
+                        evt.dataTransfer.setData(
+                          "text/plain",
+                          JSON.stringify({ segmentId: e.segment.id, fromDate: d.date })
+                        );
+                        setDraggingSegmentId(e.segment.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggingSegmentId(null);
+                        setDragOverDate(null);
+                      }}
+                      onDelete={handleDelete}
                     />
                   ))}
                 </ol>
               ) : null}
 
               {/* Tonight slot: either booked or No lodging booked dashed card */}
-              <Tonight night={d.night} questions={questions} />
+              <Tonight night={d.night} date={d.date} />
             </div>
           </section>
         );

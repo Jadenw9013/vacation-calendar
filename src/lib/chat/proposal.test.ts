@@ -79,6 +79,12 @@ describe("buildProposal", () => {
     expect(p.redacted).toEqual(expect.arrayContaining(["confirmation", "phone-or-card"]));
   });
 
+  it("reports a missing op field as an issue instead of dropping it", () => {
+    const p = buildProposal(state(), "x", [{ id: "flight-out", changes: { notes: "x" } } as FlatOp]);
+    expect(p.status).toBe("invalid");
+    expect(p.issues[0].message).toContain('"op"');
+  });
+
   it("returns issues the model can act on", () => {
     expect(buildProposal(state(), "x", [{ op: "remove_segment" }]).issues[0].message).toContain("needs id");
     expect(buildProposal(state(), "x", [{ op: "remove_segment", id: "nope" }]).status).toBe("invalid");

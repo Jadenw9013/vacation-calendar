@@ -189,6 +189,7 @@ async function main() {
           stopWhen: isStepCount(CHAT_LIMITS.maxSteps),
           maxOutputTokens: CHAT_LIMITS.maxOutputTokens,
           maxRetries: CHAT_LIMITS.maxRetries,
+          providerOptions: { google: { thinkingConfig: { thinkingLevel: CHAT_LIMITS.thinkingLevel } } },
         }),
       );
       messages.push(...res.response.messages);
