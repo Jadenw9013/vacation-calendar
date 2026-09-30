@@ -1,69 +1,64 @@
-import Image from "next/image";
+import { Countdown } from "@/components/Countdown";
+import { GapList } from "@/components/GapList";
+import { NightStrip } from "@/components/NightStrip";
+import { StillToBook } from "@/components/StillToBook";
+import { Timeline } from "@/components/Timeline";
+import { trip } from "@/data/trip";
+import { computeGaps, nightCoverage, stillToBook, timeline, validateTrip } from "@/lib/derive";
+import { monthDay } from "@/lib/time";
 
 export default function Home() {
+  // Fail the build on a broken data file instead of shipping a wrong page.
+  const errors = validateTrip(trip);
+  if (errors.length) throw new Error(`src/data/trip.ts has problems:\n- ${errors.join("\n- ")}`);
+
+  const nights = nightCoverage(trip);
+  const gaps = computeGaps(trip);
+  const toBook = stillToBook(trip);
+  const unbookedNights = nights.filter((n) => !n.booked).length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-24">
+      <header className="mb-6">
+        <h1 className="wide text-5xl leading-none">{trip.name}</h1>
+        <p className="mt-2 font-mono text-lg">
+          {monthDay(trip.firstDay)} – {monthDay(trip.lastDay)}, {trip.firstDay.slice(0, 4)}
+        </p>
+        <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+          <Countdown firstDay={trip.firstDay} lastDay={trip.lastDay} />
+          <span className={unbookedNights ? "hazard-label px-1 font-bold" : "font-semibold text-lake"}>
+            {unbookedNights === 0
+              ? "Every night booked"
+              : `${unbookedNights} of ${nights.length} nights with no bed`}
+          </span>
+          <span className="text-pumice">
+            Party size: {trip.partySize ?? "not confirmed"}
+          </span>
+        </p>
+      </header>
+
+      <NightStrip nights={nights} />
+
+      <section aria-labelledby="gaps" className="mt-10">
+        <h2 id="gaps" className="wide mb-4 text-3xl">
+          Gaps <span className="font-mono text-xl font-normal text-pumice">{gaps.length}</span>
+        </h2>
+        <GapList gaps={gaps} segments={trip.segments} />
+      </section>
+
+      <section aria-labelledby="timeline" className="mt-14">
+        <h2 id="timeline" className="wide mb-4 text-3xl">
+          Day by day
+        </h2>
+        <Timeline days={timeline(trip)} tripOffset={trip.utcOffset} questions={trip.openQuestions} />
+      </section>
+
+      <section aria-labelledby="to-book" className="mt-14">
+        <h2 id="to-book" className="wide mb-4 text-3xl">
+          Still to book <span className="font-mono text-xl font-normal text-pumice">{toBook.length}</span>
+        </h2>
+        <StillToBook rows={toBook} trip={trip} />
+      </section>
+    </main>
   );
 }

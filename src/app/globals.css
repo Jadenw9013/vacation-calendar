@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
+/* Palette and roles: see docs/DESIGN.md */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --ash: #f2f3f1;
+  --basalt: #15181b;
+  --pumice: #5e676e;
+  --scree: #d5d9db;
+  --lake: #0e5a6b;
+  --on-lake: #ffffff;
+  --hazard: #ffd400;
+  --on-hazard: #15181b;
+  --ember: #c8321e;
+  --card: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ash: #111417;
+    --basalt: #eceff0;
+    --pumice: #9aa4aa;
+    --scree: #2a3035;
+    --lake: #4db3c6;
+    --on-lake: #0b1e23;
+    --ember: #ff6a4d;
+    --card: #181c20;
   }
 }
 
+@theme inline {
+  --color-ash: var(--ash);
+  --color-basalt: var(--basalt);
+  --color-pumice: var(--pumice);
+  --color-scree: var(--scree);
+  --color-lake: var(--lake);
+  --color-on-lake: var(--on-lake);
+  --color-hazard: var(--hazard);
+  --color-on-hazard: var(--on-hazard);
+  --color-ember: var(--ember);
+  --color-card: var(--card);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 4rem; /* clear the sticky day header */
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ash);
+  color: var(--basalt);
+}
+
+/* Expanded Archivo for headers: map lettering / trail signage. */
+.wide {
+  font-variation-settings: "wdth" 125;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Caution tape. Always paired with words, never color alone. */
+.hazard {
+  color: #15181b;
+  background: repeating-linear-gradient(
+    -45deg,
+    #ffd400 0 10px,
+    #ffd400 10px 16px,
+    #15181b 16px 19px,
+    #ffd400 19px 26px
+  );
+}
+
+/* A solid label that stays readable on top of the stripes. */
+.hazard-label {
+  background: #ffd400;
+  color: #15181b;
 }

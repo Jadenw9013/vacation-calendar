@@ -34,6 +34,8 @@ export interface Segment {
   cost?: Money;
   notes?: string;
   todos?: string[];
+  /** Highest point, in metres, for activities that climb. Shown as a summit marker. */
+  peakElevationM?: number;
   /**
    * Set on a non-lodging segment that includes somewhere to sleep, so the
    * night check counts it. Example: the Acatenango hike camps overnight.

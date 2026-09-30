@@ -52,8 +52,9 @@ export const trip: Trip = {
       status: "booked",
       location: "Meet at 2 calle oriente #22, Antigua Guatemala",
       includesLodging: true,
+      peakElevationM: 3976,
       notes:
-        "Summit 3,976 m (13,044 ft). Be on time for the 6:30 AM start. Operator reachable 8 AM–3 PM at info@wichoandcharlies.com. Near freezing at the summit overnight. No alcohol the night before; hydrate.",
+        "Be on time for the 6:30 AM start. Operator reachable 8 AM–3 PM at info@wichoandcharlies.com. Near freezing at the summit overnight. No alcohol the night before; hydrate.",
       todos: [
         "Confirm return time on Nov 30 with the operator",
         "Confirm what the operator provides vs. what we rent or bring: tent, sleeping bag, jacket, headlamp, gloves, water",
