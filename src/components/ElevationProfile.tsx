@@ -1,70 +1,51 @@
 "use client";
 
-interface ElevationProfileProps {
-  days: { date: string; elevationM?: number }[];
-}
+import type { DayInfo } from "@/lib/places";
+import { weekday } from "@/lib/time";
 
-const DEFAULT_ELEVATIONS: Record<string, number> = {
-  "2026-11-24": 1502, // Guatemala City
-  "2026-11-25": 1562, // Lake Atitlán
-  "2026-11-26": 1562, // Lake Atitlán
-  "2026-11-27": 1530, // Antigua
-  "2026-11-28": 1530, // Antigua
-  "2026-11-29": 3976, // Acatenango summit
-  "2026-11-30": 1502, // Guatemala City
-};
+const MIN_M = 1000;
+const MAX_M = 4000;
 
-export function ElevationProfile({ days }: ElevationProfileProps) {
-  // 4000m down to 1000m scale
-  const minM = 800;
-  const maxM = 4200;
-
+/**
+ * Desktop side rail: one row per day, bar length = how high you'll be, from
+ * the trip data (see src/lib/places.ts). The summit day stands out. Each row
+ * jumps to its day.
+ */
+export function ElevationProfile({ days }: { days: DayInfo[] }) {
   return (
-    <aside aria-label="Trip elevation profile" className="relative flex w-20 shrink-0 select-none flex-col justify-between py-6 pr-2">
-      {/* Altitude labels */}
-      <div className="flex flex-col justify-between h-full text-[11px] font-mono font-medium text-gray-400">
-        <div className="flex items-center gap-1.5">
-          <span className="w-12 text-right">4,000 m</span>
-          <span className="h-px w-2 bg-gray-200" />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-12 text-right">3,000 m</span>
-          <span className="h-px w-2 bg-gray-200" />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-12 text-right">2,000 m</span>
-          <span className="h-px w-2 bg-gray-200" />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-12 text-right">1,000 m</span>
-          <span className="h-px w-2 bg-gray-200" />
-        </div>
-      </div>
-
-      {/* Vertical spline line representing the elevation profile */}
-      <svg
-        className="pointer-events-none absolute right-0 top-6 bottom-6 w-6 h-[calc(100%-3rem)]"
-        viewBox="0 0 24 600"
-        preserveAspectRatio="none"
-        fill="none"
-      >
-        <path
-          d="M 12 500 Q 14 460, 10 400 T 12 300 Q 8 200, 16 90 T 12 10"
-          stroke="#0F766E"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {/* Acatenango peak marker */}
-        <circle cx="16" cy="90" r="3.5" fill="#C2410C" />
-        <circle cx="12" cy="500" r="3" fill="#0F766E" />
-        <circle cx="10" cy="400" r="3" fill="#0F766E" />
-        <circle cx="12" cy="300" r="3" fill="#0F766E" />
-      </svg>
-    </aside>
+    <nav aria-label="Elevation by day" className="w-36 select-none py-2">
+      <p className="mb-2 px-1 text-[11px] font-semibold tracking-wide text-gray-400">Altitude</p>
+      <ol className="flex flex-col gap-1.5">
+        {days.map((d) => {
+          const m = d.elevationM;
+          const pct = m ? Math.max(6, Math.min(100, ((m - MIN_M) / (MAX_M - MIN_M)) * 100)) : 0;
+          return (
+            <li key={d.date}>
+              <a
+                href={`#day-${d.date}`}
+                title={m ? `${d.peak ? "Summit" : d.place ?? ""} · ${m.toLocaleString("en-US")} m` : "Unknown"}
+                className="group flex items-center gap-2 rounded-md px-1 py-0.5 hover:bg-white/70"
+              >
+                <span className="w-9 shrink-0 font-mono text-[10px] text-gray-400 group-hover:text-volcano">
+                  {weekday(d.date)} {Number(d.date.slice(8))}
+                </span>
+                <span className="relative h-1.5 flex-1 rounded-full bg-gray-200">
+                  {m && (
+                    <span
+                      className={`absolute inset-y-0 left-0 rounded-full ${d.peak ? "bg-maya" : "bg-lake/70"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </span>
+                <span className={`w-9 shrink-0 text-right font-mono text-[10px] ${d.peak ? "font-bold text-maya" : "text-gray-400"}`}>
+                  {m ? `${(m / 1000).toFixed(1)}k` : "—"}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-2 px-1 text-[10px] leading-snug text-gray-400">Metres. Towns are approximate; the summit is from the booking.</p>
+    </nav>
   );
-}
-
-export function dayElevation(date: string): number {
-  return DEFAULT_ELEVATIONS[date] ?? 1500;
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { OpenQuestion, Segment } from "@/data/types";
 import type { NightStatus, TimelineDay, TimelineEvent } from "@/lib/derive";
+import type { DayInfo } from "@/lib/places";
 import { formatMoment, formatTime, monthDay, parseMoment, weekday, type Moment } from "@/lib/time";
 import { useTripChat } from "./chat/ChatProvider";
 import { TodoItem } from "./edit/Controls";
@@ -16,16 +17,6 @@ const GHOST_LABEL: Record<Ghost, string> = {
   added: "Proposed",
   changed: "Proposed change",
   removed: "Would be removed",
-};
-
-const DAY_ELEVATIONS: Record<string, string> = {
-  "2026-11-24": "1,502 m",
-  "2026-11-25": "1,562 m",
-  "2026-11-26": "1,562 m",
-  "2026-11-27": "1,530 m",
-  "2026-11-28": "1,530 m",
-  "2026-11-29": "3,976 m",
-  "2026-11-30": "1,502 m",
 };
 
 export function AskButton({ about }: { about: string }) {
@@ -79,6 +70,13 @@ function SegmentIcon({ kind, isGap }: { kind: string; isGap?: boolean }) {
   );
 }
 
+const END_VERB: Record<Segment["kind"], string> = {
+  lodging: "Checkout:",
+  flight: "Lands:",
+  activity: "Back from",
+  transport: "Arrives:",
+};
+
 function zoneNote(m: Moment, tripOffset: string): string | null {
   if (!m.offset || m.offset === tripOffset) return null;
   const [h, min] = m.offset.slice(1).split(":");
@@ -124,7 +122,7 @@ function EventRow({
     return (
       <li className="flex items-center gap-3 py-1 pl-14 text-xs text-gray-500">
         <span className="font-mono">{e.at.time ? formatTime(e.at) : "TBD"}</span>
-        <span>{s.kind === "flight" ? "Lands" : "Checkout"}: {s.title}</span>
+        <span>{END_VERB[s.kind]} {s.title}</span>
       </li>
     );
   }
@@ -145,12 +143,14 @@ function EventRow({
       }`}
     >
       <article className={`${chrome} flex flex-col gap-2 relative`}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+        {ghost && <p className="text-[11px] font-bold tracking-wide text-lake no-underline">{GHOST_LABEL[ghost]}</p>}
+        {/* Wraps on narrow screens: the controls drop under the title instead of squeezing it to "Alas…". */}
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1 basis-56">
             {/* Drag Handle */}
             {!ghost && (
               <div
-                className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 transition-colors p-0.5 -ml-1 shrink-0"
+                className="hidden sm:block mt-3 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-600 transition-colors p-0.5 -ml-1 shrink-0"
                 title="Drag to move this event to another day"
               >
                 <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
@@ -167,10 +167,10 @@ function EventRow({
             <SegmentIcon kind={s.kind} isGap={s.status === "needs-booking"} />
 
             <div className="min-w-0">
-              <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug truncate">
+              <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug">
                 {s.title}
               </h4>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-gray-500">
                 {e.at.time && (
                   <span className="font-mono font-medium text-gray-700">
                     {formatTime(e.at)}
@@ -185,7 +185,7 @@ function EventRow({
           </div>
 
           {/* Status Dropdown and Edit/Delete controls */}
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="ml-auto shrink-0 flex items-center gap-2">
             <StatusDropdown segment={s} />
 
             {!ghost && (
@@ -211,14 +211,14 @@ function EventRow({
         </div>
 
         {s.peakElevationM && (
-          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-maya pl-15">
+          <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-maya sm:pl-15">
             <span>▲ {s.peakElevationM.toLocaleString("en-US")} m</span>
             <span className="text-gray-400">· {Math.floor(s.peakElevationM * 3.28084).toLocaleString("en-US")} ft summit</span>
           </div>
         )}
 
         {(s.notes || (s.todos && s.todos.length > 0)) && (
-          <div className="pl-15 pt-1 border-t border-stone-border/60 flex flex-col gap-1.5 text-xs text-gray-600">
+          <div className="sm:pl-15 pt-1 border-t border-stone-border/60 flex flex-col gap-1.5 text-xs text-gray-600">
             {s.notes && <p>{s.notes}</p>}
             {s.todos && s.todos.length > 0 && (
               <ul className="flex flex-col gap-1">
@@ -230,37 +230,24 @@ function EventRow({
           </div>
         )}
 
-        <div className="flex items-center justify-between pl-15 text-xs text-gray-400">
+        <div className="flex items-center justify-between sm:pl-15 text-xs text-gray-400">
           <OwnerTag segment={s} />
-          <AskButton about={`“${s.title}”`} />
+          <span className="ml-auto">
+            <AskButton about={`“${s.title}”`} />
+          </span>
         </div>
       </article>
     </li>
   );
 }
 
-function Tonight({ night, date }: { night: NightStatus; date: string }) {
-  if (night.booked) {
-    return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-stone-border bg-white p-3.5 shadow-xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <SegmentIcon kind="lodging" isGap={false} />
-          <div className="min-w-0">
-            <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug truncate">
-              {night.booked.title}
-            </h4>
-            <p className="text-xs text-gray-500">
-              {night.booked.location} · 1 night
-            </p>
-          </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-2">
-          <StatusDropdown segment={night.booked} />
-          <SegmentDialog mode="edit" segment={night.booked} />
-        </div>
-      </div>
-    );
-  }
+function Tonight({ night, date }: { night: NightStatus | null; date: string }) {
+  // Last day: flying home, nothing to cover.
+  if (!night) return null;
+
+  // Booked nights: the stay's card is on its check-in day, and every day's
+  // summary line already says where you sleep ("night 2 of 2"). Nothing to add.
+  if (night.booked) return null;
 
   const planned = night.planned;
   const location = planned[0]?.location || "Guatemala City";
@@ -270,7 +257,7 @@ function Tonight({ night, date }: { night: NightStatus; date: string }) {
       <div className="flex items-center gap-3 min-w-0">
         <SegmentIcon kind="lodging" isGap={true} />
         <div className="min-w-0">
-          <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug truncate">
+          <h4 className="font-semibold text-volcano text-sm sm:text-base leading-snug">
             No lodging booked
           </h4>
           <p className="text-xs text-maya font-medium">
@@ -294,13 +281,37 @@ function Tonight({ night, date }: { night: NightStatus; date: string }) {
   );
 }
 
+/** One line under the day title: where you are and where you sleep. */
+function DaySummary({ info }: { info: DayInfo }) {
+  const s = info.sleep;
+  const where = info.place ? `${info.place} · ` : "";
+  if (s.kind === "home") return <p className="text-xs text-gray-500">{where}Flying home</p>;
+  if (s.kind === "open") {
+    return (
+      <p className="text-xs font-medium text-maya">
+        {where}No bed booked yet{s.location ? ` (${s.location})` : ""}
+      </p>
+    );
+  }
+  return (
+    <p className="text-xs text-gray-500">
+      {where}
+      {s.segment.includesLodging ? "Camping: " : "Sleep: "}
+      {s.segment.title}
+      {s.of > 1 && <span className="text-gray-400"> · night {s.night} of {s.of}</span>}
+    </p>
+  );
+}
+
 export function Timeline({
   days,
   tripOffset,
   questions,
   ghosts = {},
   highlight,
+  info = [],
 }: {
+  info?: DayInfo[];
   days: TimelineDay[];
   tripOffset: string;
   questions: OpenQuestion[];
@@ -372,7 +383,7 @@ export function Timeline({
   return (
     <div className="flex flex-col gap-10">
       {days.map((d) => {
-        const elevation = DAY_ELEVATIONS[d.date] || "1,500 m";
+        const di = info.find((x) => x.date === d.date);
         const isTarget = dragOverDate === d.date;
 
         return (
@@ -403,21 +414,32 @@ export function Timeline({
 
             {/* Day Header with node dot, elevation, and + Add event button */}
             <div className="relative mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="absolute -left-6 size-3 rounded-full bg-lake ring-4 ring-stone-light" aria-hidden="true" />
-                <h3 className="font-serif font-bold text-lg sm:text-xl text-volcano">
-                  {weekday(d.date, true)}, {monthDay(d.date)}
-                </h3>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2.5">
+                  <span className="absolute -left-6 top-2 size-3 rounded-full bg-lake ring-4 ring-stone-light" aria-hidden="true" />
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-volcano">
+                    {weekday(d.date, true)}, {monthDay(d.date)}
+                  </h3>
+                </div>
+                {di && <DaySummary info={di} />}
               </div>
 
               <div className="flex items-center gap-2.5">
                 {/* Elevation Badge */}
-                <div className="flex items-center gap-1 font-mono text-xs font-medium text-gray-500">
-                  <svg className="size-3.5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-                  </svg>
-                  <span>{elevation}</span>
-                </div>
+                {di?.elevationM && (
+                  <div
+                    className={`flex items-center gap-1 font-mono text-xs font-medium ${di.peak ? "text-maya" : "text-gray-500"}`}
+                    title={di.peak ? "Summit" : `Approximate elevation, ${di.place}`}
+                  >
+                    <svg className="size-3.5 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
+                    </svg>
+                    <span>
+                      {di.peak ? "" : "~"}
+                      {di.elevationM.toLocaleString("en-US")} m
+                    </span>
+                  </div>
+                )}
 
                 {/* Easy + Add event to this day button */}
                 <SegmentDialog

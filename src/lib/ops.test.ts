@@ -194,6 +194,18 @@ describe("resolve_question", () => {
   });
 });
 
+describe("update_trip", () => {
+  it("moves the last day and sets party size, and undoes", () => {
+    const r = roundTrip([{ op: "update_trip", changes: { lastDay: "2026-12-02", partySize: 4 } }]);
+    expect(r.trip).toMatchObject({ lastDay: "2026-12-02", partySize: 4 });
+  });
+
+  it("rejects a last day on or before the first day", () => {
+    const r = prepareChange(base(), [{ op: "update_trip", changes: { lastDay: "2026-11-24" } }], meta);
+    expect(r.ok).toBe(false);
+  });
+});
+
 describe("batches", () => {
   it("applies several ops in order and undoes them in reverse", () => {
     const r = roundTrip([

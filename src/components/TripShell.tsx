@@ -6,6 +6,7 @@ import type { Trip } from "@/data/types";
 import { previewTrip } from "@/lib/chat/proposal";
 import { computeGaps, nightCoverage, stillToBook, timeline, unanswered } from "@/lib/derive";
 import { monthDay } from "@/lib/time";
+import { dayInfo } from "@/lib/places";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatProvider, useTripChat } from "./chat/ChatProvider";
 import { Countdown } from "./Countdown";
@@ -13,7 +14,7 @@ import { EditBar } from "./edit/EditBar";
 import { EditorProvider, useEditor } from "./edit/EditorProvider";
 import { WhoPicker } from "./edit/WhoPicker";
 import { ElevationProfile } from "./ElevationProfile";
-import { GapBanner } from "./GapBanner";
+import { GapSummary } from "./GapBanner";
 import { NightStrip } from "./NightStrip";
 import { StillToBook } from "./StillToBook";
 import { Timeline, type Ghost } from "./Timeline";
@@ -56,7 +57,7 @@ function usePreview(trip: Trip, version: number) {
     for (const s of removed) ghosts[s.id] = "removed";
 
     const nights = nightCoverage(preview);
-    const days = timeline({ ...preview, segments: [...preview.segments, ...removed] }).map((d, i) => ({ ...d, night: nights[i] }));
+    const days = timeline({ ...preview, segments: [...preview.segments, ...removed] }).map((d, i) => ({ ...d, night: nights[i] ?? null }));
     return { days, ghosts, previewing: true };
   }, [pending, trip, version]);
 }
@@ -69,6 +70,7 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
 
   const nights = nightCoverage(trip);
   const gaps = computeGaps(trip);
+  const info = dayInfo(trip);
   const toBook = stillToBook(trip);
   const unbookedNights = nights.filter((n) => !n.booked).length;
 
@@ -229,14 +231,9 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/30" />
             <div className="absolute top-4 right-4 sm:top-5 sm:right-6 max-w-xs text-right">
               <p className="font-serif italic text-base sm:text-lg text-white font-medium drop-shadow-md leading-snug">
-                Seven days. Three volcanoes. A lot to look forward to.
+                Seven nights. Three volcanoes. A lot to look forward to.
               </p>
             </div>
-          </div>
-
-          {/* Gap Alert Notification Banner */}
-          <div className="mb-6">
-            <GapBanner gaps={gaps} segments={trip.segments} />
           </div>
 
           {/* Edit Toolbar & notices */}
@@ -247,12 +244,15 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
             <>
               {/* Night Strip & trip countdown summary */}
               <div className="mb-8">
-                <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1 px-1">
-                  <Countdown firstDay={trip.firstDay} lastDay={trip.lastDay} />
-                  <span className="text-xs text-gray-500">
-                    {unbookedNights === 0 ? "All nights booked" : `${unbookedNights} of ${nights.length} nights unbooked`}
-                    {" · "}Party size: {trip.partySize ?? "TBD"}
-                  </span>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-2 px-1">
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    <Countdown firstDay={trip.firstDay} lastDay={trip.lastDay} />
+                    <span className="text-xs text-gray-500">
+                      {unbookedNights === 0 ? "All nights booked" : `${unbookedNights} of ${nights.length} nights without a bed`}
+                      {" · "}Party of {trip.partySize ?? "?"}
+                    </span>
+                  </div>
+                  <GapSummary gaps={gaps} segments={trip.segments} />
                 </div>
                 <NightStrip nights={nights} />
               </div>
@@ -268,7 +268,7 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
                 <div className="flex items-start gap-4">
                   {/* Elevation axis spline on Desktop */}
                   <div className="hidden lg:block shrink-0 sticky top-6">
-                    <ElevationProfile days={days} />
+                    <ElevationProfile days={info} />
                   </div>
 
                   {/* Day by Day Cards */}
@@ -279,6 +279,7 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
                       questions={unanswered(trip)}
                       ghosts={ghosts}
                       highlight={highlight}
+                      info={info}
                     />
                   </div>
                 </div>
@@ -321,7 +322,9 @@ function TripPage({ trip, version, devNotes, knownNames }: Props) {
         <div className="flex items-center gap-2">
           <span>GUATEMALA</span>
           <span className="text-gray-400">·</span>
-          <span className="text-gray-300">NOV 24 – 30, 2026</span>
+          <span className="text-gray-300 uppercase">
+            {monthDay(trip.firstDay)} – {monthDay(trip.lastDay)}, {trip.firstDay.slice(0, 4)}
+          </span>
         </div>
         <div className="flex items-center gap-2.5 text-gray-300">
           <span>SAME FRIENDS. HIGHER PLACES.</span>

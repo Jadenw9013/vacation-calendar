@@ -14,6 +14,7 @@ const MARK: Record<Op["op"], string> = {
   add_todo: "+",
   complete_todo: "✓",
   resolve_question: "✓",
+  update_trip: "~",
 };
 
 /** Segment ids a proposal adds or changes, for the post-apply flash. */

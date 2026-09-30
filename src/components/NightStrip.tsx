@@ -28,7 +28,15 @@ export function NightStrip({ nights }: { nights: NightStatus[] }) {
                   <span className="font-mono text-base sm:text-lg font-bold">{day}</span>
                 </div>
                 <span className="text-[10px] font-semibold uppercase tracking-wider">
-                  {n.booked ? "Booked" : "No bed"}
+                  {n.booked ? (
+                    <>
+                      {/* "Booked" doesn't fit a phone-width cell; the solid fill plus a tick says it. */}
+                      <span className="sm:hidden" aria-hidden="true">✓</span>
+                      <span className="hidden sm:inline">Booked</span>
+                    </>
+                  ) : (
+                    "No bed"
+                  )}
                 </span>
               </a>
             </li>

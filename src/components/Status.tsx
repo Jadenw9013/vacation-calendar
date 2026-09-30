@@ -125,7 +125,8 @@ export function StatusDropdown({ segment }: { segment: Segment }) {
 
 export function OwnerTag({ segment }: { segment: Segment }) {
   if (segment.status === "booked") {
-    return <span className="text-xs text-gray-500">Booked by {segment.owner ?? "—"}</span>;
+    // Nothing to say when nobody's recorded: an empty "Booked by —" on every card is noise.
+    return segment.owner ? <span className="text-xs text-gray-500">Booked by {segment.owner}</span> : null;
   }
   return segment.owner ? (
     <span className="text-xs text-gray-500">{segment.owner} is on it</span>

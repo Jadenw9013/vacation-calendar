@@ -8,7 +8,7 @@ function makeTrip(segments: Segment[], overrides: Partial<Trip> = {}): Trip {
   return {
     name: "Test",
     firstDay: "2026-11-24",
-    lastDay: "2026-11-26",
+    lastDay: "2026-11-27", // departure day: nights are Nov 24, 25, 26
     homeAirport: "SEA",
     utcOffset: "-06:00",
     partySize: null,
@@ -211,7 +211,9 @@ describe("timeline", () => {
       "2026-11-28",
       "2026-11-29",
       "2026-11-30",
+      "2026-12-01",
     ]);
+    expect(days.at(-1)!.night).toBeNull(); // flying home, no night
     const nov26 = days[2].events.map((e) => [e.segment.id, e.kind]);
     expect(nov26).toContainEqual(["lodging-atitlan", "end"]);
     expect(days.flatMap((d) => d.events).some((e) => e.segment.id === "lodging-nov24")).toBe(false);

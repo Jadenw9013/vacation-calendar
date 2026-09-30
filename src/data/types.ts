@@ -57,7 +57,10 @@ export interface Trip {
   name: string;
   /** First day shown on the timeline, "YYYY-MM-DD". */
   firstDay: string;
-  /** Last day shown on the timeline, "YYYY-MM-DD". */
+  /**
+   * Last day shown on the timeline, "YYYY-MM-DD": the day you fly home.
+   * Nights are counted up to the night before it.
+   */
   lastDay: string;
   homeAirport: string;
   /** UTC offset of the destination, used to find local midnight for the night check. */

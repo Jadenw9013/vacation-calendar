@@ -85,8 +85,13 @@ function flyingThroughNight(s: Segment, date: string, utcOffset: string): boolea
   return a < midnight && b > midnight;
 }
 
+/** The nights of the trip: first day through the night before the last day. */
+export function tripNights(trip: Trip): string[] {
+  return dayRange(trip.firstDay, addDays(trip.lastDay, -1));
+}
+
 export function nightCoverage(trip: Trip): NightStatus[] {
-  return dayRange(trip.firstDay, trip.lastDay).map((date) => {
+  return tripNights(trip).map((date) => {
     const booked =
       trip.segments.find(
         (s) =>
@@ -287,7 +292,8 @@ export interface TimelineEvent {
 export interface TimelineDay {
   date: string;
   events: TimelineEvent[];
-  night: NightStatus;
+  /** null on the last day: you fly home, there's no night to cover. */
+  night: NightStatus | null;
 }
 
 /**
@@ -312,14 +318,19 @@ export function timeline(trip: Trip): TimelineDay[] {
         }
       }
     }
-    // Known times first in time order; "time TBD" items after them.
+    // Known times first in time order; "time TBD" items after them. Among
+    // untimed items, getting somewhere comes before staying there.
+    const ORDER: Record<Segment["kind"], number> = { flight: 0, transport: 1, activity: 2, lodging: 3 };
     events.sort((a, b) => {
-      if (a.at.time === null && b.at.time === null) return 0;
+      if (a.at.time === null && b.at.time === null) {
+        if (a.kind !== b.kind) return a.kind === "end" ? -1 : 1; // checkouts before new arrivals
+        return ORDER[a.segment.kind] - ORDER[b.segment.kind];
+      }
       if (a.at.time === null) return 1;
       if (b.at.time === null) return -1;
       return a.at.time < b.at.time ? -1 : a.at.time > b.at.time ? 1 : 0;
     });
-    return { date, events, night: nights[i] };
+    return { date, events, night: nights[i] ?? null };
   });
 }
 

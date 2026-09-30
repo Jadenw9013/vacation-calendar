@@ -125,6 +125,20 @@ export const OpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("complete_todo"), target: TodoTarget, text: TodoText }).strict(),
   z
     .object({
+      op: z.literal("update_trip"),
+      /** Trip-level settings. Manual edits only: not offered to the planner. */
+      changes: z
+        .object({
+          lastDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD"),
+          partySize: z.number().int().positive().max(30).nullable(),
+        })
+        .partial()
+        .strict()
+        .refine((c) => Object.keys(c).length > 0, "No fields to change"),
+    })
+    .strict(),
+  z
+    .object({
       op: z.literal("resolve_question"),
       id: z.string().min(1).max(64),
       /** The decision. null reopens the question. */
@@ -328,6 +342,28 @@ export function applyOp(trip: Trip, op: Op): Applied {
         trip: set(trip, list.filter((_, j) => j !== at)),
         inverse: [{ op: "add_todo", target: op.target, text: op.text, index: at }],
         description: `Tick off for ${label}: “${op.text}”`,
+      };
+    }
+
+    case "update_trip": {
+      const c = op.changes;
+      if (c.lastDay !== undefined && c.lastDay <= trip.firstDay) {
+        throw new OpError("invalid", "The last day has to be after the first day.");
+      }
+      const before: { lastDay?: string; partySize?: number | null } = {};
+      const lines: string[] = [];
+      if (c.lastDay !== undefined) {
+        before.lastDay = trip.lastDay;
+        lines.push(`last day ${formatDay(trip.lastDay)} → ${formatDay(c.lastDay)}`);
+      }
+      if (c.partySize !== undefined) {
+        before.partySize = trip.partySize;
+        lines.push(`party size ${trip.partySize ?? "—"} → ${c.partySize ?? "—"}`);
+      }
+      return {
+        trip: { ...trip, ...c },
+        inverse: [{ op: "update_trip", changes: before }],
+        description: `Change the trip: ${lines.join("; ")}`,
       };
     }
 

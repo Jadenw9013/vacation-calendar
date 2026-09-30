@@ -15,7 +15,7 @@ import type { Trip } from "./types";
 export const trip: Trip = {
   name: "Guatemala",
   firstDay: "2026-11-24",
-  lastDay: "2026-11-30",
+  lastDay: "2026-12-01", // departure day; nights run Nov 24 – Nov 30
   homeAirport: "SEA",
   utcOffset: "-06:00", // Guatemala, no DST
   partySize: null, // TODO: confirm. Affects lodging and shuttle bookings.
