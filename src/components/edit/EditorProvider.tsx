@@ -27,17 +27,38 @@ function subscribeAuthor(cb: () => void) {
 
 export type Notice = { kind: "ok" | "error"; text: string; canUndo?: boolean };
 
+export type ApplyOutcome =
+  | { kind: "applied"; entry: ChangeEntry }
+  | { kind: "conflict" }
+  | { kind: "rejected"; issues: OpIssue[] }
+  | { kind: "cancelled" }
+  | { kind: "error"; message: string };
+
+export interface ApplyOptions {
+  /** Version the ops were prepared against. Defaults to the version on screen. */
+  expectedVersion?: number;
+  /** The person already confirmed touching booked items (e.g. on a proposal card). */
+  confirmed?: boolean;
+}
+
 interface Editor {
   version: number;
   tripOffset: string;
   author: string;
   setAuthor: (name: string) => void;
+  /** True while the who's-talking picker should show. */
+  pickerOpen: boolean;
+  openPicker: () => void;
   /** Sends ops; asks for confirmation when a booked item is touched. Resolves true when applied. */
   submit: (ops: Op[]) => Promise<boolean>;
+  /** Lower level: sends ops and reports exactly what happened. Used by proposal cards. */
+  apply: (ops: Op[], options?: ApplyOptions) => Promise<ApplyOutcome>;
   undo: () => Promise<void>;
   busy: boolean;
   notice: Notice | null;
   dismiss: () => void;
+  /** Bumped after every applied change, so the activity list can refetch. */
+  changeCount: number;
 }
 
 const EditorContext = createContext<Editor | null>(null);
@@ -48,22 +69,16 @@ export function useEditor(): Editor {
   return e;
 }
 
-type ApiResult =
-  | { status: 200; body: { ok: true; entry: ChangeEntry } }
-  | { status: 409; body: { reason: "conflict" } }
-  | { status: 422; body: { reason: "invalid"; issues: OpIssue[] } }
-  | { status: number; body: { error?: string } };
-
-async function post(url: string, body: unknown): Promise<ApiResult> {
+async function post(url: string, body: unknown): Promise<{ status: number; body: Record<string, unknown> }> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return { status: res.status, body: await res.json().catch(() => ({})) } as ApiResult;
+  return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
-function withConfirmation(ops: Op[]): Op[] {
+export function withConfirmation(ops: Op[]): Op[] {
   return ops.map((o) => (o.op === "update_segment" || o.op === "remove_segment" ? { ...o, confirmBooked: true } : o));
 }
 
@@ -80,6 +95,15 @@ export function EditorProvider({
   const author = useSyncExternalStore(subscribeAuthor, readAuthor, () => "");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [pickerRequested, setPickerRequested] = useState(false);
+  const [changeCount, setChangeCount] = useState(0);
+  // Only decide on the picker once the browser value is readable.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const pickerOpen = hydrated && (pickerRequested || !author);
 
   const setAuthor = useCallback((name: string) => {
     try {
@@ -88,70 +112,106 @@ export function EditorProvider({
       // Private mode: the name just won't be remembered.
     }
     window.dispatchEvent(new Event(AUTHOR_EVENT));
+    setPickerRequested(false);
   }, []);
 
-  const handle = useCallback(
-    (res: ApiResult, okText: (e: ChangeEntry) => string): boolean => {
-      if (res.status === 200 && "entry" in res.body) {
-        setNotice({ kind: "ok", text: okText(res.body.entry), canUndo: true });
-        router.refresh();
-        return true;
-      }
-      if (res.status === 401) {
-        router.push("/login");
-        return false;
-      }
-      if (res.status === 409) {
-        setNotice({ kind: "error", text: "Someone else changed the trip just now. The page has reloaded; check it and try again." });
-        router.refresh();
-        return false;
-      }
-      if (res.status === 422 && "issues" in res.body) {
-        setNotice({ kind: "error", text: res.body.issues.map((i) => i.message).join(" ") });
-        return false;
-      }
-      setNotice({ kind: "error", text: ("error" in res.body && res.body.error) || `Something went wrong (${res.status}).` });
-      return false;
-    },
-    [router],
-  );
-
-  const submit = useCallback(
-    async (ops: Op[]) => {
+  const apply = useCallback(
+    async (ops: Op[], options: ApplyOptions = {}): Promise<ApplyOutcome> => {
       if (!author) {
-        setNotice({ kind: "error", text: "Put your first name in the box at the top first, so the log knows who changed what." });
-        return false;
+        setPickerRequested(true);
+        return { kind: "cancelled" };
       }
       setBusy(true);
       try {
-        let res = await post("/api/ops", { ops, expectedVersion: version, author });
-        if (res.status === 422 && "issues" in res.body && res.body.issues[0]?.code === "needs_confirmation") {
-          if (!window.confirm(`${res.body.issues[0].message}\n\nDo it anyway?`)) return false;
-          res = await post("/api/ops", { ops: withConfirmation(ops), expectedVersion: version, author });
+        const expectedVersion = options.expectedVersion ?? version;
+        let sent = options.confirmed ? withConfirmation(ops) : ops;
+        let res = await post("/api/ops", { ops: sent, expectedVersion, author });
+        const issues = res.body.issues as OpIssue[] | undefined;
+        if (res.status === 422 && issues?.[0]?.code === "needs_confirmation") {
+          if (!window.confirm(`${issues[0].message}\n\nDo it anyway?`)) return { kind: "cancelled" };
+          sent = withConfirmation(ops);
+          res = await post("/api/ops", { ops: sent, expectedVersion, author });
         }
-        return handle(res, (e) => `Saved. ${e.summary.join(" ")}${e.redacted ? " (Removed sensitive numbers.)" : ""}`);
+        if (res.status === 200) {
+          const entry = res.body.entry as ChangeEntry;
+          setNotice({
+            kind: "ok",
+            text: `Saved. ${entry.summary.join(" ")}${entry.redacted ? " (Removed sensitive numbers.)" : ""}`,
+            canUndo: true,
+          });
+          setChangeCount((c) => c + 1);
+          router.refresh();
+          return { kind: "applied", entry };
+        }
+        if (res.status === 401) {
+          router.push("/login");
+          return { kind: "error", message: "Signed out" };
+        }
+        if (res.status === 409) {
+          router.refresh();
+          return { kind: "conflict" };
+        }
+        if (res.status === 422) return { kind: "rejected", issues: (res.body.issues as OpIssue[]) ?? [] };
+        return { kind: "error", message: String(res.body.error ?? `Something went wrong (${res.status}).`) };
       } finally {
         setBusy(false);
       }
     },
-    [author, version, handle],
+    [author, version, router],
+  );
+
+  const submit = useCallback(
+    async (ops: Op[]) => {
+      const r = await apply(ops);
+      if (r.kind === "conflict") {
+        setNotice({ kind: "error", text: "Someone else changed the trip just now. The page has reloaded; check it and try again." });
+      } else if (r.kind === "rejected") {
+        setNotice({ kind: "error", text: r.issues.map((i) => i.message).join(" ") });
+      } else if (r.kind === "error") {
+        setNotice({ kind: "error", text: r.message });
+      }
+      return r.kind === "applied";
+    },
+    [apply],
   );
 
   const undo = useCallback(async () => {
-    if (!author) return;
+    if (!author) return setPickerRequested(true);
     setBusy(true);
     try {
       const res = await post("/api/undo", { expectedVersion: version, author });
-      handle(res, (e) => `Undone. ${e.summary.join(" ")}`);
-      setNotice((n) => (n?.kind === "ok" ? { ...n, canUndo: false } : n));
+      if (res.status === 200) {
+        const entry = res.body.entry as ChangeEntry;
+        setNotice({ kind: "ok", text: `Undone. ${entry.summary.join(" ")}` });
+        setChangeCount((c) => c + 1);
+      } else if (res.status === 409) {
+        setNotice({ kind: "error", text: "Someone else changed the trip just now. The page has reloaded; undo again if you still want to." });
+      } else {
+        setNotice({ kind: "error", text: String(res.body.error ?? (res.body.issues as OpIssue[] | undefined)?.[0]?.message ?? "Couldn't undo.") });
+      }
+      router.refresh();
     } finally {
       setBusy(false);
     }
-  }, [author, version, handle]);
+  }, [author, version, router]);
 
   return (
     <EditorContext.Provider
-      value={{ version, tripOffset, author, setAuthor, submit, undo, busy, notice, dismiss: () => setNotice(null) }}
+      value={{
+        version,
+        tripOffset,
+        author,
+        setAuthor,
+        pickerOpen,
+        openPicker: () => setPickerRequested(true),
+        submit,
+        apply,
+        undo,
+        busy,
+        notice,
+        dismiss: () => setNotice(null),
+        changeCount,
+      }}
     >
       {children}
     </EditorContext.Provider>

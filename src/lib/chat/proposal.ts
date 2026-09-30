@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { computeGaps, type Gap } from "@/lib/derive";
+import { computeGaps, nightCoverage, type Gap } from "@/lib/derive";
+import { addDays, formatDay } from "@/lib/time";
 import { prepareChange, type OpIssue, type TripState } from "@/lib/engine";
 import { applyOp, OpError, type Op } from "@/lib/ops";
 import type { RedactionKind } from "@/lib/redact";
@@ -135,10 +136,39 @@ export interface GapDelta {
 
 const gapLabel = (g: Gap) => `${g.title}: ${g.window}`;
 
+/** Consecutive dates as one label: "Night of Tue Nov 24" or "Nights of Thu Nov 26 – Sat Nov 28". */
+function nightRuns(dates: string[]): string[] {
+  const runs: string[][] = [];
+  for (const d of [...dates].sort()) {
+    const run = runs.at(-1);
+    if (run && addDays(run.at(-1)!, 1) === d) run.push(d);
+    else runs.push([d]);
+  }
+  return runs.map((r) =>
+    r.length === 1 ? `Night of ${formatDay(r[0])}` : `Nights of ${formatDay(r[0])} – ${formatDay(r.at(-1)!)}`,
+  );
+}
+
+/**
+ * What a change does to the gaps. Nights are compared one by one, so merging
+ * or splitting a run of empty nights doesn't read as "closes" and "opens" of
+ * the same nights. Transport windows and the flight home compare by label.
+ */
 export function gapDelta(before: Trip, after: Trip): GapDelta {
-  const a = computeGaps(before).map(gapLabel);
-  const b = computeGaps(after).map(gapLabel);
-  return { closes: a.filter((g) => !b.includes(g)), opens: b.filter((g) => !a.includes(g)) };
+  const emptyNights = (t: Trip) => new Set(nightCoverage(t).filter((n) => !n.booked).map((n) => n.date));
+  const na = emptyNights(before);
+  const nb = emptyNights(after);
+  const nowBooked = [...na].filter((d) => !nb.has(d));
+  const nowEmpty = [...nb].filter((d) => !na.has(d));
+
+  const other = (t: Trip) => computeGaps(t).filter((g) => g.kind !== "night").map(gapLabel);
+  const a = other(before);
+  const b = other(after);
+
+  return {
+    closes: [...nightRuns(nowBooked).map((l) => `Bed booked: ${l}`), ...a.filter((g) => !b.includes(g))],
+    opens: [...nightRuns(nowEmpty).map((l) => `Nowhere to sleep: ${l}`), ...b.filter((g) => !a.includes(g))],
+  };
 }
 
 export interface Proposal {

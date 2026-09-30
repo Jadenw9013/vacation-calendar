@@ -26,8 +26,8 @@ describe("buildProposal", () => {
     expect(p.status).toBe("ready");
     expect(p.baseVersion).toBe(7);
     expect(p.changes[0]).toContain("Hotel Casa Santo Domingo");
-    expect(p.gapDelta.closes).toContain("Nowhere to sleep: Nights of Thu Nov 26 – Sat Nov 28");
-    expect(p.gapDelta.opens).toContain("Nowhere to sleep: Nights of Thu Nov 26 – Fri Nov 27");
+    expect(p.gapDelta.closes).toContain("Bed booked: Night of Sat Nov 28");
+    expect(p.gapDelta.opens.some((o) => o.startsWith("Nowhere to sleep"))).toBe(false);
     // The old lake→hike transport window splits around the new hotel.
     expect(p.gapDelta.closes).toContain("No transport booked: Thu Nov 26, 10:00 AM → Sun Nov 29, 6:30 AM");
     expect(p.ops[0]).toMatchObject({ op: "add_segment", segment: { start: "2026-11-28", end: "2026-11-29" } });
@@ -50,6 +50,12 @@ describe("buildProposal", () => {
     expect(p.status).toBe("needs_confirmation");
     expect(p.confirmations[0]).toContain("is booked");
     expect(JSON.stringify(p.ops)).not.toContain("confirmBooked");
+  });
+
+  it("reports nights one by one when a removal merges empty runs", () => {
+    const p = buildProposal(state(), "Delete Atitlán", [{ op: "remove_segment", id: "lodging-atitlan" }]);
+    expect(p.gapDelta.opens).toContain("Nowhere to sleep: Night of Wed Nov 25");
+    expect(p.gapDelta.closes.some((c) => c.includes("Night"))).toBe(false);
   });
 
   it("flags moving the booked hike", () => {

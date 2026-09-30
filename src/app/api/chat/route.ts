@@ -9,7 +9,7 @@ import {
 import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
 import { buildInstructions, buildTools, todayAt, type ProposalOutcome } from "@/lib/chat/setup";
 import { CHAT_LIMITS } from "@/lib/llm/config";
-import { availableModels } from "@/lib/llm/provider";
+import { availableModels, isMockModel } from "@/lib/llm/provider";
 import { getRepository } from "@/lib/repo";
 
 export const maxDuration = 60;
@@ -46,15 +46,15 @@ export async function POST(request: Request) {
     }
   }
 
-  const [primary] = availableModels();
-  if (!primary) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
+  const model = isMockModel() ? (await import("@/lib/llm/mock")).mockModel() : availableModels()[0]?.model;
+  if (!model) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
 
   const repo = getRepository();
   const state = await repo.get();
   const tools = buildTools(() => repo.get());
 
   const result = streamText({
-    model: primary.model,
+    model,
     instructions: buildInstructions({ state, author, today: todayAt(state.trip.utcOffset), outcomes }),
     messages: await convertToModelMessages(cleaned, { tools }),
     tools,

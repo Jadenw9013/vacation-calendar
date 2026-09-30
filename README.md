@@ -17,9 +17,43 @@ Every edit is a list of **ops** (`add_segment`, `update_segment`, `remove_segmen
 
 ## Editing on the site
 
-1. Put your first name in the box at the top. It's recorded as who made each change. It's bookkeeping, not a login.
+1. On first visit, pick your first name. It's recorded as who made each change. It's bookkeeping, not a login. ("Not you?" at the top changes it.)
 2. Use **+ Add item**, the **Edit** link on any item, the tick boxes on to-dos, and **Record the decision** on open questions.
 3. After a save, the notice at the bottom has an **Undo** button.
+
+## The planner (chat assistant)
+
+**Ask the planner** (bottom right) opens a chat: a bottom sheet on phones, a side panel on desktop. It can answer questions about the trip and draft changes. It can't change anything by itself.
+
+- **Proposal cards.** Every change the planner suggests appears as a card listing what it adds, changes or removes, and which gaps that closes or opens. Tap **Apply**, **Discard**, or **Tweak** (which prefills a follow-up).
+- **Preview.** While a card is waiting, the timeline shows the proposed items as dashed outlines and items to be removed struck through. Applying makes them solid, with a brief highlight.
+- **Booked items.** A card that removes or retimes something booked says so, and its button reads **Confirm and apply**. The server refuses those changes without that confirmation, and the planner itself can't supply it.
+- **Questions.** When a request is ambiguous, the planner asks one question with tappable options.
+- **Suggestions.** The chips above the input come from the current trip (the first night without a bed, an open question, and so on).
+- **Ask about this.** The **Ask** link on any item or gap opens the chat with that item named.
+- **Activity tab.** Lists who changed what, with **Undo this** on the latest change.
+- **Your name.** On first visit you pick your first name. It's used as the author of changes and as "I" in the chat.
+- **Pasted text.** Booking emails can be pasted as they are. Pasted text is treated as data, not instructions, and confirmation numbers, phone numbers and card details are stripped on the server.
+- **Rules the code enforces, not just the prompt.** The planner has exactly two tools: `propose_changes` (validated like a manual edit, never writes) and `ask_user`. Applying uses the trip version the proposal was built against. If someone else edited in the meantime, the card is marked stale and the planner is asked to redo it.
+
+### Model and provider
+
+The planner uses Google Gemini through the Vercel AI SDK. The model id and provider list live in [`src/lib/llm/config.ts`](src/lib/llm/config.ts). The default is `gemini-3.8-flash`; override it with `GEMINI_MODEL` if AI Studio shows a different id or limits for your key.
+
+Groq and NVIDIA are listed there as commented-out entries. Both are OpenAI-compatible: to add one, install `@ai-sdk/openai-compatible`, add its case in `src/lib/llm/provider.ts`, uncomment its config entry, and set its key.
+
+If there's no key, or the provider is down, the planner shows a notice and everything else keeps working.
+
+### Checking the planner's behaviour
+
+```bash
+npm run chat:eval            # 20 scripted prompts against real Gemini, printed for reading
+npm run chat:eval -- 3 8 9   # just some
+```
+
+This needs `GEMINI_API_KEY` in `.env.local`. Each scenario starts from a fresh in-memory copy of the seed and never touches the real store. Set `EVAL_DELAY_MS` to space out calls on the free tier.
+
+To click through the chat UI without a key, run `CHAT_MOCK=1 npm run dev`. That swaps in a scripted fake model: try messages containing "hotel", "delete" or "dinner". It's ignored in production.
 
 ## Resetting to the seed
 
@@ -110,7 +144,9 @@ With no env vars set, local dev keeps edits in memory (they reset when the serve
 
 1. **Import the repo** at [vercel.com/new](https://vercel.com/new). It detects Next.js; leave the build settings alone.
 2. **Add storage:** Project → Storage → Upstash for Redis (free tier) → connect it to the project. That sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
-3. **Set the passphrase:** Project → Settings → Environment Variables → `TRIP_PASSPHRASE`. Share it with the group out of band, not in the repo.
+3. **Set the variables:** Project → Settings → Environment Variables:
+   - `TRIP_PASSPHRASE`. Share it with the group out of band, not in the repo.
+   - `GEMINI_API_KEY`, from Google AI Studio.
 4. **Redeploy** so the new variables take effect. The first page load seeds the store from `trip.ts`.
 
 After that, every push to `main` redeploys. Without a passphrase, production shows a locked page. Without Redis, it refuses to start unless you set `ALLOW_MEMORY_STORE=1` (don't do that for the real site, because edits would vanish on every cold start).
@@ -132,9 +168,14 @@ src/lib/repo/            TripRepository: Redis in production, in-memory for test
 src/lib/auth.ts          passphrase and session cookie
 src/proxy.ts             gates every page and API route behind the passphrase
 src/app/api/             login, logout, trip, ops, undo, history
-src/components/edit/     manual edit forms
+src/components/edit/     manual edit forms, name picker
+src/components/chat/     planner panel, proposal cards, activity list
+src/components/TripShell.tsx  the page layout and the proposal preview
+src/lib/chat/            system prompt, tools, proposal building and gap delta
+src/lib/llm/             provider config (Gemini), the scripted mock model
 docs/DESIGN.md           palette, type and layout rationale
 scripts/print-gaps.ts    npm run gaps (reads the seed file)
+scripts/chat-eval.ts     npm run chat:eval
 ```
 
 ### API
@@ -147,3 +188,4 @@ All routes need the session cookie. POST routes also reject cross-origin request
 | `POST /api/ops` | `{ ops, expectedVersion, author }`. Returns 200 if applied, 409 if someone else edited first, 422 if rejected (the issues say why; `needs_confirmation` means a booked item was touched without `confirmBooked: true`). |
 | `POST /api/undo` | `{ expectedVersion, author }`. Undoes the latest change. |
 | `GET /api/history?limit=50` | Change log, newest first. |
+| `POST /api/chat` | `{ messages, author, outcomes }`. Streams the planner's reply (AI SDK UI message stream). |

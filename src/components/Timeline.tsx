@@ -1,9 +1,34 @@
 import type { OpenQuestion, Segment } from "@/data/types";
 import type { NightStatus, TimelineDay, TimelineEvent } from "@/lib/derive";
 import { formatMoment, formatTime, monthDay, parseMoment, weekday, type Moment } from "@/lib/time";
+import { useTripChat } from "./chat/ChatProvider";
 import { TodoItem } from "./edit/Controls";
 import { SegmentDialog } from "./edit/SegmentDialog";
 import { OwnerTag, StatusTag, cardClass } from "./Status";
+
+/** How a segment differs in the pending proposal's preview. */
+export type Ghost = "added" | "changed" | "removed";
+
+const GHOST_LABEL: Record<Ghost, string> = {
+  added: "Proposed",
+  changed: "Proposed change",
+  removed: "Would be removed",
+};
+
+/** Opens the planner with this item named, so questions have context. */
+export function AskButton({ about }: { about: string }) {
+  const { prefill, available } = useTripChat();
+  if (!available) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => prefill(`About ${about}: `)}
+      className="text-xs font-semibold text-pumice underline underline-offset-2"
+    >
+      Ask
+    </button>
+  );
+}
 
 /** "UTC−8" when a time isn't in the destination's zone (e.g. the Seattle departure). */
 function zoneNote(m: Moment, tripOffset: string): string | null {
@@ -27,19 +52,39 @@ function untilText(e: TimelineEvent): string | null {
   return `until ${formatMoment(end)}`;
 }
 
-function EventRow({ e, tripOffset }: { e: TimelineEvent; tripOffset: string }) {
+function EventRow({
+  e,
+  tripOffset,
+  ghost,
+  flash,
+}: {
+  e: TimelineEvent;
+  tripOffset: string;
+  ghost?: Ghost;
+  flash: boolean;
+}) {
   const s = e.segment;
   const verb = eventVerb(e);
   const zone = zoneNote(e.at, tripOffset);
   const until = untilText(e);
   const isEnd = e.kind === "end";
+  const chrome = ghost
+    ? ghost === "removed"
+      ? "border-2 border-dashed border-pumice p-3 line-through decoration-2 opacity-60"
+      : "border-2 border-dashed border-lake bg-card p-3"
+    : isEnd
+      ? "border-l-4 border-scree py-2 pl-3"
+      : `${cardClass(s.status)} p-3`;
   return (
-    <li className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3">
+    <li className={`grid grid-cols-[4.75rem_minmax(0,1fr)] gap-3 ${flash ? "flash" : ""}`}>
       <div className="pt-3 text-right font-mono text-sm leading-tight">
         <span className={e.at.time ? "font-semibold" : "text-pumice"}>{e.at.time ? formatTime(e.at) : "TBD"}</span>
         {zone && <span className="block text-[11px] text-pumice">{zone}</span>}
       </div>
-      <article className={`${isEnd ? "border-l-4 border-scree py-2 pl-3" : `${cardClass(s.status)} p-3`}`}>
+      <article className={chrome}>
+        {ghost && (
+          <p className="mb-1 text-[11px] font-bold tracking-wide text-lake no-underline">{GHOST_LABEL[ghost]}</p>
+        )}
         <h4 className={isEnd ? "text-sm" : "font-bold"}>
           {verb && <span className="text-pumice">{verb}: </span>}
           {s.title}
@@ -56,8 +101,9 @@ function EventRow({ e, tripOffset }: { e: TimelineEvent; tripOffset: string }) {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
               <StatusTag status={s.status} />
               <OwnerTag segment={s} />
-              <span className="ml-auto">
-                <SegmentDialog mode="edit" segment={s} />
+              <span className="ml-auto flex gap-3">
+                <AskButton about={`“${s.title}” (${s.id})`} />
+                {!ghost && <SegmentDialog mode="edit" segment={s} />}
               </span>
             </div>
             {s.notes && <p className="mt-2 text-sm">{s.notes}</p>}
@@ -78,8 +124,18 @@ function EventRow({ e, tripOffset }: { e: TimelineEvent; tripOffset: string }) {
   );
 }
 
-function Tonight({ night, questions }: { night: NightStatus; questions: OpenQuestion[] }) {
+function Tonight({ night, questions, ghost }: { night: NightStatus; questions: OpenQuestion[]; ghost?: Ghost }) {
   if (night.booked) {
+    if (ghost) {
+      return (
+        <div className="flex items-stretch border-2 border-dashed border-lake">
+          <span className="px-3 py-3 text-xs font-bold text-lake uppercase">Tonight</span>
+          <p className="flex-1 p-3 text-sm font-semibold">
+            {night.booked.title} <span className="font-normal text-pumice">(proposed)</span>
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex items-stretch bg-lake text-on-lake">
         <span className="px-3 py-3 text-xs font-bold uppercase">Tonight</span>
@@ -110,10 +166,14 @@ export function Timeline({
   days,
   tripOffset,
   questions,
+  ghosts = {},
+  highlight,
 }: {
   days: TimelineDay[];
   tripOffset: string;
   questions: OpenQuestion[];
+  ghosts?: Record<string, Ghost>;
+  highlight?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-10">
@@ -129,14 +189,20 @@ export function Timeline({
           {d.events.length > 0 ? (
             <ol className="flex flex-col gap-3">
               {d.events.map((e) => (
-                <EventRow key={`${e.segment.id}-${e.kind}`} e={e} tripOffset={tripOffset} />
+                <EventRow
+                  key={`${e.segment.id}-${e.kind}`}
+                  e={e}
+                  tripOffset={tripOffset}
+                  ghost={ghosts[e.segment.id]}
+                  flash={!!highlight?.has(e.segment.id)}
+                />
               ))}
             </ol>
           ) : (
             <p className="text-sm text-pumice">Nothing scheduled.</p>
           )}
           <div className="mt-4">
-            <Tonight night={d.night} questions={questions} />
+            <Tonight night={d.night} questions={questions} ghost={d.night.booked ? ghosts[d.night.booked.id] : undefined} />
           </div>
         </section>
       ))}

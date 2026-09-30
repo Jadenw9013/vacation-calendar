@@ -1,5 +1,6 @@
 import type { Segment } from "@/data/types";
 import type { Gap } from "@/lib/derive";
+import { AskButton } from "./Timeline";
 
 const WHAT: Record<Gap["kind"], string> = {
   night: "No bed",
@@ -32,6 +33,9 @@ export function GapList({ gaps, segments }: { gaps: Gap[]; segments: Segment[] }
                 To book: {g.related.map(title).join(" · ")}
               </p>
             )}
+            <div className="mt-2">
+              <AskButton about={`the gap “${g.title}: ${g.window}”`} />
+            </div>
           </div>
         </li>
       ))}

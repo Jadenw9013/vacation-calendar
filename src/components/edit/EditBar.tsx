@@ -3,25 +3,26 @@
 import { useEditor } from "./EditorProvider";
 import { SegmentDialog } from "./SegmentDialog";
 
-/** Name field, add button, sign out, and the save/undo notice. */
+/** Who's editing, add button, sign out, and the save/undo notice. */
 export function EditBar({ devNotes }: { devNotes: string[] }) {
-  const { author, setAuthor, notice, dismiss, undo, busy } = useEditor();
+  const { author, openPicker, notice, dismiss, undo, busy } = useEditor();
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end gap-3 border-y border-scree py-3">
-        <label className="flex flex-col text-xs font-semibold">
-          Your first name
-          <input
-            defaultValue={author}
-            key={author}
-            onBlur={(e) => setAuthor(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && setAuthor(e.currentTarget.value)}
-            placeholder="e.g. Sam"
-            maxLength={30}
-            autoComplete="given-name"
-            className="mt-1 w-32 border border-basalt bg-card px-2 py-1.5 text-base font-normal"
-          />
-        </label>
+      <div className="mb-6 flex flex-wrap items-center gap-3 border-y border-scree py-3">
+        <p className="text-sm">
+          {author ? (
+            <>
+              You&apos;re <span className="font-bold">{author}</span>.{" "}
+              <button onClick={openPicker} className="text-pumice underline underline-offset-2">
+                Not you?
+              </button>
+            </>
+          ) : (
+            <button onClick={openPicker} className="font-semibold underline underline-offset-2">
+              Pick your name
+            </button>
+          )}
+        </p>
         <SegmentDialog mode="add" />
         <form method="post" action="/api/logout" className="ml-auto">
           <button className="text-sm text-pumice underline underline-offset-2">Sign out</button>
@@ -36,7 +37,7 @@ export function EditBar({ devNotes }: { devNotes: string[] }) {
       {notice && (
         <div
           role="status"
-          className={`fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-xl items-start gap-3 p-3 text-sm shadow-lg ${
+          className={`fixed bottom-3 left-3 right-3 z-30 flex max-w-xl items-start gap-3 p-3 text-sm shadow-lg md:right-auto md:w-[28rem] ${
             notice.kind === "ok" ? "bg-lake text-on-lake" : "hazard-label border-2 border-basalt"
           }`}
         >

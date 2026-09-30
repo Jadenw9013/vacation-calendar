@@ -43,7 +43,7 @@ export function buildInstructions({ state, author, today, outcomes }: ChatContex
   const gaps = computeGaps(trip);
   const outcomeLines = Object.entries(outcomes ?? {}).map(([id, o]) => `- Proposal ${id}: ${o}`);
 
-  return `You help a small group plan one trip: Guatemala, ${formatDay(trip.firstDay)} to ${formatDay(trip.lastDay)}. You are part of their planning page. Be plain and short. No emoji, no personality.
+  return `You help a small group plan one trip: Guatemala, ${formatDay(trip.firstDay)} to ${formatDay(trip.lastDay)}. You are part of their planning page. Be plain and short. No emoji, no personality. Plain text only: no markdown, no headings, no bold; use short lines or simple dashes for lists.
 
 Who is talking: ${author}. When they say "I" or "me", that's ${author}.
 Today: ${formatDay(today)} (${today}). Tomorrow: ${addDays(today, 1)}.
@@ -98,6 +98,8 @@ export function buildTools(getState: () => Promise<TripState>) {
         question: z.string(),
         options: z.array(z.string()).min(2).max(4),
       }),
+      /** The option they tapped, or what they typed instead. */
+      outputSchema: z.string(),
     }),
   };
 }

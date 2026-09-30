@@ -76,3 +76,22 @@ body {
   background: #ffd400;
   color: #15181b;
 }
+
+/* One brief highlight when a proposal is applied. */
+@keyframes flash {
+  0% {
+    background: color-mix(in srgb, var(--lake) 35%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.flash {
+  animation: flash 2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation: none;
+    outline: 2px solid var(--lake);
+  }
+}
