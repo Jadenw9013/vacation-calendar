@@ -3,10 +3,11 @@ import { isValidSession, SESSION_COOKIE } from "@/lib/auth";
 
 const PUBLIC_PATHS = new Set(["/login", "/api/login"]);
 
-/** Everything except the login page sits behind the shared passphrase, reads included. */
+/** Everything except the login page and static assets sits behind the shared passphrase, reads included. */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  if (/\.(?:jpg|jpeg|png|webp|svg|gif|ico|woff2?)$/i.test(pathname)) return NextResponse.next();
   if (isValidSession(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
 
   if (pathname.startsWith("/api/")) {
@@ -18,5 +19,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|gif|png|webp|svg|ico)$).*)"],
 };

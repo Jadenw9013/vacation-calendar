@@ -8,27 +8,29 @@ export function EditBar({ devNotes }: { devNotes: string[] }) {
   const { author, openPicker, notice, dismiss, undo, busy } = useEditor();
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-3 border-y border-scree py-3">
-        <p className="text-sm">
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-stone-border/80 bg-white/70 px-4 py-2.5 shadow-xs">
+        <p className="text-xs text-gray-700">
           {author ? (
             <>
-              You&apos;re <span className="font-bold">{author}</span>.{" "}
-              <button onClick={openPicker} className="text-pumice underline underline-offset-2">
-                Not you?
+              Editing as <span className="font-bold text-volcano">{author}</span> ·{" "}
+              <button onClick={openPicker} className="text-lake font-medium underline underline-offset-2">
+                Change
               </button>
             </>
           ) : (
-            <button onClick={openPicker} className="font-semibold underline underline-offset-2">
-              Pick your name
+            <button onClick={openPicker} className="text-lake font-bold underline underline-offset-2">
+              Pick your name to edit
             </button>
           )}
         </p>
-        <SegmentDialog mode="add" />
-        <form method="post" action="/api/logout" className="ml-auto">
-          <button className="text-sm text-pumice underline underline-offset-2">Sign out</button>
-        </form>
+        <div className="ml-auto flex items-center gap-3">
+          <SegmentDialog mode="add" />
+          <form method="post" action="/api/logout">
+            <button className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2">Sign out</button>
+          </form>
+        </div>
         {devNotes.map((n) => (
-          <p key={n} className="w-full text-xs text-pumice">
+          <p key={n} className="w-full text-[11px] text-gray-400">
             {n}
           </p>
         ))}
@@ -37,8 +39,8 @@ export function EditBar({ devNotes }: { devNotes: string[] }) {
       {notice && (
         <div
           role="status"
-          className={`fixed bottom-3 left-3 right-3 z-30 flex max-w-xl items-start gap-3 p-3 text-sm shadow-lg md:right-auto md:w-[28rem] ${
-            notice.kind === "ok" ? "bg-lake text-on-lake" : "hazard-label border-2 border-basalt"
+          className={`fixed bottom-5 left-5 right-5 z-50 flex max-w-md items-start gap-3 rounded-2xl p-4 text-sm shadow-xl md:right-auto md:w-[26rem] ${
+            notice.kind === "ok" ? "bg-lake text-white" : "bg-maya-light border-2 border-maya text-maya"
           }`}
         >
           <p className="flex-1">{notice.text}</p>

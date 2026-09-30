@@ -120,8 +120,8 @@ export function SegmentDialog({ mode, segment }: { mode: "add" | "edit"; segment
         onClick={() => ref.current?.showModal()}
         className={
           mode === "add"
-            ? "border-2 border-basalt px-3 py-1.5 text-sm font-bold"
-            : "text-xs font-semibold text-pumice underline underline-offset-2"
+            ? "inline-flex items-center gap-1.5 rounded-lg bg-lake px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-lake-hover transition-colors"
+            : "text-xs font-medium text-gray-400 hover:text-lake underline underline-offset-2 transition-colors"
         }
       >
         {mode === "add" ? "+ Add item" : "Edit"}
@@ -129,7 +129,7 @@ export function SegmentDialog({ mode, segment }: { mode: "add" | "edit"; segment
       <dialog
         ref={ref}
         aria-label={mode === "add" ? "Add item" : `Edit ${s?.title}`}
-        className="m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-1.5rem))] bg-ash p-0 text-basalt backdrop:bg-basalt/50"
+        className="m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-1.5rem))] rounded-2xl border border-stone-border bg-white p-0 text-volcano shadow-2xl backdrop:bg-night/50 backdrop:backdrop-blur-xs"
       >
         {/* Keyed on the data so fields pick up changes after a save and refresh. */}
         <form key={s ? JSON.stringify(s) : "new"} onSubmit={onSubmit} className="flex flex-col gap-3 p-4">

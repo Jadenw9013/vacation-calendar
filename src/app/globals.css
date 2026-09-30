@@ -1,86 +1,136 @@
 @import "tailwindcss";
 
-/* Palette and roles: see docs/DESIGN.md */
 :root {
-  --ash: #f2f3f1;
-  --basalt: #15181b;
-  --pumice: #5e676e;
-  --scree: #d5d9db;
-  --lake: #0e5a6b;
-  --on-lake: #ffffff;
-  --hazard: #ffd400;
-  --on-hazard: #15181b;
-  --ember: #c8321e;
-  --card: #ffffff;
-}
+  /* Guatemala Design System Palette */
+  --volcano: #1F1F1E;
+  --lake: #0F766E;
+  --lake-hover: #0D655E;
+  --maya: #C2410C;
+  --antigua: #D4A017;
+  --stone: #E7E4DD;
+  --night: #0B1E2D;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ash: #111417;
-    --basalt: #eceff0;
-    --pumice: #9aa4aa;
-    --scree: #2a3035;
-    --lake: #4db3c6;
-    --on-lake: #0b1e23;
-    --ember: #ff6a4d;
-    --card: #181c20;
-  }
+  /* Surfaces, Borders & Tints */
+  --stone-light: #F7F5F0;
+  --stone-surface: #FFFFFF;
+  --stone-border: #E5E2D9;
+  --maya-light: #FFF7F5;
+  --maya-border: #FCD9CD;
+  --night-card: #132D40;
+  --night-border: #1D3F58;
+
+  /* Legacy & compatibility mappings */
+  --ash: #F7F5F0;
+  --basalt: #1F1F1E;
+  --pumice: #6B7280;
+  --scree: #E5E2D9;
+  --on-lake: #FFFFFF;
+  --hazard: #C2410C;
+  --on-hazard: #FFFFFF;
+  --ember: #C2410C;
+  --card: #FFFFFF;
 }
 
 @theme inline {
+  --color-volcano: var(--volcano);
+  --color-lake: var(--lake);
+  --color-lake-hover: var(--lake-hover);
+  --color-maya: var(--maya);
+  --color-antigua: var(--antigua);
+  --color-stone: var(--stone);
+  --color-stone-light: var(--stone-light);
+  --color-stone-surface: var(--stone-surface);
+  --color-stone-border: var(--stone-border);
+  --color-maya-light: var(--maya-light);
+  --color-maya-border: var(--maya-border);
+  --color-night: var(--night);
+  --color-night-card: var(--night-card);
+  --color-night-border: var(--night-border);
+
   --color-ash: var(--ash);
   --color-basalt: var(--basalt);
   --color-pumice: var(--pumice);
   --color-scree: var(--scree);
-  --color-lake: var(--lake);
   --color-on-lake: var(--on-lake);
   --color-hazard: var(--hazard);
   --color-on-hazard: var(--on-hazard);
   --color-ember: var(--ember);
   --color-card: var(--card);
-  --font-sans: var(--font-archivo);
-  --font-mono: var(--font-plex-mono);
+
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 4rem; /* clear the sticky day header */
+  scroll-padding-top: 5rem;
 }
 
 body {
-  background: var(--ash);
-  color: var(--basalt);
+  background: var(--stone-light);
+  color: var(--volcano);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
 
-/* Expanded Archivo for headers: map lettering / trail signage. */
+/* Fraunces Serif Headings */
+.font-serif {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+/* Status styles (not color alone) */
+.status-booked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: var(--lake);
+  color: #FFFFFF;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.status-needs-booking {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1.5px dashed var(--maya);
+  background-color: var(--maya-light);
+  color: var(--maya);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.status-undecided {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1.5px dotted #6B7280;
+  background-color: #FFFFFF;
+  color: #374151;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Legacy wide class: maps to Fraunces with tight spacing */
 .wide {
-  font-variation-settings: "wdth" 125;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-/* Caution tape. Always paired with words, never color alone. */
-.hazard {
-  color: #15181b;
-  background: repeating-linear-gradient(
-    -45deg,
-    #ffd400 0 10px,
-    #ffd400 10px 16px,
-    #15181b 16px 19px,
-    #ffd400 19px 26px
-  );
-}
-
-/* A solid label that stays readable on top of the stripes. */
-.hazard-label {
-  background: #ffd400;
-  color: #15181b;
-}
-
-/* One brief highlight when a proposal is applied. */
+/* Flash animation for editor changes */
 @keyframes flash {
   0% {
-    background: color-mix(in srgb, var(--lake) 35%, transparent);
+    background: color-mix(in srgb, var(--lake) 30%, transparent);
   }
   100% {
     background: transparent;
@@ -88,10 +138,4 @@ body {
 }
 .flash {
   animation: flash 2s ease-out;
-}
-@media (prefers-reduced-motion: reduce) {
-  .flash {
-    animation: none;
-    outline: 2px solid var(--lake);
-  }
 }

@@ -49,11 +49,11 @@ export function StillToBook({ rows, trip }: { rows: ToBook[]; trip: Trip }) {
         <h3 className="wide mb-3 text-xl">Open questions</h3>
         <ol className="flex flex-col gap-3">
           {unanswered(trip).map((q) => (
-            <li key={q.id} id={q.id} className="scroll-mt-4 border-l-4 border-basalt bg-card p-3">
-              <p className="font-bold">{q.question}</p>
-              {q.notes && <p className="mt-1 text-sm">{q.notes}</p>}
+            <li key={q.id} id={q.id} className="scroll-mt-4 rounded-xl border-l-4 border-antigua border-y border-r border-stone-border bg-white p-4 shadow-xs">
+              <p className="font-serif font-bold text-volcano text-base">{q.question}</p>
+              {q.notes && <p className="mt-1 text-sm text-gray-600">{q.notes}</p>}
               {q.blocks.length > 0 && (
-                <p className="mt-1 text-sm text-pumice">
+                <p className="mt-1 text-xs text-gray-400">
                   Blocks: {questionBlocks(trip, q).map((s) => s.title).join(" · ")}
                 </p>
               )}

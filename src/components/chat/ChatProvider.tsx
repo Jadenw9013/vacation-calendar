@@ -31,7 +31,7 @@ interface ChatApi {
   /** Segment ids to flash briefly after an apply. */
   highlight: Set<string>;
   flash: (ids: string[]) => void;
-  inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
 }
 
 const ChatContext = createContext<ChatApi | null>(null);
@@ -80,7 +80,7 @@ export function ChatProvider({ available, children }: { available: boolean; chil
   const [input, setInput] = useState("");
   const [outcomes, setOutcomes] = useState<Record<string, ProposalOutcome>>({});
   const [highlight, setHighlight] = useState<Set<string>>(new Set());
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
   useEffect(() => {
     requestContext.author = author;

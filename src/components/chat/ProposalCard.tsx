@@ -58,13 +58,19 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
   return (
     <article
       aria-label={`Proposal: ${p.summary}`}
-      className={`border-2 bg-card p-3 text-sm ${settled === "applied" ? "border-lake" : settled ? "border-scree opacity-70" : "border-dashed border-basalt"}`}
+      className={`rounded-2xl border bg-white p-4 text-sm shadow-xs ${
+        settled === "applied"
+          ? "border-lake ring-1 ring-lake/30"
+          : settled
+            ? "border-stone-border opacity-70"
+            : "border-maya-border/80 bg-maya-light/20"
+      }`}
     >
-      <h3 className="font-bold">{p.summary}</h3>
-      <ul className="mt-2 flex flex-col gap-1">
+      <h3 className="font-serif font-bold text-volcano text-base">{p.summary}</h3>
+      <ul className="mt-2 flex flex-col gap-1.5 text-gray-700">
         {p.changes.map((c, i) => (
           <li key={i} className="flex gap-2">
-            <span aria-hidden className="w-3 shrink-0 font-mono font-bold">
+            <span aria-hidden className="w-3 shrink-0 font-mono font-bold text-lake">
               {MARK[p.ops[i]?.op] ?? "•"}
             </span>
             <span>{c}</span>
@@ -73,50 +79,58 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
       </ul>
 
       {(p.gapDelta.closes.length > 0 || p.gapDelta.opens.length > 0) && (
-        <div className="mt-2 flex flex-col gap-1 text-xs">
+        <div className="mt-2.5 flex flex-col gap-1 text-xs">
           {p.gapDelta.closes.length > 0 && (
-            <p>
-              <span className="font-bold text-lake">Closes:</span> {p.gapDelta.closes.join("; ")}
+            <p className="text-lake font-medium">
+              <span className="font-bold">Closes:</span> {p.gapDelta.closes.join("; ")}
             </p>
           )}
           {p.gapDelta.opens.length > 0 && (
-            <p>
-              <span className="hazard-label px-1 font-bold">Opens:</span> {p.gapDelta.opens.join("; ")}
+            <p className="text-maya font-medium">
+              <span className="font-bold">Opens:</span> {p.gapDelta.opens.join("; ")}
             </p>
           )}
         </div>
       )}
       {p.gapDelta.closes.length === 0 && p.gapDelta.opens.length === 0 && (
-        <p className="mt-2 text-xs text-pumice">No change to the gaps.</p>
+        <p className="mt-2 text-xs text-gray-400">No change to the gaps.</p>
       )}
 
       {p.confirmations.length > 0 && !settled && (
-        <div className="hazard-label mt-2 p-2 text-xs">
+        <div className="mt-2 rounded-lg bg-maya-light border border-maya-border p-2 text-xs text-maya font-medium">
           {p.confirmations.map((c) => (
-            <p key={c} className="font-semibold">
-              {c}
-            </p>
+            <p key={c}>{c}</p>
           ))}
         </div>
       )}
       {p.redacted.length > 0 && (
-        <p className="mt-2 text-xs text-pumice">Confirmation, phone or card numbers were left out on purpose.</p>
+        <p className="mt-2 text-xs text-gray-400">Confirmation, phone or card numbers were left out on purpose.</p>
       )}
-      {error && <p className="hazard-label mt-2 p-2 text-xs font-semibold">{error}</p>}
+      {error && <p className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2 text-xs font-semibold text-red-700">{error}</p>}
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        {settled === "applied" && <span className="font-bold text-lake">■ Applied</span>}
-        {settled === "discarded" && <span className="text-pumice">Discarded</span>}
-        {settled === "stale" && <span className="text-pumice">The trip changed first; asked for a new version.</span>}
+      <div className="mt-3.5 flex flex-wrap items-center gap-2">
+        {settled === "applied" && <span className="font-bold text-lake text-xs">✓ Applied to trip</span>}
+        {settled === "discarded" && <span className="text-xs text-gray-400">Discarded</span>}
+        {settled === "stale" && <span className="text-xs text-gray-400">The trip changed first; asked for a new version.</span>}
         {!settled && (
           <>
-            <button onClick={onApply} disabled={busy} className="bg-basalt px-3 py-1.5 font-bold text-ash disabled:opacity-50">
-              {p.status === "needs_confirmation" ? "Confirm and apply" : "Apply"}
+            <button
+              onClick={onApply}
+              disabled={busy}
+              className="rounded-lg bg-lake px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-lake-hover disabled:opacity-50 transition-colors"
+            >
+              {p.status === "needs_confirmation" ? "Confirm & apply" : "Apply"}
             </button>
-            <button onClick={() => setOutcome(toolCallId, "discarded")} className="px-1 py-1.5 underline underline-offset-2">
+            <button
+              onClick={() => setOutcome(toolCallId, "discarded")}
+              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
+            >
               Discard
             </button>
-            <button onClick={() => prefill("Change that: ")} className="px-1 py-1.5 underline underline-offset-2">
+            <button
+              onClick={() => prefill("Change that: ")}
+              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
+            >
               Tweak
             </button>
           </>

@@ -1,30 +1,34 @@
 import type { NightStatus } from "@/lib/derive";
 import { monthDay, weekday } from "@/lib/time";
 
-/** One cell per night. The loudest thing on the page. */
+/** One cell per night: Lake Teal for booked nights, Maya Clay dashed border for unbooked */
 export function NightStrip({ nights }: { nights: NightStatus[] }) {
   return (
-    <nav aria-label="Where we sleep each night">
-      <ol className="grid grid-cols-7 gap-1">
+    <nav aria-label="Where we sleep each night" className="my-4">
+      <ol className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {nights.map((n) => {
           const day = monthDay(n.date).split(" ")[1];
-          const label = n.booked ? `Night of ${weekday(n.date)} ${day}: ${n.booked.title}` : `Night of ${weekday(n.date)} ${day}: no bed booked`;
+          const label = n.booked
+            ? `Night of ${weekday(n.date)} ${day}: ${n.booked.title}`
+            : `Night of ${weekday(n.date)} ${day}: no bed booked`;
           return (
             <li key={n.date}>
               <a
                 href={`#day-${n.date}`}
                 aria-label={label}
                 title={label}
-                className={`flex h-24 flex-col justify-between p-1.5 ${n.booked ? "bg-lake text-on-lake" : "hazard"}`}
+                className={`flex h-20 sm:h-22 flex-col justify-between p-2 rounded-xl text-center transition-all ${
+                  n.booked
+                    ? "bg-lake text-white shadow-xs hover:bg-lake-hover"
+                    : "border-1.5 border-dashed border-maya bg-maya-light text-maya shadow-xs hover:bg-maya-border/30"
+                }`}
               >
-                <span className={`flex flex-col leading-none ${n.booked ? "" : "hazard-label -m-0.5 p-0.5"}`}>
-                  <span className="text-[11px] font-semibold">{weekday(n.date)}</span>
-                  <span className="font-mono text-lg font-semibold">{day}</span>
-                </span>
-                <span
-                  className={`text-[10px] font-bold leading-tight uppercase ${n.booked ? "" : "hazard-label -m-0.5 p-0.5"}`}
-                >
-                  {n.booked ? "Bed ✓" : "No bed"}
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[11px] font-medium opacity-80">{weekday(n.date)}</span>
+                  <span className="font-mono text-base sm:text-lg font-bold">{day}</span>
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wider">
+                  {n.booked ? "Booked" : "No bed"}
                 </span>
               </a>
             </li>
