@@ -31,6 +31,12 @@ function suggestionChips(trip: Trip): Chip[] {
   return chips.slice(0, 4);
 }
 
+/** An assistant turn with no text and no tool call: Gemini occasionally returns nothing. */
+function isEmptyAnswer(m: TripUIMessage | undefined): boolean {
+  if (!m || m.role !== "assistant") return false;
+  return !m.parts.some((p) => (p.type === "text" && p.text.trim()) || p.type.startsWith("tool-"));
+}
+
 function errorText(error: Error): string {
   try {
     const parsed = JSON.parse(error.message);
@@ -336,6 +342,15 @@ export function ChatPanel({ trip }: { trip: Trip }) {
               <div className="flex items-center gap-2 text-xs text-gray-400 py-1">
                 <span className="size-1.5 rounded-full bg-lake animate-ping" />
                 <span>Thinking…</span>
+              </div>
+            )}
+
+            {!chat.error && chat.status === "ready" && isEmptyAnswer(chat.messages.at(-1)) && (
+              <div className="rounded-xl border border-maya-border bg-maya-light p-3 text-xs text-maya">
+                <p className="font-semibold">No answer came back from the assistant.</p>
+                <button onClick={() => chat.regenerate()} className="mt-1 font-medium underline">
+                  Try again
+                </button>
               </div>
             )}
 
