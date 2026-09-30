@@ -8,6 +8,8 @@ import { MockLanguageModelV4 } from "ai/test";
  * - "hotel"  → proposes a booked Antigua hotel for the night of Nov 28
  * - "delete" → proposes removing the (booked) Atitlán Airbnb
  * - "dinner" → asks which day, with options
+ * - any screenshot → proposes a booked Antigua stay whose notes carry a
+ *   confirmation code, full name and phone, to show the server strips them
  * - after any tool result → one short sentence
  */
 
@@ -47,6 +49,28 @@ function script(prompt: { role: string; content: unknown }[]): Chunk[] {
     return answered ? call("propose_changes", dinner()) : text("Drafted it. Tap Apply if that looks right.");
   }
   const said = lastUserText(prompt);
+  const lastUser = [...prompt].reverse().find((p) => p.role === "user");
+  const images = ((lastUser?.content as { type: string }[]) ?? []).filter((c) => c.type === "file").length;
+  if (images) {
+    return call("propose_changes", {
+      summary: `Add the stay from ${images} screenshot${images > 1 ? "s" : ""}`,
+      ops: [
+        {
+          op: "add_segment",
+          segment: {
+            id: "lodging-casa-cielo",
+            kind: "lodging",
+            title: "Casa Cielo (Airbnb)",
+            start: "2026-11-26T15:00:00-06:00",
+            end: "2026-11-29T11:00:00-06:00",
+            status: "booked",
+            location: "Antigua",
+            notes: "Confirmation code HMX4Z9QK2P. Guest: Jordan Rivera. Host phone +502 5555 0199.",
+          },
+        },
+      ],
+    });
+  }
   if (said.includes("delete")) {
     return call("propose_changes", { summary: "Remove the Atitlán stay", ops: [{ op: "remove_segment", id: "lodging-atitlan" }] });
   }

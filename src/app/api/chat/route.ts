@@ -7,9 +7,10 @@ import {
   type UIMessage,
 } from "ai";
 import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
+import { IMAGE_LIMITS, sanitizeMessages } from "@/lib/chat/attachments";
 import { buildInstructions, buildTools, todayAt, type ProposalOutcome } from "@/lib/chat/setup";
 import { CHAT_LIMITS } from "@/lib/llm/config";
-import { availableModels, chatErrorMessage, isMockModel } from "@/lib/llm/provider";
+import { availableModels, chatAvailability, chatErrorMessage, isMockModel } from "@/lib/llm/provider";
 import { getRepository } from "@/lib/repo";
 
 export const maxDuration = 60;
@@ -20,11 +21,21 @@ function textLength(m: UIMessage): number {
   return m.parts.reduce((n, p) => n + (p.type === "text" ? p.text.length : 0), 0);
 }
 
+/** Only what's needed to debug: never the request body, which holds the conversation and any screenshots. */
+function logSafe(error: unknown) {
+  const e = error as { name?: string; message?: string; statusCode?: number; lastError?: { statusCode?: number; message?: string } };
+  console.error("chat stream error", {
+    name: e?.name,
+    statusCode: e?.statusCode ?? e?.lastError?.statusCode,
+    message: (e?.lastError?.message ?? e?.message ?? "").slice(0, 300),
+  });
+}
+
 /** Body: { messages: UIMessage[], author: string, outcomes?: Record<toolCallId, ProposalOutcome> } */
 export async function POST(request: Request) {
   const denied = await guard(request);
   if (denied) return denied;
-  const parsed = await readJson(request, 400_000);
+  const parsed = await readJson(request, IMAGE_LIMITS.maxBodyBytes);
   if (!parsed.ok) return parsed.res;
 
   const author = parseAuthor(parsed.body.author);
@@ -35,8 +46,9 @@ export async function POST(request: Request) {
   if (recent.some((m) => m.role === "user" && textLength(m) > CHAT_LIMITS.maxMessageChars)) {
     return jsonError(413, `Messages are capped at ${CHAT_LIMITS.maxMessageChars} characters. Trim the paste to the relevant part.`);
   }
-  // Text only until the screenshot path exists.
-  const cleaned = recent.map((m) => (m.role === "user" ? { ...m, parts: m.parts.filter((p) => p.type === "text") } : m));
+  const sanitized = sanitizeMessages(recent, { vision: chatAvailability().vision });
+  if (!sanitized.ok) return jsonError(400, sanitized.error);
+  const cleaned = sanitized.messages;
 
   const outcomes: Record<string, ProposalOutcome> = {};
   const rawOutcomes = parsed.body.outcomes;
@@ -67,7 +79,7 @@ export async function POST(request: Request) {
     stream: toUIMessageStream({
       stream: result.stream,
       onError: (error) => {
-        console.error("chat stream error", error);
+        logSafe(error);
         return chatErrorMessage(error);
       },
     }),

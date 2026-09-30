@@ -19,12 +19,15 @@ export default async function Home() {
     .filter((n) => n !== "assistant")
     .slice(0, 8);
 
+  const chat = chatAvailability();
+
   return (
     <TripShell
       trip={trip}
       version={version}
       devNotes={devNotes}
-      chatAvailable={chatAvailability().available}
+      chatAvailable={chat.available}
+      chatVision={chat.vision}
       knownNames={knownNames}
     />
   );

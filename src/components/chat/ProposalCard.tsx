@@ -104,7 +104,7 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
         </div>
       )}
       {p.redacted.length > 0 && (
-        <p className="mt-2 text-xs text-gray-400">Confirmation, phone or card numbers were left out on purpose.</p>
+        <p className="mt-2 text-xs text-gray-400">Booking codes, contact details, card digits and full names were left out on purpose.</p>
       )}
       {error && <p className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2 text-xs font-semibold text-red-700">{error}</p>}
 

@@ -45,9 +45,24 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
   const { chat } = useTripChat();
   if (m.role === "user") {
     const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+    const images = m.parts.filter((p) => p.type === "file" && p.mediaType.startsWith("image/"));
     return (
-      <div className="ml-8 self-end rounded-2xl rounded-tr-xs bg-volcano px-3.5 py-2.5 text-sm text-white shadow-xs whitespace-pre-wrap">
-        {text}
+      <div className="ml-8 flex flex-col items-end gap-1.5 self-end">
+        {images.length > 0 && (
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {images.map((p, i) =>
+              p.type === "file" ? (
+                // eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never stored or optimized
+                <img key={i} src={p.url} alt={`Screenshot ${i + 1}`} className="h-20 w-auto rounded-lg border border-stone-border object-cover shadow-xs" />
+              ) : null,
+            )}
+          </div>
+        )}
+        {text && (
+          <div className="rounded-2xl rounded-tr-xs bg-volcano px-3.5 py-2.5 text-sm text-white shadow-xs whitespace-pre-wrap">
+            {text}
+          </div>
+        )}
       </div>
     );
   }
@@ -197,7 +212,9 @@ function InitialAssistantGreeting({ onOptionClick }: { onOptionClick: (text: str
 }
 
 export function ChatPanel({ trip }: { trip: Trip }) {
-  const { available, open, setOpen, input, setInput, send, chat, inputRef, prefill } = useTripChat();
+  const { available, open, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError } =
+    useTripChat();
+  const fileRef = useRef<HTMLInputElement>(null);
   const { author, openPicker } = useEditor();
   const [tab, setTab] = useState<"chat" | "activity">("chat");
   const endRef = useRef<HTMLDivElement>(null);
@@ -210,11 +227,11 @@ export function ChatPanel({ trip }: { trip: Trip }) {
 
   function submit() {
     const t = input.trim();
-    if (!t) return;
+    if (!t && !attachments.length) return;
     if (!author) return openPicker();
     const last = chat.messages.at(-1);
     const waiting = last?.role === "assistant" ? last.parts.find((p) => p.type === "tool-ask_user" && p.state === "input-available") : undefined;
-    if (waiting && waiting.type === "tool-ask_user") {
+    if (waiting && waiting.type === "tool-ask_user" && !attachments.length) {
       chat.addToolOutput({ tool: "ask_user", toolCallId: waiting.toolCallId, output: t });
       setInput("");
       return;
@@ -349,6 +366,31 @@ export function ChatPanel({ trip }: { trip: Trip }) {
               </div>
             )}
 
+            {vision && attachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2" aria-label="Screenshots to send">
+                {attachments.map((a, i) => (
+                  <div key={a.id} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never stored or optimized */}
+                    <img src={a.part.url} alt={`Screenshot ${i + 1} to send`} className="size-14 rounded-lg border border-stone-border object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(a.id)}
+                      aria-label={`Remove screenshot ${i + 1}`}
+                      className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-volcano text-[10px] font-bold text-white shadow-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {attachError && <p className="mb-2 text-[11px] font-medium text-maya">{attachError}</p>}
+            {available && !vision && (
+              <p className="mb-2 text-[11px] text-gray-400">
+                Screenshots are off: the assistant is on a text-only model right now. Paste the confirmation text instead.
+              </p>
+            )}
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -356,10 +398,50 @@ export function ChatPanel({ trip }: { trip: Trip }) {
               }}
               className="flex items-center gap-2 rounded-full border border-stone-border bg-stone-light/40 px-3 py-1.5 focus-within:border-lake focus-within:bg-white focus-within:ring-2 focus-within:ring-lake/20 transition-all"
             >
+              {vision && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      void addImages(Array.from(e.target.files ?? []));
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={!available || busy || attachments.length >= 4}
+                    aria-label="Attach booking screenshots"
+                    title="Attach booking screenshots (up to 4)"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-stone-border/60 hover:text-volcano disabled:opacity-40 transition-colors"
+                  >
+                    <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="M21 15l-5-5L5 21" />
+                    </svg>
+                  </button>
+                </>
+              )}
               <input
                 ref={inputRef as React.Ref<HTMLInputElement>}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={(e) => {
+                  if (!vision) return;
+                  const images = Array.from(e.clipboardData.items)
+                    .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+                    .map((it) => it.getAsFile())
+                    .filter((f): f is File => !!f);
+                  if (images.length) {
+                    e.preventDefault();
+                    void addImages(images);
+                  }
+                }}
                 maxLength={6000}
                 disabled={!available}
                 placeholder={available ? "Ask anything about the trip…" : "Assistant unavailable"}
@@ -377,7 +459,7 @@ export function ChatPanel({ trip }: { trip: Trip }) {
               ) : (
                 <button
                   type="submit"
-                  disabled={!available || !input.trim()}
+                  disabled={!available || (!input.trim() && !attachments.length)}
                   className="flex size-8 shrink-0 items-center justify-center rounded-full bg-lake text-white shadow-xs hover:bg-lake-hover disabled:opacity-40 transition-colors"
                   aria-label="Send message"
                 >

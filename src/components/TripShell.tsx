@@ -23,13 +23,15 @@ interface Props {
   version: number;
   devNotes: string[];
   chatAvailable: boolean;
+  /** The active model reads images; hides screenshot upload when false. */
+  chatVision: boolean;
   knownNames: string[];
 }
 
 export function TripShell(props: Props) {
   return (
     <EditorProvider version={props.version} tripOffset={props.trip.utcOffset}>
-      <ChatProvider available={props.chatAvailable}>
+      <ChatProvider available={props.chatAvailable} vision={props.chatVision}>
         <TripPage {...props} />
       </ChatProvider>
     </EditorProvider>

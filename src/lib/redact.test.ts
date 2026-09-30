@@ -37,13 +37,45 @@ describe("redact", () => {
     "Summit 3,976 m (13,044 ft)",
     "Bring Q100 cash, plus Q200–300",
     "Meet at 2 calle oriente #22",
-    "info@wichoandcharlies.com",
+    "Hotel name: Casa Santo Domingo",
+    "Host: AMATE Atitlán",
+    "SEA/LAX/GUA",
+    "Guest: the room faces the garden",
+    "Order of the day: hike",
   ])("leaves ordinary text alone: %s", (input) => {
     expect(redact(input)).toEqual({ text: input, removed: [] });
   });
 
-  it("leaves every string in the seed data alone", () => {
+  it("removes emails", () => {
+    expect(redact("Questions? jordan.rivera@example.com").text).toBe("Questions? [removed]");
+    expect(redact("x@y.co").removed).toEqual(["email"]);
+  });
+
+  it.each([
+    ["Guest: Jordan Rivera", "Guest: [removed]"],
+    ["Lead guest - María José Pérez", "Lead guest - [removed]"],
+    ["Passenger name: Jordan Rivera", "Passenger name: [removed]"],
+    ["Passenger RIVERA/JORDAN MR, seat 20D", "Passenger [removed], seat 20D"],
+    ["Hi Ms. Jordan Rivera, you're all set", "Hi Ms [removed], you're all set"],
+    ["Booked by: Jordan Rivera", "Booked by: [removed]"],
+  ])("removes full names in context: %s", (input, expected) => {
+    expect(redact(input).text).toBe(expected);
+  });
+
+  it.each([
+    ["Booking reference: ABX92K", "Booking reference: [removed]"],
+    ["E-ticket number 0271234567890", "E-ticket number [removed]"],
+    ["Voucher #WC-88213", "Voucher #[removed]"],
+  ])("removes booking references and tickets: %s", (input, expected) => {
+    expect(redact(input).text).toBe(expected);
+  });
+
+  it("leaves every string in the seed data alone except the operator's email", () => {
     const strings = JSON.stringify(seed).match(/"(?:[^"\\]|\\.)*"/g)!.map((s) => JSON.parse(s) as string);
-    for (const s of strings) expect(redact(s).text, s).toBe(s);
+    for (const s of strings) {
+      const r = redact(s);
+      if (r.removed.length) expect(r.removed, s).toEqual(["email"]);
+      else expect(r.text, s).toBe(s);
+    }
   });
 });

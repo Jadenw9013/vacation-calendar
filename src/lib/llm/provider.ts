@@ -60,12 +60,14 @@ export function availableModels(): ResolvedModel[] {
 
 /** Local UI testing only: CHAT_MOCK=1 swaps in a scripted model. Ignored in production. */
 export function isMockModel(): boolean {
-  return process.env.CHAT_MOCK === "1" && process.env.NODE_ENV !== "production" && process.env.VERCEL_ENV !== "production";
+  const mock = process.env.CHAT_MOCK === "1" || process.env.CHAT_MOCK === "text";
+  return mock && process.env.NODE_ENV !== "production" && process.env.VERCEL_ENV !== "production";
 }
 
 /** Status for the UI, without leaking anything secret. */
 export function chatAvailability(): { available: boolean; vision: boolean } {
-  if (isMockModel()) return { available: true, vision: false };
+  // CHAT_MOCK=text simulates a text-only fallback, to check the upload button hides.
+  if (isMockModel()) return { available: true, vision: process.env.CHAT_MOCK !== "text" };
   const first = PROVIDERS.find((p) => process.env[p.apiKeyEnv]);
   return { available: !!first, vision: !!first?.vision };
 }
