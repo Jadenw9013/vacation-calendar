@@ -8,10 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "gaps": "tsx scripts/print-gaps.ts"
+    "gaps": "tsx scripts/print-gaps.ts",
+    "chat:eval": "tsx --env-file-if-exists=.env.local scripts/chat-eval.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.77",
+    "@ai-sdk/react": "^4.0.114",
     "@upstash/redis": "^1.39.0",
+    "ai": "^7.0.111",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

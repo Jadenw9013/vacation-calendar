@@ -27,9 +27,12 @@ export async function guard(request: Request): Promise<NextResponse | null> {
   return null;
 }
 
-export async function readJson(request: Request): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; res: NextResponse }> {
+export async function readJson(
+  request: Request,
+  maxBytes = MAX_BODY_BYTES,
+): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; res: NextResponse }> {
   const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) return { ok: false, res: jsonError(413, "body too large") };
+  if (text.length > maxBytes) return { ok: false, res: jsonError(413, "body too large") };
   try {
     const body = JSON.parse(text);
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error();
