@@ -56,6 +56,8 @@ export interface Trip {
   /** Last day shown on the timeline, "YYYY-MM-DD". */
   lastDay: string;
   homeAirport: string;
+  /** UTC offset of the destination, used to find local midnight for the night check. */
+  utcOffset: string;
   /** null until confirmed. */
   partySize: number | null;
   segments: Segment[];
