@@ -1,6 +1,8 @@
 import type { OpenQuestion, Segment } from "@/data/types";
 import type { NightStatus, TimelineDay, TimelineEvent } from "@/lib/derive";
 import { formatMoment, formatTime, monthDay, parseMoment, weekday, type Moment } from "@/lib/time";
+import { TodoItem } from "./edit/Controls";
+import { SegmentDialog } from "./edit/SegmentDialog";
 import { OwnerTag, StatusTag, cardClass } from "./Status";
 
 /** "UTC−8" when a time isn't in the destination's zone (e.g. the Seattle departure). */
@@ -54,15 +56,15 @@ function EventRow({ e, tripOffset }: { e: TimelineEvent; tripOffset: string }) {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
               <StatusTag status={s.status} />
               <OwnerTag segment={s} />
+              <span className="ml-auto">
+                <SegmentDialog mode="edit" segment={s} />
+              </span>
             </div>
             {s.notes && <p className="mt-2 text-sm">{s.notes}</p>}
             {s.todos && s.todos.length > 0 && (
               <ul className="mt-2 flex flex-col gap-1 text-sm">
                 {s.todos.map((t) => (
-                  <li key={t} className="flex gap-2">
-                    <span aria-hidden className="mt-1 inline-block size-3 shrink-0 border border-basalt" />
-                    {t}
-                  </li>
+                  <TodoItem key={t} target={s.id} text={t} />
                 ))}
               </ul>
             )}

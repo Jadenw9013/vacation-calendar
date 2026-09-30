@@ -1,6 +1,8 @@
 import type { Trip } from "@/data/types";
-import { questionBlocks, type ToBook } from "@/lib/derive";
+import { questionBlocks, unanswered, type ToBook } from "@/lib/derive";
 import { formatDay, parseMoment } from "@/lib/time";
+import { AddTodo, QuestionControls, TodoItem } from "./edit/Controls";
+import { SegmentDialog } from "./edit/SegmentDialog";
 import { OwnerTag, StatusTag, cardClass } from "./Status";
 
 function when(start: string | null): string {
@@ -21,6 +23,9 @@ export function StillToBook({ rows, trip }: { rows: ToBook[]; trip: Trip }) {
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
               <StatusTag status={s.status} />
               <OwnerTag segment={s} />
+              <span className="ml-auto">
+                <SegmentDialog mode="edit" segment={s} />
+              </span>
             </div>
             {blockedBy.length > 0 && (
               <div className="mt-2 text-sm">
@@ -43,7 +48,7 @@ export function StillToBook({ rows, trip }: { rows: ToBook[]; trip: Trip }) {
       <div>
         <h3 className="wide mb-3 text-xl">Open questions</h3>
         <ol className="flex flex-col gap-3">
-          {trip.openQuestions.map((q) => (
+          {unanswered(trip).map((q) => (
             <li key={q.id} id={q.id} className="scroll-mt-4 border-l-4 border-basalt bg-card p-3">
               <p className="font-bold">{q.question}</p>
               {q.notes && <p className="mt-1 text-sm">{q.notes}</p>}
@@ -52,24 +57,39 @@ export function StillToBook({ rows, trip }: { rows: ToBook[]; trip: Trip }) {
                   Blocks: {questionBlocks(trip, q).map((s) => s.title).join(" · ")}
                 </p>
               )}
+              <QuestionControls question={q} />
             </li>
           ))}
         </ol>
+        {unanswered(trip).length === 0 && <p className="text-sm text-pumice">Nothing waiting on a decision.</p>}
       </div>
 
-      {trip.todos.length > 0 && (
+      {trip.openQuestions.some((q) => q.answer) && (
         <div>
-          <h3 className="wide mb-3 text-xl">Before we go</h3>
-          <ul className="flex flex-col gap-2">
-            {trip.todos.map((t) => (
-              <li key={t} className="flex gap-2 text-sm">
-                <span aria-hidden className="mt-0.5 inline-block size-3.5 shrink-0 border border-basalt" />
-                {t}
-              </li>
-            ))}
+          <h3 className="wide mb-3 text-xl">Decided</h3>
+          <ul className="flex flex-col gap-3">
+            {trip.openQuestions
+              .filter((q) => q.answer)
+              .map((q) => (
+                <li key={q.id} id={q.id} className="scroll-mt-4 border-l-4 border-lake bg-card p-3">
+                  <p className="text-sm text-pumice">{q.question}</p>
+                  <p className="mt-1 font-bold">{q.answer}</p>
+                  <QuestionControls question={q} />
+                </li>
+              ))}
           </ul>
         </div>
       )}
+
+      <div>
+        <h3 className="wide mb-3 text-xl">Before we go</h3>
+        <ul className="flex flex-col gap-2 text-sm">
+          {trip.todos.map((t) => (
+            <TodoItem key={t} target="trip" text={t} />
+          ))}
+        </ul>
+        <AddTodo target="trip" />
+      </div>
     </div>
   );
 }

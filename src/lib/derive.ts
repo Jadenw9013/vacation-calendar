@@ -260,8 +260,13 @@ export function stillToBook(trip: Trip): ToBook[] {
     })
     .map((segment) => ({
       segment,
-      blockedBy: trip.openQuestions.filter((q) => q.blocks.includes(segment.id)),
+      blockedBy: unanswered(trip).filter((q) => q.blocks.includes(segment.id)),
     }));
+}
+
+/** Questions still waiting on a decision. */
+export function unanswered(trip: Trip): OpenQuestion[] {
+  return trip.openQuestions.filter((q) => !q.answer);
 }
 
 export function questionBlocks(trip: Trip, q: OpenQuestion): Segment[] {

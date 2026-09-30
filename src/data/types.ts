@@ -49,6 +49,8 @@ export interface OpenQuestion {
   /** Segment ids this decision blocks. */
   blocks: string[];
   notes?: string;
+  /** The decision, once made. A question with an answer no longer blocks anything. */
+  answer?: string;
 }
 
 export interface Trip {
