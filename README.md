@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Guatemala trip, Nov 24–30, 2026
 
-## Getting Started
+A one-page static site for the trip: where we sleep each night, what's booked, and what still has nobody on it. It's public by URL, so nothing sensitive goes in here: no confirmation numbers, surnames, phone numbers or payment details.
 
-First, run the development server:
+The source of truth is [`files/TRIP-DATA.md`](files/TRIP-DATA.md). The site reads everything from [`src/data/trip.ts`](src/data/trip.ts).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Editing the trip
+
+Everything lives in `src/data/trip.ts`. The gaps, the night strip and "Still to book" are all computed from it, so you never edit a gap directly.
+
+### Booking something that already has a placeholder
+
+For example, you've booked a hotel in Antigua for the nights of Nov 26–28:
+
+```ts
+{
+  id: "lodging-nov26-28",
+  kind: "lodging",
+  title: "Hotel name",
+  start: "2026-11-26T14:00:00-06:00", // check-in
+  end: "2026-11-29T05:45:00-06:00",   // checkout
+  status: "booked",                   // was "undecided"
+  location: "Antigua",
+  owner: "Sam",                       // first name of whoever booked it
+},
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Once it's booked, the "No bed" cells for those nights turn solid.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Adding something new
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add an object to `segments`. The fields:
 
-## Learn More
+| Field | Values |
+| --- | --- |
+| `id` | Unique, kebab-case. Open questions refer to it. |
+| `kind` | `flight`, `lodging`, `activity`, `transport` |
+| `start`, `end` | See "Dates and times" below. |
+| `status` | `booked`, `needs-booking`, `undecided` |
+| `owner` | First name only. Leave it out if nobody has it. |
+| `cost` | Optional: `{ amount: 450, currency: "GTQ" }` or `"USD"` |
+| `notes`, `todos` | Optional free text, or a list of strings. |
+| `includesLodging` | `true` on a non-lodging segment you sleep in, such as the overnight hike. |
+| `peakElevationM` | Optional summit height in metres. |
 
-To learn more about Next.js, take a look at the following resources:
+### Dates and times
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Known time:** a full ISO datetime with the local UTC offset, e.g. `"2026-11-28T08:00:00-06:00"`. Guatemala is always `-06:00` (it has no daylight saving time). Seattle in November is `-08:00`.
+- **Known day, unknown time:** the date only, e.g. `"2026-11-30"`. It shows as "TBD".
+- **Unknown:** `null`, e.g. a return flight with no date picked yet.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Don't guess a time to make something look complete. Unknown stays unknown.
 
-## Deploy on Vercel
+### Open questions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Each entry in `openQuestions` lists the segment ids it `blocks`. When a question is answered, delete it and update the segments it blocked.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Checking your edit
+
+```bash
+npm run gaps   # prints nights, gaps and still-to-book as plain text
+npm test       # unit tests, including a check that trip.ts is valid
+```
+
+The build fails on purpose if `trip.ts` has a bad date, a duplicate id, or a question that points at a segment that doesn't exist. That way a typo can't ship a wrong page.
+
+## How gaps are computed
+
+Only segments with `status: "booked"` count as coverage. Placeholders show up in "Still to book" but never hide a gap.
+
+- **Nights.** The night of a date is covered if a booked lodging segment (or an activity with `includesLodging`) spans it by calendar date, or if a booked flight is in the air at local midnight. Consecutive empty nights merge into one gap.
+- **Transport.** Booked segments are sorted by start time. Any window longer than 90 minutes between two segments is flagged, unless one side of it is a booked `transport` segment. If either end has no time yet, the length shows as "unknown".
+- **Flight home.** Flagged when the last booked segment isn't a flight.
+
+The logic is in `src/lib/derive.ts`, with tests in `src/lib/derive.test.ts`.
+
+## Running locally
+
+```bash
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # static export to out/
+```
+
+## Deploying
+
+The site is a static export (`output: "export"`), so there are no servers, database or environment variables.
+
+**First time:** import the repo at [vercel.com/new](https://vercel.com/new). It detects Next.js and needs no settings changed. Or, from this folder:
+
+```bash
+npx vercel          # link the project and create a preview deploy
+npx vercel --prod   # production
+```
+
+**After that:** if the repo is connected to Vercel, push to `main` and it redeploys. Otherwise, run `npx vercel --prod` again after editing `trip.ts`.
+
+## Layout
+
+```
+files/TRIP-DATA.md       source notes from the booking confirmations
+src/data/types.ts        Segment, OpenQuestion, Trip
+src/data/trip.ts         the trip, edited by hand
+src/lib/time.ts          date parsing and formatting (times stay local, never the viewer's zone)
+src/lib/derive.ts        nights, gaps, still-to-book, timeline, validation
+src/components/          UI pieces
+src/app/page.tsx         the page
+docs/DESIGN.md           palette, type and layout rationale
+scripts/print-gaps.ts    npm run gaps
+```
