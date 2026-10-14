@@ -25,16 +25,16 @@ export function Activity() {
     };
   }, [changeCount]);
 
-  if (failed) return <p className="p-4 text-sm">Couldn&apos;t load the activity list.</p>;
-  if (!entries) return <p className="p-4 text-sm text-pumice">Loading…</p>;
-  if (!entries.length) return <p className="p-4 text-sm text-pumice">No changes yet. Everything is as first entered.</p>;
+  if (failed) return <p className="p-4 text-base">Couldn&apos;t load the activity list. It needs a connection.</p>;
+  if (!entries) return <p className="p-4 text-base text-muted">Loading…</p>;
+  if (!entries.length) return <p className="p-4 text-base text-muted">No changes yet. Everything is as first entered.</p>;
 
   return (
     <ol className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
       {entries.map((e, i) => (
-        <li key={e.id} className="border-l-4 border-scree pl-3 text-sm">
-          <p className="text-xs text-pumice">
-            <span className="font-semibold text-basalt">{e.author}</span> · {when(e.at)}
+        <li key={e.id} className="border-l-4 border-line pl-3 text-base">
+          <p className="text-sm text-muted">
+            <span className="font-semibold text-ink">{e.author}</span> · {when(e.at)}
             {e.undoOf && " · undo"}
           </p>
           <ul className="mt-0.5">
@@ -43,7 +43,7 @@ export function Activity() {
             ))}
           </ul>
           {i === 0 && (
-            <button onClick={undo} disabled={busy} className="mt-1 text-xs font-semibold underline underline-offset-2">
+            <button onClick={undo} disabled={busy} className="mt-2 min-h-11 rounded-xl border border-line px-4 font-semibold hover:bg-sunken">
               Undo this
             </button>
           )}

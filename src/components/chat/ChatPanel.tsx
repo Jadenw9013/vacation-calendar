@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import type { Trip } from "@/data/types";
 import { computeGaps, nightCoverage, unanswered } from "@/lib/derive";
 import { formatDay } from "@/lib/time";
@@ -9,6 +8,7 @@ import { useEditor } from "@/components/edit/EditorProvider";
 import { Activity } from "./Activity";
 import { proposalsIn, useTripChat, type TripUIMessage } from "./ChatProvider";
 import { ProposalCard } from "./ProposalCard";
+import { Icon } from "@/components/ui/Icon";
 
 interface Chip {
   label: string;
@@ -59,13 +59,13 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
             {images.map((p, i) =>
               p.type === "file" ? (
                 // eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never stored or optimized
-                <img key={i} src={p.url} alt={`Screenshot ${i + 1}`} className="h-20 w-auto rounded-lg border border-stone-border object-cover shadow-xs" />
+                <img key={i} src={p.url} alt={`Screenshot ${i + 1}`} className="h-20 w-auto rounded-lg border border-line object-cover" />
               ) : null,
             )}
           </div>
         )}
         {text && (
-          <div className="rounded-2xl rounded-tr-xs bg-volcano px-3.5 py-2.5 text-sm text-white shadow-xs whitespace-pre-wrap">
+          <div className="rounded-2xl rounded-tr-sm bg-ink px-4 py-2.5 text-base text-canvas whitespace-pre-wrap">
             {text}
           </div>
         )}
@@ -73,12 +73,12 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
     );
   }
   return (
-    <div className="mr-4 flex flex-col gap-2.5 text-sm">
+    <div className="mr-4 flex flex-col gap-2.5 text-base">
       {m.parts.map((p, i) => {
         const key = `${m.id}-${i}`;
         if (p.type === "text") {
           return p.text.trim() ? (
-            <div key={key} className="rounded-2xl rounded-tl-xs bg-stone-light border border-stone-border/80 px-3.5 py-2.5 text-volcano shadow-xs whitespace-pre-wrap">
+            <div key={key} className="rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-2.5 whitespace-pre-wrap">
               {p.text}
             </div>
           ) : null;
@@ -89,44 +89,43 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
           }
           if (p.state === "output-error") {
             return (
-              <div key={key} className="rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+              <div key={key} className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
                 Couldn&apos;t draft that change: {p.errorText}
               </div>
             );
           }
           return (
-            <div key={key} className="flex items-center gap-2 text-xs text-gray-500 py-1">
-              <span className="size-2 rounded-full bg-lake animate-ping" />
+            <div key={key} className="flex items-center gap-2 py-1 text-base text-muted">
+              <span className="size-2 animate-pulse rounded-full bg-now" />
               <span>Drafting a trip change…</span>
             </div>
           );
         }
         if (p.type === "tool-ask_user") {
-          if (p.state === "input-streaming") return <p key={key} className="text-xs text-gray-400">Thinking…</p>;
+          if (p.state === "input-streaming") return <p key={key} className="text-base text-muted">Thinking…</p>;
           if (p.state === "input-available") {
             return (
-              <div key={key} className="rounded-2xl border border-stone-border bg-white p-3.5 shadow-xs flex flex-col gap-2.5">
-                <p className="font-semibold text-volcano">{p.input.question}</p>
-                <div className="flex flex-wrap gap-1.5">
+              <div key={key} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+                <p className="font-semibold">{p.input.question}</p>
+                <div className="flex flex-wrap gap-2">
                   {p.input.options.map((o) => (
                     <button
                       key={o}
                       onClick={() => chat.addToolOutput({ tool: "ask_user", toolCallId: p.toolCallId, output: o })}
-                      className="rounded-lg border border-stone-border bg-stone-light/50 px-3 py-1 text-xs font-semibold text-volcano hover:bg-stone-border/50 transition-colors"
+                      className="min-h-11 rounded-xl border border-line px-4 text-base font-semibold hover:bg-sunken"
                     >
                       {o}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-400">Or type your own answer below.</p>
+                <p className="text-base text-muted">Or type your own answer below.</p>
               </div>
             );
           }
           if (p.state === "output-available") {
             return (
-              <div key={key} className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 text-xs">
-                <span className="font-semibold text-gray-800">{p.input.question}</span>{" "}
-                <span className="text-lake font-medium">→ {String(p.output)}</span>
+              <div key={key} className="rounded-xl border border-line bg-canvas px-3 py-2 text-base">
+                <span className="font-semibold">{p.input.question}</span> <span className="text-muted">→ {String(p.output)}</span>
               </div>
             );
           }
@@ -138,87 +137,18 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
   );
 }
 
-/** Featured mockup hotel card when chat is opened */
-function InitialAssistantGreeting({ onOptionClick }: { onOptionClick: (text: string) => void }) {
-  const [activeSlide, setActiveSlide] = useState(0);
-
+/** First thing in an empty chat: what the planner can do. */
+function Greeting() {
   return (
-    <div className="flex flex-col gap-3">
-      {/* Assistant bubble */}
-      <div className="rounded-2xl rounded-tl-xs bg-stone-light border border-stone-border/80 px-3.5 py-2.5 text-sm text-volcano shadow-xs leading-relaxed">
-        Here are a few options to book a hotel in Guatemala City for Nov 24. Want me to add one to the plan?
-      </div>
-
-      {/* Featured hotel card from the design spec */}
-      <div className="overflow-hidden rounded-2xl border border-stone-border bg-white shadow-xs">
-        <div className="relative h-36 w-full bg-gray-100">
-          <Image
-            src="/antigua-hotel.jpg"
-            alt="Hotel Las Farolas in Antigua Guatemala"
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 360px"
-          />
-        </div>
-
-        <div className="p-3.5 flex flex-col gap-2">
-          <div>
-            <h4 className="font-serif font-bold text-volcano text-base">Hotel Las Farolas</h4>
-            <p className="text-xs text-gray-500">Guatemala City</p>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            <span className="rounded-md bg-stone-light px-2 py-0.5 text-[11px] font-medium text-gray-600">
-              Good location
-            </span>
-            <span className="rounded-md bg-stone-light px-2 py-0.5 text-[11px] font-medium text-gray-600">
-              Free cancellation
-            </span>
-          </div>
-
-          <div className="mt-1 flex items-center gap-2">
-            <button
-              onClick={() => onOptionClick("Book Hotel Las Farolas for Nov 24")}
-              className="rounded-lg bg-lake px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-lake-hover transition-colors"
-            >
-              Apply
-            </button>
-            <button
-              onClick={() => onOptionClick("Show other hotel options for Nov 24")}
-              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
-            >
-              Discard
-            </button>
-            <button
-              onClick={() => onOptionClick("Tweak this hotel suggestion")}
-              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
-            >
-              Tweak
-            </button>
-          </div>
-
-          {/* Carousel dots */}
-          <div className="flex items-center justify-center gap-1.5 pt-1">
-            {[0, 1, 2, 3].map((idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setActiveSlide(idx)}
-                className={`size-1.5 rounded-full transition-all ${
-                  activeSlide === idx ? "bg-lake w-3" : "bg-gray-300"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-3 text-base">
+      Ask anything about the trip, paste a booking confirmation, or have me draft a day&apos;s plan. I&apos;ll propose changes; nothing is
+      saved until you apply it.
     </div>
   );
 }
 
-export function ChatPanel({ trip }: { trip: Trip }) {
-  const { available, open, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError } =
+export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
+  const { available, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError } =
     useTripChat();
   const fileRef = useRef<HTMLInputElement>(null);
   const { author, openPicker } = useEditor();
@@ -229,7 +159,8 @@ export function ChatPanel({ trip }: { trip: Trip }) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [chat.messages, open]);
+  }, [chat.messages]);
+  const usable = available && online;
 
   function submit() {
     const t = input.trim();
@@ -245,119 +176,70 @@ export function ChatPanel({ trip }: { trip: Trip }) {
     send(t);
   }
 
-  function handleCardOptionClick(text: string) {
-    if (!author) {
-      openPicker();
-      return;
-    }
-    send(text);
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed right-5 bottom-5 z-40 flex items-center gap-2.5 rounded-full bg-night px-4 py-3 font-semibold text-white shadow-xl hover:bg-night-card transition-all lg:hidden"
-      >
-        <span className="flex size-2 rounded-full bg-emerald-400" />
-        <span className="text-sm">Trip Assistant</span>
-      </button>
-    );
-  }
-
   return (
-    <aside
-      aria-label="Trip Assistant"
-      className="flex flex-col h-full w-full rounded-2xl border border-stone-border bg-white shadow-xl overflow-hidden"
-    >
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-stone-border/80 px-4 py-3.5 bg-white">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-7 items-center justify-center rounded-full bg-night text-white">
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 19L9 7L13 14L16 9L21 19H3Z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="font-serif font-bold text-volcano text-base leading-tight">Trip Assistant</h2>
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Online</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <nav className="flex gap-2 text-xs font-medium" aria-label="Assistant modes">
+    <aside aria-label="Ask the planner" className="flex h-full w-full flex-col overflow-hidden bg-surface">
+      <header className="flex items-center gap-2 border-b border-line py-1.5 pr-1.5 pl-4">
+        <h2 className="mr-auto text-lg font-bold">Ask the planner</h2>
+        <nav className="flex gap-2" aria-label="Planner views">
+          {(["chat", "activity"] as const).map((t) => (
             <button
-              onClick={() => setTab("chat")}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                tab === "chat" ? "bg-stone-light font-semibold text-volcano" : "text-gray-400 hover:text-gray-700"
-              }`}
+              key={t}
+              onClick={() => setTab(t)}
+              aria-current={tab === t ? "page" : undefined}
+              className={`min-h-11 rounded-xl px-3 text-base font-semibold ${tab === t ? "bg-ink text-canvas" : "text-muted hover:bg-sunken"}`}
             >
-              Chat
+              {t === "chat" ? "Chat" : "Activity"}
             </button>
-            <button
-              onClick={() => setTab("activity")}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                tab === "activity" ? "bg-stone-light font-semibold text-volcano" : "text-gray-400 hover:text-gray-700"
-              }`}
-            >
-              Activity
-            </button>
-          </nav>
-
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close assistant"
-            className="flex size-7 items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
-          >
-            ✕
-          </button>
-        </div>
+          ))}
+        </nav>
+        <button onClick={() => setOpen(false)} aria-label="Close the planner" className="flex size-11 items-center justify-center rounded-xl hover:bg-sunken">
+          <Icon name="close" />
+        </button>
       </header>
 
       {tab === "activity" ? (
         <Activity />
       ) : (
         <>
-          {/* Messages scroll area */}
-          <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-4 bg-stone-light/30">
-            {!available && (
-              <div className="rounded-xl border border-maya-border bg-maya-light p-3 text-xs text-maya font-medium">
-                The Gemini AI assistant requires a <code className="font-mono">GEMINI_API_KEY</code> set in your environment. You can still use manual edits and all features!
-              </div>
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+            {!online && (
+              <p className="flex items-start gap-2 rounded-xl border-2 border-line p-3 text-base" role="status">
+                <Icon name="offline" className="mt-0.5 shrink-0" />
+                You&apos;re offline. The planner needs a connection; your trip is still here in Trip mode.
+              </p>
+            )}
+            {online && !available && (
+              <p className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
+                The planner isn&apos;t set up on this site yet (it needs a <code>GEMINI_API_KEY</code>). Manual editing still works.
+              </p>
             )}
 
-            {/* If no chat messages have been sent yet, show the featured initial card matching the mockup */}
-            {chat.messages.length === 0 && (
-              <InitialAssistantGreeting onOptionClick={handleCardOptionClick} />
-            )}
+            {chat.messages.length === 0 && <Greeting />}
 
             {chat.messages.map((m) => (
               <MessageView key={m.id} m={m} latestProposalId={latestProposalId} />
             ))}
 
             {chat.status === "submitted" && (
-              <div className="flex items-center gap-2 text-xs text-gray-400 py-1">
-                <span className="size-1.5 rounded-full bg-lake animate-ping" />
+              <div className="flex items-center gap-2 py-1 text-base text-muted">
+                <span className="size-2 animate-pulse rounded-full bg-now" />
                 <span>Thinking…</span>
               </div>
             )}
 
             {!chat.error && chat.status === "ready" && isEmptyAnswer(chat.messages.at(-1)) && (
-              <div className="rounded-xl border border-maya-border bg-maya-light p-3 text-xs text-maya">
-                <p className="font-semibold">No answer came back from the assistant.</p>
-                <button onClick={() => chat.regenerate()} className="mt-1 font-medium underline">
+              <div className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
+                <p className="font-semibold">No answer came back from the planner.</p>
+                <button onClick={() => chat.regenerate()} disabled={!online} className="mt-2 min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold">
                   Try again
                 </button>
               </div>
             )}
 
             {chat.error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                <p className="font-semibold">{errorText(chat.error)}</p>
-                <button onClick={() => chat.regenerate()} className="mt-1 font-medium underline">
+              <div className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
+                <p className="font-semibold">{online ? errorText(chat.error) : "That didn't send: you're offline."}</p>
+                <button onClick={() => chat.regenerate()} disabled={!online} className="mt-2 min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold">
                   Try again
                 </button>
               </div>
@@ -365,15 +247,14 @@ export function ChatPanel({ trip }: { trip: Trip }) {
             <div ref={endRef} />
           </div>
 
-          {/* Bottom input area */}
-          <div className="border-t border-stone-border/80 bg-white p-3">
-            {available && !busy && (
-              <div className="-mx-1 mb-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1">
+          <div className="border-t border-line p-3">
+            {usable && !busy && (
+              <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
                 {suggestionChips(trip).map((c) => (
                   <button
                     key={c.label}
                     onClick={() => (c.prefill ? prefill(c.text) : author ? send(c.text) : openPicker())}
-                    className="shrink-0 rounded-full border border-stone-border bg-stone-light/60 px-3 py-1 text-[11px] font-medium text-gray-700 hover:bg-stone-border/60 hover:text-volcano transition-colors whitespace-nowrap"
+                    className="min-h-11 shrink-0 rounded-full border border-line px-4 text-base font-medium whitespace-nowrap hover:bg-sunken"
                   >
                     {c.label}
                   </button>
@@ -382,28 +263,26 @@ export function ChatPanel({ trip }: { trip: Trip }) {
             )}
 
             {vision && attachments.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2" aria-label="Screenshots to send">
+              <ul className="mb-3 flex flex-wrap gap-3" aria-label="Screenshots to send">
                 {attachments.map((a, i) => (
-                  <div key={a.id} className="relative">
+                  <li key={a.id} className="flex items-center gap-1">
                     {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never stored or optimized */}
-                    <img src={a.part.url} alt={`Screenshot ${i + 1} to send`} className="size-14 rounded-lg border border-stone-border object-cover" />
+                    <img src={a.part.url} alt={`Screenshot ${i + 1} to send`} className="size-14 rounded-lg border border-line object-cover" />
                     <button
                       type="button"
                       onClick={() => removeAttachment(a.id)}
                       aria-label={`Remove screenshot ${i + 1}`}
-                      className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-volcano text-[10px] font-bold text-white shadow-xs"
+                      className="flex size-11 items-center justify-center rounded-xl hover:bg-sunken"
                     >
-                      ✕
+                      <Icon name="close" />
                     </button>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-            {attachError && <p className="mb-2 text-[11px] font-medium text-maya">{attachError}</p>}
+            {attachError && <p className="mb-2 text-base font-medium text-action">{attachError}</p>}
             {available && !vision && (
-              <p className="mb-2 text-[11px] text-gray-400">
-                Screenshots are off: the assistant is on a text-only model right now. Paste the confirmation text instead.
-              </p>
+              <p className="mb-2 text-base text-muted">Screenshots are off: the planner is on a text-only model right now. Paste the confirmation text instead.</p>
             )}
 
             <form
@@ -411,7 +290,7 @@ export function ChatPanel({ trip }: { trip: Trip }) {
                 e.preventDefault();
                 submit();
               }}
-              className="flex items-center gap-2 rounded-full border border-stone-border bg-stone-light/40 px-3 py-1.5 focus-within:border-lake focus-within:bg-white focus-within:ring-2 focus-within:ring-lake/20 transition-all"
+              className="flex items-center gap-2 rounded-2xl border border-line bg-canvas p-1 focus-within:border-now"
             >
               {vision && (
                 <>
@@ -429,12 +308,12 @@ export function ChatPanel({ trip }: { trip: Trip }) {
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    disabled={!available || busy || attachments.length >= 4}
+                    disabled={!usable || busy || attachments.length >= 4}
                     aria-label="Attach booking screenshots"
                     title="Attach booking screenshots (up to 4)"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-stone-border/60 hover:text-volcano disabled:opacity-40 transition-colors"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl text-ink hover:bg-sunken disabled:opacity-50"
                   >
-                    <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="M21 15l-5-5L5 21" />
@@ -458,27 +337,28 @@ export function ChatPanel({ trip }: { trip: Trip }) {
                   }
                 }}
                 maxLength={6000}
-                disabled={!available}
-                placeholder={available ? "Ask anything about the trip…" : "Assistant unavailable"}
+                disabled={!usable}
+                placeholder={!online ? "Needs a connection" : available ? "Ask anything about the trip…" : "Planner unavailable"}
                 aria-label="Message"
-                className="flex-1 bg-transparent px-2 py-1 text-sm outline-none text-volcano placeholder:text-gray-400 disabled:opacity-50"
+                className="min-h-11 min-w-0 flex-1 bg-transparent px-2 text-base outline-none placeholder:text-muted disabled:opacity-60"
               />
               {busy ? (
                 <button
                   type="button"
                   onClick={() => chat.stop()}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-300"
+                  aria-label="Stop"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sunken font-bold"
                 >
                   ■
                 </button>
               ) : (
                 <button
                   type="submit"
-                  disabled={!available || (!input.trim() && !attachments.length)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-lake text-white shadow-xs hover:bg-lake-hover disabled:opacity-40 transition-colors"
+                  disabled={!usable || (!input.trim() && !attachments.length)}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-ink text-canvas disabled:opacity-40"
                   aria-label="Send message"
                 >
-                  <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <line x1="22" y1="2" x2="11" y2="13" />
                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>

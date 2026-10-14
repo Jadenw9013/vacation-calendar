@@ -58,7 +58,7 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
 
   if (p.status === "invalid") {
     return (
-      <div className="border-l-4 border-pumice py-1 pl-3 text-xs text-pumice">
+      <div className="border-l-4 border-line py-1 pl-3 text-base text-muted">
         Draft rejected by the checks: {p.issues.map((i) => i.message).join(" ")}
       </div>
     );
@@ -68,19 +68,16 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
   return (
     <article
       aria-label={`Proposal: ${p.summary}`}
-      className={`rounded-2xl border bg-white p-4 text-sm shadow-xs ${
-        settled === "applied"
-          ? "border-lake ring-1 ring-lake/30"
-          : settled
-            ? "border-stone-border opacity-70"
-            : "border-maya-border/80 bg-maya-light/20"
+      className={`rounded-2xl border-2 bg-surface p-4 text-base ${
+        settled === "applied" ? "border-booked" : settled ? "border-line" : "border-now"
       }`}
     >
-      <h3 className="font-serif font-bold text-volcano text-base">{p.summary}</h3>
-      <ul className="mt-2 flex flex-col gap-1.5 text-gray-700">
+      <p className="text-sm font-bold tracking-wide text-now uppercase">{settled ? "Proposal" : "Proposed change"}</p>
+      <h3 className="text-lg font-bold">{p.summary}</h3>
+      <ul className="mt-2 flex flex-col gap-1.5">
         {p.changes.map((c, i) => (
           <li key={i} className="flex gap-2">
-            <span aria-hidden className="w-3 shrink-0 font-mono font-bold text-lake">
+            <span aria-hidden className="w-3 shrink-0 font-bold text-muted">
               {MARK[p.ops[i]?.op] ?? "•"}
             </span>
             <span>{c}</span>
@@ -89,57 +86,57 @@ export function ProposalCard({ toolCallId, proposal, latest }: { toolCallId: str
       </ul>
 
       {(p.gapDelta.closes.length > 0 || p.gapDelta.opens.length > 0) && (
-        <div className="mt-2.5 flex flex-col gap-1 text-xs">
+        <div className="mt-3 flex flex-col gap-1">
           {p.gapDelta.closes.length > 0 && (
-            <p className="text-lake font-medium">
-              <span className="font-bold">Closes:</span> {p.gapDelta.closes.join("; ")}
+            <p>
+              <span className="font-bold text-booked">✓ Closes:</span> {p.gapDelta.closes.join("; ")}
             </p>
           )}
           {p.gapDelta.opens.length > 0 && (
-            <p className="text-maya font-medium">
-              <span className="font-bold">Opens:</span> {p.gapDelta.opens.join("; ")}
+            <p>
+              <span className="font-bold text-action">! Opens:</span> {p.gapDelta.opens.join("; ")}
             </p>
           )}
         </div>
       )}
       {p.gapDelta.closes.length === 0 && p.gapDelta.opens.length === 0 && (
-        <p className="mt-2 text-xs text-gray-400">No change to the gaps.</p>
+        <p className="mt-2 text-muted">No change to the gaps.</p>
       )}
 
       {p.confirmations.length > 0 && !settled && (
-        <div className="mt-2 rounded-lg bg-maya-light border border-maya-border p-2 text-xs text-maya font-medium">
+        <div className="mt-3 rounded-xl border-2 border-action bg-action-soft p-3">
           {p.confirmations.map((c) => (
             <p key={c}>{c}</p>
           ))}
         </div>
       )}
       {p.redacted.length > 0 && (
-        <p className="mt-2 text-xs text-gray-400">Booking codes, contact details, card digits and full names were left out on purpose.</p>
+        <p className="mt-2 text-muted">Booking codes, contact details, card digits and full names were left out on purpose.</p>
       )}
-      {error && <p className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2 text-xs font-semibold text-red-700">{error}</p>}
+      {error && <p className="mt-3 rounded-xl border-2 border-action bg-action-soft p-3 font-semibold">{error}</p>}
 
-      <div className="mt-3.5 flex flex-wrap items-center gap-2">
-        {settled === "applied" && <span className="font-bold text-lake text-xs">✓ Applied to trip</span>}
-        {settled === "discarded" && <span className="text-xs text-gray-400">Discarded</span>}
-        {settled === "stale" && <span className="text-xs text-gray-400">The trip changed first; asked for a new version.</span>}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {settled === "applied" && <span className="font-bold text-booked">✓ Applied to the trip</span>}
+        {settled === "discarded" && <span className="text-muted">Discarded</span>}
+        {settled === "stale" && <span className="text-muted">The trip changed first; asked for a new version.</span>}
         {!settled && (
           <>
             <button
               onClick={onApply}
               disabled={busy}
-              className="rounded-lg bg-lake px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-lake-hover disabled:opacity-50 transition-colors"
+              className="min-h-11 rounded-xl bg-ink px-5 font-bold text-canvas disabled:opacity-50"
             >
               {p.status === "needs_confirmation" ? "Confirm & apply" : "Apply"}
             </button>
             <button
               onClick={() => setOutcome(toolCallId, "discarded")}
-              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
+              className="min-h-11 rounded-xl border border-line px-4 font-semibold hover:bg-sunken"
             >
               Discard
             </button>
             <button
               onClick={() => prefill("Change that: ")}
-              className="rounded-lg border border-stone-border bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs hover:bg-gray-50 transition-colors"
+              className="min-h-11 rounded-xl border border-line px-4 font-semibold hover:bg-sunken"
             >
               Tweak
             </button>

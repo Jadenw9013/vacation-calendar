@@ -1,136 +1,192 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Four colors with one job each, plus neutrals:
+ *   booked  – quiet: done, nothing to do
+ *   action  – loudest: needs booking or a decision
+ *   now     – what's happening now, links and focus
+ *   ink / muted / line / canvas / surface – everything else
+ * Every pair used for text is at least 4.5:1, times and statuses about 7:1.
+ */
 :root {
-  /* Guatemala Design System Palette */
-  --volcano: #1F1F1E;
-  --lake: #0F766E;
-  --lake-hover: #0D655E;
-  --maya: #C2410C;
-  --antigua: #D4A017;
-  --stone: #E7E4DD;
-  --night: #0B1E2D;
+  color-scheme: light;
+  --canvas: #f6f5f1;
+  --surface: #ffffff;
+  --sunken: #eeede8;
+  --ink: #14171c;
+  --muted: #4a5260;
+  --line: #d5d3cc;
+  --booked: #0f5f57;
+  --booked-soft: #e3f1ee;
+  --action: #9a3412;
+  --action-soft: #fdede4;
+  --now: #1e40af;
+  --now-soft: #e6edfd;
+  /* Text on a booked, action or now fill. */
+  --on-fill: #ffffff;
 
-  /* Surfaces, Borders & Tints */
-  --stone-light: #F7F5F0;
-  --stone-surface: #FFFFFF;
-  --stone-border: #E5E2D9;
-  --maya-light: #FFF7F5;
-  --maya-border: #FCD9CD;
-  --night-card: #132D40;
-  --night-border: #1D3F58;
+  /* Neutral ramp the older components use (bg-gray-50, text-gray-500…). */
+  --g50: #f7f7f5;
+  --g100: #efeee9;
+  --g200: #e2e0da;
+  --g300: #cfcdc6;
+  --g400: #5f6673;
+  --g500: #4a5260;
+  --g600: #3f4652;
+  --g700: #333944;
+  --g800: #1f242c;
+  --g900: #14171c;
+}
 
-  /* Legacy & compatibility mappings */
-  --ash: #F7F5F0;
-  --basalt: #1F1F1E;
-  --pumice: #6B7280;
-  --scree: #E5E2D9;
-  --on-lake: #FFFFFF;
-  --hazard: #C2410C;
-  --on-hazard: #FFFFFF;
-  --ember: #C2410C;
-  --card: #FFFFFF;
+/* Dark: follows the system. Checked at night on the volcano, so no grey-on-grey. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #0d1014;
+    --surface: #161a20;
+    --sunken: #1e232b;
+    --ink: #f1f3f5;
+    --muted: #aeb6c2;
+    --line: #353d48;
+    --booked: #6ee7d6;
+    --booked-soft: #12302c;
+    --action: #fdba74;
+    --action-soft: #3a2414;
+    --now: #9db9ff;
+    --now-soft: #18264a;
+    --on-fill: #0d1014;
+
+    --g50: #1b2027;
+    --g100: #212731;
+    --g200: #2b323d;
+    --g300: #38414d;
+    --g400: #a3acb8;
+    --g500: #aeb6c2;
+    --g600: #c3c9d2;
+    --g700: #d5dae1;
+    --g800: #e5e8ec;
+    --g900: #f1f3f5;
+  }
 }
 
 @theme inline {
-  --color-volcano: var(--volcano);
-  --color-lake: var(--lake);
-  --color-lake-hover: var(--lake-hover);
-  --color-maya: var(--maya);
-  --color-antigua: var(--antigua);
-  --color-stone: var(--stone);
-  --color-stone-light: var(--stone-light);
-  --color-stone-surface: var(--stone-surface);
-  --color-stone-border: var(--stone-border);
-  --color-maya-light: var(--maya-light);
-  --color-maya-border: var(--maya-border);
-  --color-night: var(--night);
-  --color-night-card: var(--night-card);
-  --color-night-border: var(--night-border);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-booked: var(--booked);
+  --color-booked-soft: var(--booked-soft);
+  --color-action: var(--action);
+  --color-action-soft: var(--action-soft);
+  --color-now: var(--now);
+  --color-now-soft: var(--now-soft);
+  --color-on-fill: var(--on-fill);
 
-  --color-ash: var(--ash);
-  --color-basalt: var(--basalt);
-  --color-pumice: var(--pumice);
-  --color-scree: var(--scree);
-  --color-on-lake: var(--on-lake);
-  --color-hazard: var(--hazard);
-  --color-on-hazard: var(--on-hazard);
-  --color-ember: var(--ember);
-  --color-card: var(--card);
+  /*
+   * The older palette names, mapped onto the tokens so components not yet
+   * restyled still follow the theme. White and the greys flip in dark mode.
+   */
+  --color-white: var(--surface);
+  --color-gray-50: var(--g50);
+  --color-gray-100: var(--g100);
+  --color-gray-200: var(--g200);
+  --color-gray-300: var(--g300);
+  --color-gray-400: var(--g400);
+  --color-gray-500: var(--g500);
+  --color-gray-600: var(--g600);
+  --color-gray-700: var(--g700);
+  --color-gray-800: var(--g800);
+  --color-gray-900: var(--g900);
+  --color-red-50: var(--action-soft);
+  --color-red-100: var(--action-soft);
+  --color-red-200: var(--action);
+  --color-red-600: var(--action);
+  --color-red-700: var(--action);
+  --color-emerald-400: var(--booked);
+  --color-emerald-500: var(--booked);
+  --color-volcano: var(--ink);
+  --color-basalt: var(--ink);
+  --color-lake: var(--booked);
+  --color-lake-hover: var(--booked);
+  --color-maya: var(--action);
+  --color-maya-light: var(--action-soft);
+  --color-maya-border: var(--action);
+  --color-antigua: var(--muted);
+  --color-stone: var(--sunken);
+  --color-stone-light: var(--canvas);
+  --color-stone-surface: var(--surface);
+  --color-stone-border: var(--line);
+  --color-night: var(--ink);
+  --color-night-card: var(--sunken);
+  --color-night-border: var(--line);
+  --color-ash: var(--canvas);
+  --color-pumice: var(--muted);
+  --color-scree: var(--line);
+  --color-card: var(--surface);
+  --color-on-lake: var(--on-fill);
+  --color-hazard: var(--action);
+  --color-on-hazard: var(--on-fill);
+  --color-ember: var(--action);
 
-  --font-serif: var(--font-fraunces), Georgia, serif;
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-plex-mono), monospace;
+  /* One sans family for everything; the display face is for day titles only. */
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --font-display: var(--font-fraunces), Georgia, serif;
 }
 
 html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 9rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
-  background: var(--stone-light);
-  color: var(--volcano);
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-/* Fraunces Serif Headings */
-.font-serif {
-  font-family: var(--font-fraunces), Georgia, serif;
+/* Times and other figures line up. */
+.tnum,
+time,
+.font-mono {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Status styles (not color alone) */
-.status-booked {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  background-color: var(--lake);
-  color: #FFFFFF;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.status-needs-booking {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border: 1.5px dashed var(--maya);
-  background-color: var(--maya-light);
-  color: var(--maya);
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.status-undecided {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border: 1.5px dotted #6B7280;
-  background-color: #FFFFFF;
-  color: #374151;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-/* Legacy wide class: maps to Fraunces with tight spacing */
+/* Older class name: now just bold sans. */
 .wide {
-  font-family: var(--font-fraunces), Georgia, serif;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-/* Flash animation for editor changes */
+:focus-visible {
+  outline: 3px solid var(--now);
+  outline-offset: 2px;
+}
+
+/* Native dialogs follow the theme. */
+dialog {
+  background: var(--surface);
+  color: var(--ink);
+}
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+/* Flash after a change is applied. */
 @keyframes flash {
   0% {
-    background: color-mix(in srgb, var(--lake) 30%, transparent);
+    background: var(--now-soft);
   }
   100% {
     background: transparent;
@@ -138,4 +194,15 @@ body {
 }
 .flash {
   animation: flash 2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

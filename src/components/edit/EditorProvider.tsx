@@ -49,6 +49,7 @@ interface Editor {
   /** True while the who's-talking picker should show. */
   pickerOpen: boolean;
   openPicker: () => void;
+  closePicker: () => void;
   /** Sends ops; asks for confirmation when a booked item is touched. Resolves true when applied. */
   submit: (ops: Op[]) => Promise<boolean>;
   /** Lower level: sends ops and reports exactly what happened. Used by proposal cards. */
@@ -97,13 +98,9 @@ export function EditorProvider({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pickerRequested, setPickerRequested] = useState(false);
   const [changeCount, setChangeCount] = useState(0);
-  // Only decide on the picker once the browser value is readable.
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-  const pickerOpen = hydrated && (pickerRequested || !author);
+  // Asked for when someone edits or sends without a name, never on arrival:
+  // reading the trip doesn't need one.
+  const pickerOpen = pickerRequested;
 
   const setAuthor = useCallback((name: string) => {
     try {
@@ -204,6 +201,7 @@ export function EditorProvider({
         setAuthor,
         pickerOpen,
         openPicker: () => setPickerRequested(true),
+        closePicker: () => setPickerRequested(false),
         submit,
         apply,
         undo,

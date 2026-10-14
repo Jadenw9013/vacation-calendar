@@ -4,10 +4,16 @@ import { authMode } from "@/lib/auth";
 import { chatAvailability } from "@/lib/llm/provider";
 import { getRepository, isMemoryStore } from "@/lib/repo";
 
-export default async function Home() {
-  await connection(); // always render with the latest stored trip
+/** The stored trip, its recent history, and when it was read (shown as "updated 2:14 PM" offline). */
+async function readTrip() {
   const repo = getRepository();
   const [{ trip, version }, history] = await Promise.all([repo.get(), repo.history(50)]);
+  return { trip, version, history, readAt: Date.now() };
+}
+
+export default async function Home() {
+  await connection(); // always render with the latest stored trip
+  const { trip, version, history, readAt } = await readTrip();
 
   const devNotes = [
     isMemoryStore() && "Local store: edits live in memory and reset when the server restarts.",
@@ -25,6 +31,7 @@ export default async function Home() {
     <TripShell
       trip={trip}
       version={version}
+      serverNow={readAt}
       devNotes={devNotes}
       chatAvailable={chat.available}
       chatVision={chat.vision}
