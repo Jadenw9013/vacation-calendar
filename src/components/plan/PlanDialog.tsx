@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
 import type { PlanItem } from "@/data/types";
 import type { Op } from "@/lib/ops";
 import { useEditor } from "@/components/edit/EditorProvider";
-import { field, join, labelCls, MomentFields, slug } from "@/components/edit/SegmentDialog";
+import { field, join, labelCls, MomentFields, primaryBtn, secondaryBtn, slug } from "@/components/edit/SegmentDialog";
 
 /** Add or edit one step of a day's plan. */
 export function PlanDialog({
@@ -13,16 +13,29 @@ export function PlanDialog({
   date,
   trigger,
   triggerClassName,
+  open,
+  onClose,
 }: {
   mode: "add" | "edit";
   item?: PlanItem;
   /** Default day for a new item. */
   date?: string;
-  trigger: ReactNode;
-  triggerClassName: string;
+  trigger?: ReactNode;
+  triggerClassName?: string;
+  /** Controlled: opened from a menu, no trigger button of its own. */
+  open?: boolean;
+  onClose?: () => void;
 }) {
   const { submit, busy, tripOffset } = useEditor();
   const ref = useRef<HTMLDialogElement>(null);
+  const controlled = open !== undefined;
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d || !controlled) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open, controlled]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,18 +80,21 @@ export function PlanDialog({
   const endTime = item?.end && item.end.length > 10 ? item.end.slice(11, 16) : "";
   return (
     <>
-      <button type="button" onClick={() => ref.current?.showModal()} className={triggerClassName}>
-        {trigger}
-      </button>
+      {!controlled && (
+        <button type="button" onClick={() => ref.current?.showModal()} className={triggerClassName ?? secondaryBtn}>
+          {trigger}
+        </button>
+      )}
       <dialog
         ref={ref}
+        onClose={onClose}
         aria-label={mode === "add" ? "Add to the day plan" : `Edit ${item?.title}`}
-        className="m-auto max-h-[90dvh] w-[min(30rem,calc(100vw-1.5rem))] rounded-3xl border border-stone-border bg-white p-0 text-volcano shadow-2xl backdrop:bg-night/50 backdrop:backdrop-blur-xs"
+        className="m-auto max-h-[90dvh] w-[min(30rem,calc(100vw-1rem))] rounded-3xl border border-line p-0 shadow-2xl"
       >
-        <form key={item ? JSON.stringify(item) : `new-${date}`} onSubmit={onSubmit} className="flex flex-col gap-3.5 p-5">
+        <form key={item ? JSON.stringify(item) : `new-${date}`} onSubmit={onSubmit} className="flex flex-col gap-4 p-5">
           <div>
-            <h2 className="font-serif text-2xl font-bold">{mode === "add" ? "Add to the plan" : "Edit plan step"}</h2>
-            <p className="text-xs text-gray-500">A timed step in the day, like &ldquo;leave for Panajachel&rdquo;. Not a booking.</p>
+            <h2 className="text-xl font-bold">{mode === "add" ? "Add to the plan" : "Edit plan step"}</h2>
+            <p className="text-base text-muted">A timed step in the day, like &ldquo;leave for Panajachel&rdquo;. Not a booking.</p>
           </div>
           <label className={labelCls}>
             What
@@ -98,10 +114,10 @@ export function PlanDialog({
             <input name="owner" maxLength={30} defaultValue={item?.owner} className={field} />
           </label>
           <div className="flex items-center gap-3 pt-1">
-            <button type="submit" disabled={busy} className="rounded-xl bg-lake px-4 py-2 text-sm font-bold text-white hover:bg-lake-hover disabled:opacity-50">
+            <button type="submit" disabled={busy} className={primaryBtn}>
               Save
             </button>
-            <button type="button" onClick={() => ref.current?.close()} className="px-2 py-2 text-sm text-gray-500 underline">
+            <button type="button" onClick={() => ref.current?.close()} className={secondaryBtn}>
               Cancel
             </button>
           </div>

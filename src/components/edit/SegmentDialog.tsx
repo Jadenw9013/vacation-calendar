@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Segment, SegmentKind, SegmentStatus } from "@/data/types";
 import type { Op } from "@/lib/ops";
 import { useEditor } from "./EditorProvider";
@@ -34,8 +34,10 @@ export function slug(s: string): string {
     .slice(0, 40);
 }
 
-export const field = "mt-1 w-full rounded-xl border border-stone-border bg-stone-light/40 px-3 py-2 text-sm text-volcano outline-none focus:border-lake focus:bg-white focus:ring-2 focus:ring-lake/20 transition-all";
-export const labelCls = "flex flex-col text-xs font-semibold text-gray-700";
+export const field = "mt-1 min-h-11 w-full rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink";
+export const labelCls = "flex flex-col text-sm font-semibold text-ink";
+export const primaryBtn = "min-h-11 rounded-xl bg-ink px-5 text-base font-bold text-canvas disabled:opacity-50";
+export const secondaryBtn = "min-h-11 rounded-xl border border-line px-4 text-base font-semibold text-ink hover:bg-sunken";
 
 export function MomentFields({
   name,
@@ -54,11 +56,11 @@ export function MomentFields({
   const offsets = [...new Set([tripOffset, "-08:00", v.offset])];
   return (
     <fieldset className="flex flex-col gap-1">
-      <legend className="text-xs font-semibold text-gray-700">{label}</legend>
-      <div className="grid grid-cols-[1fr_6.5rem_6rem] gap-2">
+      <legend className="text-sm font-semibold text-ink">{label}</legend>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_7rem_7.5rem]">
         <input type="date" name={`${name}Date`} defaultValue={v.date} aria-label={`${label} date`} className={field} />
         <input type="time" name={`${name}Time`} defaultValue={v.time} aria-label={`${label} time`} className={field} />
-        <select name={`${name}Offset`} defaultValue={v.offset} aria-label={`${label} time zone`} className={field}>
+        <select name={`${name}Offset`} defaultValue={v.offset} aria-label={`${label} time zone`} className={`${field} col-span-2 sm:col-span-1`}>
           {offsets.map((o) => (
             <option key={o} value={o}>
               {o === tripOffset ? "Guatemala" : o === "-08:00" ? "Seattle" : `UTC${o}`}
@@ -66,7 +68,7 @@ export function MomentFields({
           ))}
         </select>
       </div>
-      <p className="text-[11px] text-gray-400">Leave time empty if unknown. Leave both empty if day is unknown.</p>
+      <p className="text-sm text-muted">Leave the time empty if it&apos;s unknown, and both empty if the day is too.</p>
     </fieldset>
   );
 }
@@ -80,6 +82,8 @@ export function SegmentDialog({
   initialLocation,
   triggerLabel,
   triggerClassName,
+  open,
+  onClose,
 }: {
   mode: "add" | "edit";
   segment?: Segment;
@@ -89,10 +93,21 @@ export function SegmentDialog({
   initialLocation?: string;
   triggerLabel?: React.ReactNode;
   triggerClassName?: string;
+  /** Controlled: opened from a menu, no trigger button of its own. */
+  open?: boolean;
+  onClose?: () => void;
 }) {
   const { tripOffset, submit, busy } = useEditor();
   const ref = useRef<HTMLDialogElement>(null);
   const [newTodo, setNewTodo] = useState("");
+  const controlled = open !== undefined;
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d || !controlled) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open, controlled]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -151,34 +166,26 @@ export function SegmentDialog({
   const s = segment;
   return (
     <>
-      <button
-        type="button"
-        onClick={() => ref.current?.showModal()}
-        className={
-          triggerClassName
-            ? triggerClassName
-            : mode === "add"
-              ? "inline-flex items-center gap-1.5 rounded-xl bg-lake px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-lake-hover transition-colors"
-              : "text-xs font-medium text-gray-400 hover:text-lake underline underline-offset-2 transition-colors"
-        }
-      >
-        {triggerLabel ?? (mode === "add" ? "+ Add item" : "Edit")}
-      </button>
+      {!controlled && (
+        <button type="button" onClick={() => ref.current?.showModal()} className={triggerClassName ?? primaryBtn}>
+          {triggerLabel ?? (mode === "add" ? "+ Add booking" : "Edit")}
+        </button>
+      )}
 
       <dialog
         ref={ref}
-        aria-label={mode === "add" ? "Add item" : `Edit ${s?.title}`}
-        className="m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-1.5rem))] rounded-3xl border border-stone-border bg-white p-0 text-volcano shadow-2xl backdrop:bg-night/50 backdrop:backdrop-blur-xs"
+        onClose={onClose}
+        aria-label={mode === "add" ? "Add a booking" : `Edit ${s?.title}`}
+        className="m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-1rem))] rounded-3xl border border-line p-0 shadow-2xl"
       >
-        <form key={s ? JSON.stringify(s) : `${initialDate}-${initialKind}`} onSubmit={onSubmit} className="flex flex-col gap-3.5 p-6">
-          <div className="flex items-center justify-between border-b border-stone-border/80 pb-3">
-            <h2 className="font-serif text-2xl font-bold text-volcano">
-              {mode === "add" ? "Add event" : `Edit ${s?.title}`}
-            </h2>
+        <form key={s ? JSON.stringify(s) : `${initialDate}-${initialKind}`} onSubmit={onSubmit} className="flex flex-col gap-4 p-5">
+          <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
+            <h2 className="min-w-0 text-xl font-bold">{mode === "add" ? "Add a booking" : `Edit ${s?.title}`}</h2>
             <button
               type="button"
               onClick={() => ref.current?.close()}
-              className="flex size-7 items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Close"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full text-xl hover:bg-sunken"
             >
               ✕
             </button>
@@ -237,33 +244,16 @@ export function SegmentDialog({
             </label>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-stone-border/80 mt-1">
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-xl bg-lake px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-lake-hover transition-colors disabled:opacity-50"
-            >
-              Save event
+          <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+            <button type="submit" disabled={busy} className={primaryBtn}>
+              Save
             </button>
-            <button
-              type="button"
-              onClick={() => ref.current?.close()}
-              className="rounded-xl border border-stone-border bg-white px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={() => ref.current?.close()} className={secondaryBtn}>
               Cancel
             </button>
-
             {mode === "edit" && (
-              <button
-                type="button"
-                onClick={remove}
-                disabled={busy}
-                className="ml-auto flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-              >
-                <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Delete event
+              <button type="button" onClick={remove} disabled={busy} className={`${secondaryBtn} ml-auto text-action`}>
+                Delete…
               </button>
             )}
           </div>
