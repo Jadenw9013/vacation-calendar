@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { ServiceWorker } from "@/components/shell/ServiceWorker";
 import "./globals.css";
 
 /** Display face: day titles only. */
@@ -40,7 +41,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} antialiased`}>
-      <body className="min-h-dvh bg-canvas text-ink font-sans">{children}</body>
+      <body className="min-h-dvh bg-canvas text-ink font-sans">
+        <ServiceWorker>{children}</ServiceWorker>
+      </body>
     </html>
   );
 }
