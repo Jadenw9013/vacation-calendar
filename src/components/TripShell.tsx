@@ -10,7 +10,9 @@ import { monthDay } from "@/lib/time";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatProvider, useTripChat } from "./chat/ChatProvider";
 import { EditorProvider, useEditor } from "./edit/EditorProvider";
+import { SegmentDialog } from "./edit/SegmentDialog";
 import { WhoPicker } from "./edit/WhoPicker";
+import type { ManualPrefill } from "./quickadd/QuickAdd";
 import { PlanView } from "./plan/PlanView";
 import { useClock, useOnline } from "./shell/hooks";
 import { BottomNav, tabForMode, TopNav, type Tab } from "./shell/Nav";
@@ -111,6 +113,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
   const [chosenMode, setChosenMode] = useState<Mode | null>(null);
   const [chosenDay, setChosenDay] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
+  const [manual, setManual] = useState<ManualPrefill | null>(null);
   const mode = chosenMode ?? defaultMode(trip, now);
   const day = chosenDay ?? initialDay(trip, now);
 
@@ -165,11 +168,22 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
 
       {chatOpen && (
         <div className="fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 md:top-16 md:bottom-0 md:left-auto md:w-[28rem] md:border-l md:border-line">
-          <ChatPanel trip={trip} online={online} />
+          <ChatPanel
+            trip={trip}
+            online={online}
+            nowMs={now}
+            onManual={(p) => {
+              setChatOpen(false);
+              setManual(p);
+            }}
+          />
         </div>
       )}
 
       <BottomNav active={tabForMode(mode, chatOpen)} onSelect={select} toBook={toBook} askAvailable={available} />
+      {manual && (
+        <SegmentDialog mode="add" initialTitle={manual.title} initialKind={manual.kind} initialDate={manual.date} open onClose={() => setManual(null)} />
+      )}
       <SettingsSheet open={settings} onClose={() => setSettings(false)} notes={devNotes} />
       <WhoPicker knownNames={knownNames} />
       <Toast />

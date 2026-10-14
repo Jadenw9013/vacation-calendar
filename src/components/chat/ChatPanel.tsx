@@ -9,6 +9,8 @@ import { useEditor } from "@/components/edit/EditorProvider";
 import { Activity } from "./Activity";
 import { proposalsIn, useTripChat, type TripUIMessage } from "./ChatProvider";
 import { ProposalCard } from "./ProposalCard";
+import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
+import { missingPrompt, parseQuickAdd } from "@/lib/quickadd";
 import { Icon } from "@/components/ui/Icon";
 
 interface Chip {
@@ -48,7 +50,7 @@ function errorText(error: Error): string {
   return error.message || "The assistant didn't respond.";
 }
 
-function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposalId: string | null }) {
+function MessageView({ m, latestProposalId, trip, said }: { m: TripUIMessage; latestProposalId: string | null; trip: Trip; said?: string }) {
   const { chat } = useTripChat();
   if (m.role === "user") {
     const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
@@ -86,7 +88,9 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
         }
         if (p.type === "tool-propose_changes") {
           if (p.state === "output-available") {
-            return <ProposalCard key={key} toolCallId={p.toolCallId} proposal={p.output} latest={p.toolCallId === latestProposalId} />;
+            return (
+              <ProposalCard key={key} toolCallId={p.toolCallId} proposal={p.output} latest={p.toolCallId === latestProposalId} trip={trip} said={said} />
+            );
           }
           if (p.state === "output-error") {
             return (
@@ -160,9 +164,36 @@ function Greeting() {
   );
 }
 
-export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
-  const { available, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError } =
+/** Plain text of a user message. */
+function userText(m: TripUIMessage): string {
+  return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+}
+
+export function ChatPanel({
+  trip,
+  online,
+  nowMs,
+  onManual,
+}: {
+  trip: Trip;
+  online: boolean;
+  nowMs: number;
+  /** Open the full add form (the chat closes first: one sheet at a time). */
+  onManual: (prefill: ManualPrefill) => void;
+}) {
+  const { available, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError, day, focus, clearFocus } =
     useTripChat();
+  const [quick, setQuick] = useState({ key: 0, text: "" });
+  const lastUser = [...chat.messages].reverse().find((m) => m.role === "user");
+  const lastSaid = lastUser ? userText(lastUser) : "";
+  // When the planner can't help, say what's missing in a few words and offer Quick add with their text.
+  const lastParse = lastSaid ? parseQuickAdd(lastSaid, { trip, nowMs, selectedDay: day }) : null;
+  const missingHint = lastParse?.type === "draft" && lastParse.missing.length ? missingPrompt(lastParse.missing) : null;
+  function quickAddFromChat() {
+    setQuick((q) => ({ key: q.key + 1, text: lastSaid }));
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
+  const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { author, openPicker } = useEditor();
   const [tab, setTab] = useState<"chat" | "activity">("chat");
@@ -217,7 +248,18 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
         <Activity />
       ) : (
         <>
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <div ref={scrollRef} className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+            <QuickAdd
+              key={quick.key}
+              initial={quick.text}
+              trip={trip}
+              nowMs={nowMs}
+              selectedDay={day}
+              online={online}
+              chatAvailable={available}
+              onAsk={(t) => (author ? send(t) : setInput(t))}
+              onManual={onManual}
+            />
             {!online && (
               <p className="flex items-start gap-2 rounded-xl border-2 border-line p-3 text-base" role="status">
                 <Icon name="offline" className="mt-0.5 shrink-0" />
@@ -232,9 +274,10 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
 
             {chat.messages.length === 0 && <Greeting />}
 
-            {chat.messages.map((m) => (
-              <MessageView key={m.id} m={m} latestProposalId={latestProposalId} />
-            ))}
+            {chat.messages.map((m, i) => {
+              const prior = chat.messages.slice(0, i).reverse().find((x) => x.role === "user");
+              return <MessageView key={m.id} m={m} latestProposalId={latestProposalId} trip={trip} said={prior ? userText(prior) : undefined} />;
+            })}
 
             {chat.status === "submitted" && (
               <div className="flex items-center gap-2 py-1 text-base text-muted">
@@ -244,21 +287,21 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
             )}
 
             {!chat.error && chat.status === "ready" && isEmptyAnswer(chat.messages.at(-1)) && (
-              <div className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
-                <p className="font-semibold">No answer came back from the planner.</p>
-                <button onClick={() => chat.regenerate()} disabled={!online} className="mt-2 min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold">
-                  Try again
-                </button>
-              </div>
+              <SoftFailure
+                headline={missingHint ?? "No answer came back from the planner."}
+                online={online}
+                onRetry={() => chat.regenerate()}
+                onQuickAdd={lastSaid ? quickAddFromChat : undefined}
+              />
             )}
 
             {chat.error && (
-              <div className="rounded-xl border-2 border-action bg-action-soft p-3 text-base">
-                <p className="font-semibold">{online ? errorText(chat.error) : "That didn't send: you're offline."}</p>
-                <button onClick={() => chat.regenerate()} disabled={!online} className="mt-2 min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold">
-                  Try again
-                </button>
-              </div>
+              <SoftFailure
+                headline={online ? (missingHint ?? errorText(chat.error)) : "That didn't send: you're offline. Your message is kept."}
+                online={online}
+                onRetry={() => chat.regenerate()}
+                onQuickAdd={lastSaid ? quickAddFromChat : undefined}
+              />
             )}
             <div ref={endRef} />
           </div>
@@ -297,6 +340,16 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
               </ul>
             )}
             {attachError && <p className="mb-2 text-base font-medium text-action">{attachError}</p>}
+            {focus && (
+              <p className="mb-2 flex items-center gap-2 rounded-xl bg-sunken py-0.5 pr-0.5 pl-3 text-base">
+                <span className="min-w-0 flex-1 truncate">
+                  About: <strong>{focus.title}</strong>
+                </span>
+                <button type="button" onClick={clearFocus} aria-label={`Stop asking about ${focus.title}`} className="flex size-11 shrink-0 items-center justify-center rounded-xl">
+                  <Icon name="close" />
+                </button>
+              </p>
+            )}
             {available && !vision && (
               <p className="mb-2 text-base text-muted">Screenshots are off: the planner is on a text-only model right now. Paste the confirmation text instead.</p>
             )}
@@ -385,5 +438,24 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
         </>
       )}
     </aside>
+  );
+}
+
+/** Never a dead end: what's missing, Try again, and Quick add with their words already in it. */
+function SoftFailure({ headline, online, onRetry, onQuickAdd }: { headline: string; online: boolean; onRetry: () => void; onQuickAdd?: () => void }) {
+  return (
+    <div role="alert" className="flex flex-col gap-2 rounded-xl border-2 border-action bg-action-soft p-3 text-base">
+      <p className="font-semibold">{headline}</p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={onRetry} disabled={!online} className="min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold disabled:opacity-60">
+          Try again
+        </button>
+        {onQuickAdd && (
+          <button onClick={onQuickAdd} className="min-h-11 rounded-xl border border-line bg-surface px-4 font-semibold">
+            Add it with Quick add
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

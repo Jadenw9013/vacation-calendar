@@ -31,7 +31,16 @@ function logSafe(error: unknown) {
   });
 }
 
-/** Body: { messages: UIMessage[], author: string, outcomes?: Record<toolCallId, ProposalOutcome> } */
+/** The day on screen and the item asked about, if they belong to this trip. Anything else is dropped. */
+function readContext(raw: unknown, trip: { firstDay: string; lastDay: string; segments: { id: string }[]; plan?: { id: string }[] }) {
+  const c = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const day = typeof c.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(c.day) && c.day >= trip.firstDay && c.day <= trip.lastDay ? c.day : null;
+  const ids = new Set([...trip.segments.map((s) => s.id), ...(trip.plan ?? []).map((p) => p.id)]);
+  const itemId = typeof c.itemId === "string" && ids.has(c.itemId) ? c.itemId : null;
+  return { day, itemId };
+}
+
+/** Body: { messages: UIMessage[], author: string, outcomes?: Record<toolCallId, ProposalOutcome>, context?: { day?, itemId? } } */
 export async function POST(request: Request) {
   const denied = await guard(request);
   if (denied) return denied;
@@ -67,7 +76,14 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model,
-    instructions: buildInstructions({ state, author, today: todayAt(state.trip.utcOffset), outcomes }),
+    instructions: buildInstructions({
+      state,
+      author,
+      today: todayAt(state.trip.utcOffset),
+      outcomes,
+      now: Date.now(),
+      ...readContext(parsed.body.context, state.trip),
+    }),
     messages: await convertToModelMessages(cleaned, { tools }),
     tools,
     stopWhen: isStepCount(CHAT_LIMITS.maxSteps),

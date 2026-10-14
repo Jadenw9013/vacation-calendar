@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Trip } from "@/data/types";
 import { computeGaps, unanswered } from "@/lib/derive";
 import type { TripState } from "@/lib/engine";
-import { addDays, formatDay } from "@/lib/time";
+import { addDays, formatDay, formatTime, parseMoment } from "@/lib/time";
 import { buildProposal, FlatOpSchema } from "./proposal";
 
 export type ProposalOutcome = "applied" | "discarded" | "stale";
@@ -16,6 +16,34 @@ export interface ChatContext {
   today: string;
   /** What happened to earlier proposals in this conversation, by tool call id. */
   outcomes?: Record<string, ProposalOutcome>;
+  /** Now, epoch ms, for the time of day ("this afternoon"). */
+  now?: number;
+  /** The day the person has on screen, "YYYY-MM-DD". */
+  day?: string | null;
+  /** The item they tapped Ask on. */
+  itemId?: string | null;
+}
+
+/** "Thu Nov 26, 3:40 PM" at the trip's offset, whatever zone the server runs in. */
+export function localNow(utcOffset: string, now: number): string {
+  const sign = utcOffset.startsWith("-") ? -1 : 1;
+  const [h, m] = utcOffset.slice(1).split(":").map(Number);
+  const local = new Date(now + sign * (h * 60 + m) * 60_000).toISOString().slice(0, 16);
+  const moment = parseMoment(`${local}${utcOffset}`);
+  return `${formatDay(moment.date)}, ${formatTime(moment)}`;
+}
+
+/** The extra lines about now, the day on screen and the item asked about. */
+export function contextLines(trip: Trip, { today, now, day, itemId }: Pick<ChatContext, "today" | "now" | "day" | "itemId">): string {
+  const lines = [
+    now !== undefined ? `Now: ${localNow(trip.utcOffset, now)} in Guatemala (UTC${trip.utcOffset}).` : null,
+    `Today: ${formatDay(today)} (${today}). Tomorrow: ${formatDay(addDays(today, 1))} (${addDays(today, 1)}).`,
+    `"This morning" means today before 12:00, "this afternoon" today 12:00 to 18:00, "tonight" today after 18:00.`,
+  ];
+  if (day) lines.push(`They are looking at ${formatDay(day)} (${day}). A time with no day ("at 3pm") means that day.`);
+  const item = itemId ? (trip.segments.find((s) => s.id === itemId) ?? trip.plan?.find((p) => p.id === itemId)) : null;
+  if (item) lines.push(`They tapped Ask on "${item.title}" (id ${item.id}). "This", "it" and "that" mean this item.`);
+  return lines.filter(Boolean).join("\n");
 }
 
 /** Today's date at the destination (Guatemala has no DST, so a fixed offset is exact). */
@@ -39,7 +67,7 @@ function compactTrip(trip: Trip) {
   };
 }
 
-export function buildInstructions({ state, author, today, outcomes }: ChatContext): string {
+export function buildInstructions({ state, author, today, outcomes, now, day, itemId }: ChatContext): string {
   const { trip, version } = state;
   const gaps = computeGaps(trip);
   const outcomeLines = Object.entries(outcomes ?? {}).map(([id, o]) => `- Proposal ${id}: ${o}`);
@@ -47,7 +75,8 @@ export function buildInstructions({ state, author, today, outcomes }: ChatContex
   return `You help a small group plan one trip: Guatemala, ${formatDay(trip.firstDay)} to ${formatDay(trip.lastDay)}. You are part of their planning page. Be plain and short. No emoji, no personality. Plain text only: no markdown, no headings, no bold; use short lines or simple dashes for lists.
 
 Who is talking: ${author}. When they say "I" or "me", that's ${author}.
-Today: ${formatDay(today)} (${today}). Tomorrow: ${addDays(today, 1)}.
+${contextLines(trip, { today, now, day, itemId })}
+Keep replies to one to three short lines unless they ask for more. People read this on a phone, often outdoors.
 
 How changes work:
 - You cannot change anything yourself. To change the trip, call propose_changes with every op for the request in one call. The page shows it as a card and a person taps Apply.
