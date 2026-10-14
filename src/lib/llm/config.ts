@@ -59,18 +59,61 @@ export const PROVIDERS: ProviderConfig[] = [
   // },
 ];
 
+export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
+const LEVELS: ThinkingLevel[] = ["minimal", "low", "medium", "high"];
+
+/**
+ * Thinking levels each model accepts. gemini-3.8-flash takes low, medium and
+ * high and rejects minimal with an error. Models not listed are held to the
+ * same three: minimal is never sent.
+ */
+export const SUPPORTED_THINKING: Record<string, ThinkingLevel[]> = {
+  "gemini-3.8-flash": ["low", "medium", "high"],
+};
+const DEFAULT_SUPPORTED: ThinkingLevel[] = ["low", "medium", "high"];
+
+/**
+ * The one place for how the planner's model is called.
+ *
+ * - thinkingLevel: low by default. Lower thinking is the lever for speed;
+ *   thinking tokens are billed and count toward maxOutputTokens, so the cap
+ *   stays generous instead of being cut. Override with CHAT_THINKING_LEVEL.
+ * - maxOutputTokens: room for thinking plus a full proposal. A reply that
+ *   still hits it (finish reason "length") is treated as a failure.
+ *
+ * No temperature, top_p, top_k or candidate count: Gemini 3.8 Flash removed
+ * them and errors if they're sent. No prefilled model turns either.
+ */
+export const MODEL_SETTINGS = {
+  model: PROVIDERS[0].model,
+  thinkingLevel: (process.env.CHAT_THINKING_LEVEL || "low") as ThinkingLevel,
+  maxOutputTokens: Number(process.env.CHAT_MAX_OUTPUT_TOKENS || 8192),
+};
+
+/** null when the settings are usable; otherwise what's wrong and how to fix it. */
+export function checkModelSettings(settings = MODEL_SETTINGS, providers = PROVIDERS): string | null {
+  const level = settings.thinkingLevel;
+  if (!LEVELS.includes(level)) {
+    return `CHAT_THINKING_LEVEL="${level}" isn't a thinking level. Use low, medium or high.`;
+  }
+  for (const model of [settings.model, ...(providers[0]?.fallbackModels ?? [])]) {
+    const ok = SUPPORTED_THINKING[model] ?? DEFAULT_SUPPORTED;
+    if (!ok.includes(level)) {
+      return `Thinking level "${level}" isn't supported by ${model} (it accepts ${ok.join(", ")}). Set CHAT_THINKING_LEVEL to one of those.`;
+    }
+  }
+  if (!Number.isFinite(settings.maxOutputTokens) || settings.maxOutputTokens < 4096) {
+    return `CHAT_MAX_OUTPUT_TOKENS=${settings.maxOutputTokens} is too small: thinking counts toward it. Use 4096 or more (default 8192).`;
+  }
+  return null;
+}
+
 /** Limits on what the chat route accepts and produces. */
 export const CHAT_LIMITS = {
   maxMessageChars: 6000,
   maxMessages: 40,
-  /**
-   * Gemini 3 "thinks" before answering, and thinking counts toward this cap.
-   * At 2000 it could run out before writing anything (finishReason "length"),
-   * especially on screenshots.
-   */
-  maxOutputTokens: 8000,
-  /** Gemini 3 thinking depth. "low" reads a confirmation fine and spends less quota. */
-  thinkingLevel: "low" as const,
+  maxOutputTokens: MODEL_SETTINGS.maxOutputTokens,
+  thinkingLevel: MODEL_SETTINGS.thinkingLevel,
   maxSteps: 4,
   /**
    * SDK-level retries per request. Kept low: every retry spends free-tier

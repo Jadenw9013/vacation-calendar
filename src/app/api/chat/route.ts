@@ -10,7 +10,7 @@ import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
 import { IMAGE_LIMITS, sanitizeMessages } from "@/lib/chat/attachments";
 import { buildInstructions, buildTools, todayAt, type ProposalOutcome } from "@/lib/chat/setup";
 import { logTiming, newTiming, publicTiming, serverTimingHeader, timed } from "@/lib/chat/timing";
-import { CHAT_LIMITS } from "@/lib/llm/config";
+import { CHAT_LIMITS, MODEL_SETTINGS } from "@/lib/llm/config";
 import { availableModels, chatAvailability, chatErrorMessage, isMockModel } from "@/lib/llm/provider";
 import { getRepository } from "@/lib/repo";
 
@@ -95,9 +95,9 @@ export async function POST(request: Request) {
     messages: modelMessages,
     tools,
     stopWhen: isStepCount(CHAT_LIMITS.maxSteps),
-    maxOutputTokens: CHAT_LIMITS.maxOutputTokens,
+    maxOutputTokens: MODEL_SETTINGS.maxOutputTokens,
     maxRetries: CHAT_LIMITS.maxRetries,
-    providerOptions: { google: { thinkingConfig: { thinkingLevel: CHAT_LIMITS.thinkingLevel } } },
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: MODEL_SETTINGS.thinkingLevel } } },
   });
 
   return createUIMessageStreamResponse({
