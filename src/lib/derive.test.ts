@@ -69,16 +69,25 @@ describe("the real trip data", () => {
 
   it("has the unbooked nights from TRIP-DATA.md", () => {
     const unbooked = nightCoverage(realTrip).filter((n) => !n.booked).map((n) => n.date);
-    expect(unbooked).toEqual(["2026-11-24", "2026-11-26", "2026-11-27", "2026-11-28", "2026-11-30"]);
+    expect(unbooked).toEqual(["2026-11-30"]);
   });
 
-  it("derives gaps 1–6 from TRIP-DATA.md", () => {
+  it("covers Nov 24–28 with booked lodging and Nov 29 with the overnight hike", () => {
+    const booked = nightCoverage(realTrip).map((n) => [n.date, n.booked?.id ?? null]);
+    expect(booked).toEqual([
+      ["2026-11-24", "lodging-nov24"],
+      ["2026-11-25", "lodging-atitlan"],
+      ["2026-11-26", "lodging-nov26-28"],
+      ["2026-11-27", "lodging-nov26-28"],
+      ["2026-11-28", "lodging-antigua"],
+      ["2026-11-29", "hike-acatenango"],
+      ["2026-11-30", null],
+    ]);
+  });
+
+  it("derives the remaining gaps from TRIP-DATA.md", () => {
     const gaps = computeGaps(realTrip).map((g) => [g.kind, g.window, g.duration]);
     expect(gaps).toEqual([
-      ["transport", "Tue Nov 24, 11:52 PM → Wed Nov 25, 2:00 PM", "14h 8m"],
-      ["night", "Night of Tue Nov 24", "1 night"],
-      ["transport", "Thu Nov 26, 10:00 AM → Sun Nov 29, 6:30 AM", "2d 20h 30m"],
-      ["night", "Nights of Thu Nov 26 – Sat Nov 28", "3 nights"],
       ["night", "Night of Mon Nov 30", "1 night"],
       ["return", "After Mon Nov 30, time TBD", "unknown"],
     ]);
@@ -88,8 +97,11 @@ describe("the real trip data", () => {
     const rows = stillToBook(realTrip);
     expect(rows.every((r) => r.segment.status !== "booked")).toBe(true);
     expect(rows.at(-1)!.segment.id).toBe("flight-home"); // undated goes last
-    const lake = rows.find((r) => r.segment.id === "lodging-nov26-28")!;
-    expect(lake.blockedBy.map((q) => q.id)).toContain("q-lake-length");
+    const nov30 = rows.find((r) => r.segment.id === "lodging-nov30")!;
+    expect(nov30.blockedBy.map((q) => q.id)).toContain("q-return-date");
+    // Answered questions no longer block anything.
+    const toLake = rows.find((r) => r.segment.id === "transport-to-lake")!;
+    expect(toLake.blockedBy.map((q) => q.id)).not.toContain("q-airport-night");
   });
 });
 
@@ -212,7 +224,15 @@ describe("day plan rows", () => {
     };
     const nov25 = timeline(t).find((d) => d.date === "2026-11-25")!;
     const labels = nov25.rows.map((r) => (r.type === "plan" ? r.item.title : r.event.segment.id));
-    expect(labels).toEqual(["Leave for Panajachel", "lodging-atitlan", "Dinner", "transport-to-lake", "Swim if it's warm"]);
+    expect(labels).toEqual([
+      "Leave for Panajachel",
+      "lodging-atitlan",
+      "Dinner",
+      "lodging-nov24",
+      "transport-to-lake",
+      "activity-cliff-jumping",
+      "Swim if it's warm",
+    ]);
     expect(nov25.plan).toHaveLength(3);
   });
 
@@ -245,7 +265,7 @@ describe("timeline", () => {
     expect(days.at(-1)!.night).toBeNull(); // flying home, no night
     const nov26 = days[2].events.map((e) => [e.segment.id, e.kind]);
     expect(nov26).toContainEqual(["lodging-atitlan", "end"]);
-    expect(days.flatMap((d) => d.events).some((e) => e.segment.id === "lodging-nov24")).toBe(false);
+    expect(days.flatMap((d) => d.events).some((e) => e.segment.id === "lodging-nov30")).toBe(false);
     expect(days[0].events[0].segment.id).toBe("flight-out");
   });
 });

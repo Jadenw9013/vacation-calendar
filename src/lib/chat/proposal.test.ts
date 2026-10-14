@@ -6,14 +6,14 @@ import { buildInstructions, buildTools, todayAt } from "./setup";
 
 const state = (): TripState => ({ trip: structuredClone(seed), version: 7 });
 
-const hotelNov28: FlatOp = {
+const hotelNov30: FlatOp = {
   op: "add_segment",
   segment: {
     id: "lodging-casa-santo-domingo",
     kind: "lodging",
     title: "Hotel Casa Santo Domingo",
-    start: "2026-11-28",
-    end: "2026-11-29",
+    start: "2026-11-30",
+    end: "2026-12-01",
     status: "booked",
     location: "Antigua",
     owner: "Sam",
@@ -22,15 +22,16 @@ const hotelNov28: FlatOp = {
 
 describe("buildProposal", () => {
   it("describes a valid change with its gap delta", () => {
-    const p = buildProposal(state(), "Add Antigua hotel", [hotelNov28]);
+    const p = buildProposal(state(), "Add Antigua hotel", [hotelNov30]);
     expect(p.status).toBe("ready");
     expect(p.baseVersion).toBe(7);
     expect(p.changes[0]).toContain("Hotel Casa Santo Domingo");
-    expect(p.gapDelta.closes).toContain("Bed booked: Night of Sat Nov 28");
+    expect(p.gapDelta.closes).toContain("Bed booked: Night of Mon Nov 30");
     expect(p.gapDelta.opens.some((o) => o.startsWith("Nowhere to sleep"))).toBe(false);
-    // The old lake→hike transport window splits around the new hotel.
-    expect(p.gapDelta.closes).toContain("No transport booked: Thu Nov 26, 10:00 AM → Sun Nov 29, 6:30 AM");
-    expect(p.ops[0]).toMatchObject({ op: "add_segment", segment: { start: "2026-11-28", end: "2026-11-29" } });
+    // The missing flight home moves to after the new last booking.
+    expect(p.gapDelta.closes).toContain("No flight home to SEA: After Mon Nov 30, time TBD");
+    expect(p.gapDelta.opens).toContain("No flight home to SEA: After Tue Dec 1, time TBD");
+    expect(p.ops[0]).toMatchObject({ op: "add_segment", segment: { start: "2026-11-30", end: "2026-12-01" } });
   });
 
   it("fills unknown start/end with null instead of inventing them", () => {
@@ -73,7 +74,7 @@ describe("buildProposal", () => {
 
   it("strips confirmation and phone numbers from proposed text", () => {
     const p = buildProposal(state(), "Add hotel", [
-      { ...hotelNov28, segment: { ...hotelNov28.segment!, notes: "Confirmation: K7XQ2P9, front desk +502 7832 0000" } },
+      { ...hotelNov30, segment: { ...hotelNov30.segment!, notes: "Confirmation: K7XQ2P9, front desk +502 7832 0000" } },
     ]);
     expect(JSON.stringify(p.ops)).not.toMatch(/K7XQ2P9|7832/);
     expect(p.redacted).toEqual(expect.arrayContaining(["confirmation", "phone-or-card"]));
@@ -110,7 +111,7 @@ describe("buildProposal", () => {
   it("returns issues the model can act on", () => {
     expect(buildProposal(state(), "x", [{ op: "remove_segment" }]).issues[0].message).toContain("needs id");
     expect(buildProposal(state(), "x", [{ op: "remove_segment", id: "nope" }]).status).toBe("invalid");
-    const fullName = buildProposal(state(), "x", [{ ...hotelNov28, segment: { ...hotelNov28.segment!, owner: "Sam Smith" } }]);
+    const fullName = buildProposal(state(), "x", [{ ...hotelNov30, segment: { ...hotelNov30.segment!, owner: "Sam Smith" } }]);
     expect(fullName.status).toBe("invalid");
   });
 
@@ -133,7 +134,7 @@ describe("chat setup", () => {
     expect(text).toContain("Who is talking: Ana");
     expect(text).toContain("Tue Sep 29");
     expect(text).toContain("lodging-atitlan");
-    expect(text).toContain("Nights of Thu Nov 26 – Sat Nov 28");
+    expect(text).toContain("Night of Mon Nov 30");
     expect(text).toContain("Proposal call_1: discarded");
   });
 
@@ -144,7 +145,7 @@ describe("chat setup", () => {
       return state();
     });
     const out = await tools.propose_changes.execute!(
-      { summary: "Add hotel", ops: [hotelNov28] },
+      { summary: "Add hotel", ops: [hotelNov30] },
       { toolCallId: "t1", messages: [] } as never,
     );
     expect(reads).toBe(1);

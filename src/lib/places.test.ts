@@ -32,7 +32,7 @@ describe("dayInfo", () => {
   });
 
   it("marks unbooked nights as open with the planned location", () => {
-    expect(on("2026-11-24").sleep).toMatchObject({ kind: "open", location: "Near GUA airport or Antigua" });
+    expect(on("2026-11-30").sleep).toMatchObject({ kind: "open", location: "Antigua (assumed; depends on return flight)" });
   });
 
   it("doesn't pick a side of an undecided 'X or Y' location; uses where the flight lands", () => {
