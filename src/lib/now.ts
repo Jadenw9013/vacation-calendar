@@ -250,6 +250,8 @@ export interface DayStatus {
   sleepBooked: boolean;
   /** Summit height when the day climbs one. */
   peakM: number | null;
+  /** "Lake Atitlán", "Antigua"… where the day is spent, when known. */
+  place: string | null;
 }
 
 export function dayStatuses(trip: Trip): DayStatus[] {
@@ -268,6 +270,6 @@ export function dayStatuses(trip: Trip): DayStatus[] {
       sleep = "Nowhere booked yet";
       sleepBooked = false;
     }
-    return { date, needsAction: open || !sleepBooked, sleep, sleepBooked, peakM: di.peak ? di.elevationM : null };
+    return { date, needsAction: open || !sleepBooked, sleep, sleepBooked, peakM: di.peak ? di.elevationM : null, place: di.place };
   });
 }

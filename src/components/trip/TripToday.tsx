@@ -63,13 +63,13 @@ export function TripToday({
       }}
     >
       <div className="sticky top-0 z-30 border-b border-line bg-canvas pt-[env(safe-area-inset-top)] md:top-16">
-        <div className="mx-auto max-w-2xl px-4 pt-2 pb-3">
+        <div className="mx-auto max-w-2xl px-4 pt-2 pb-2">
           <DayStrip days={days} selected={day} today={today} onDay={onDay} />
-          <DayHeading status={status} isToday={day === today} />
         </div>
       </div>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-4">
+        <DayHeading status={status} isToday={day === today} afterHike={days.findIndex((d) => d.peakM) === index - 1} />
         <NowCard card={card} />
 
         <section aria-labelledby="day-list">
@@ -98,17 +98,6 @@ export function TripToday({
 
         <InstallHint compact />
 
-        <figure className="relative h-44 overflow-hidden rounded-3xl bg-sunken md:h-56">
-          <Image
-            src="/volcano-sidebar-night.jpg"
-            alt="Volcán de Fuego erupting at night, seen through the pines on Acatenango"
-            fill
-            sizes="(max-width: 672px) 100vw, 672px"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" aria-hidden="true" />
-          <figcaption className="absolute inset-x-0 bottom-0 p-4 text-lg font-semibold text-[#fff]">Same friends. Higher places.</figcaption>
-        </figure>
       </div>
     </div>
   );
@@ -150,28 +139,57 @@ function DayStrip({ days, selected, today, onDay }: { days: DayStatus[]; selecte
   );
 }
 
-function DayHeading({ status, isToday }: { status: DayStatus; isToday: boolean }) {
+const PHOTOS = {
+  lake: { src: "/lake-atitlan-hero.jpg", alt: "Lake Atitlán with its three volcanoes", className: "object-cover" },
+  antigua: {
+    src: "/antigua-hotel.jpg",
+    alt: "Calle del Arco in Antigua, with the yellow Santa Catalina Arch and Volcán de Agua behind it",
+    // The photo has a frame painted round its edge; the zoom crops it off.
+    className: "scale-110 object-cover",
+  },
+  volcano: {
+    src: "/volcano-sidebar-night.jpg",
+    alt: "Volcán de Fuego erupting at night, seen through the pines on Acatenango",
+    // Keep the eruption above the text.
+    className: "object-cover object-[center_25%]",
+  },
+} as const;
+
+/** The picture for a day: the volcano on the hike and the morning after, otherwise where we are. */
+function photoFor(status: DayStatus, afterHike: boolean) {
+  if (status.peakM || afterHike) return PHOTOS.volcano;
+  if (status.place === "Antigua" || status.place === "Guatemala City") return PHOTOS.antigua;
+  return PHOTOS.lake;
+}
+
+/** The day's title over a photo of where we are, with where we sleep tonight. */
+function DayHeading({ status, isToday, afterHike }: { status: DayStatus; isToday: boolean; afterHike: boolean }) {
+  const photo = photoFor(status, afterHike);
   return (
-    <div className="mt-2 flex flex-col gap-1">
-      <h1 className="font-display text-2xl leading-tight font-semibold">
-        {weekday(status.date, true)}, {monthDay(status.date)}
-        {isToday && <span className="ml-2 align-middle font-sans text-base font-semibold text-now">Today</span>}
-      </h1>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
-        <span className="min-w-0">
-          <Icon name="bed" className="mr-1.5 inline size-5 align-[-0.25em] text-muted" />
-          <span className="text-muted">Sleeping tonight: </span>
-          {status.sleepBooked && <strong className="font-semibold">{status.sleep}</strong>}
-        </span>
-        {!status.sleepBooked && <StatusMark status="needs-booking" />}
-        {status.peakM && (
-          <span className="inline-flex items-center gap-1 rounded-md border border-line px-2 text-sm font-semibold">
-            <Icon name="mountain" className="size-4" />
-            {status.peakM.toLocaleString("en-US")} m summit
+    <header className="relative overflow-hidden rounded-3xl bg-ink">
+      <Image src={photo.src} alt={photo.alt} fill priority sizes="(max-width: 672px) 100vw, 672px" className={photo.className} />
+      {/* Dark at the bottom so the white text reads over any part of any photo. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" aria-hidden="true" />
+      <div className="relative flex min-h-44 flex-col justify-end gap-1 p-4 pt-16 text-[#fff]">
+        <h1 className="font-display text-2xl leading-tight font-semibold">
+          {weekday(status.date, true)}, {monthDay(status.date)}
+          {isToday && <span className="ml-2 rounded-full bg-[#fff] px-2 py-0.5 align-middle font-sans text-sm font-bold text-[#14171c]">Today</span>}
+        </h1>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base">
+          <span className="min-w-0">
+            <Icon name="bed" className="mr-1.5 inline size-5 align-[-0.25em]" />
+            Sleeping tonight: {status.sleepBooked && <strong className="font-semibold">{status.sleep}</strong>}
           </span>
-        )}
-      </p>
-    </div>
+          {!status.sleepBooked && <StatusMark status="needs-booking" />}
+          {status.peakM && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-[#fff] px-2 text-sm font-bold text-[#14171c]">
+              <Icon name="mountain" className="size-4" />
+              {status.peakM.toLocaleString("en-US")} m summit
+            </span>
+          )}
+        </p>
+      </div>
+    </header>
   );
 }
 
