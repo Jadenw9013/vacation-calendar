@@ -2,7 +2,7 @@ import type { Trip } from "@/data/types";
 
 /**
  * The last trip this phone saw, so Trip mode still works with no signal.
- * Browser storage only; cleared on sign out.
+ * Browser storage only.
  */
 export interface Snapshot {
   trip: Trip;
@@ -52,17 +52,4 @@ export function subscribeSnapshot(cb: () => void) {
     window.removeEventListener(EVENT, cb);
     window.removeEventListener("storage", cb);
   };
-}
-
-/** Removes the saved trip and every offline cache. Used on sign out. */
-export async function clearOfflineData(): Promise<void> {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    // nothing stored
-  }
-  if ("caches" in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((k) => caches.delete(k)));
-  }
 }

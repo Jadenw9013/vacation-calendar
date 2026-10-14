@@ -140,10 +140,6 @@ export function EditorProvider({
           router.refresh();
           return { kind: "applied", entry };
         }
-        if (res.status === 401) {
-          router.push("/login");
-          return { kind: "error", message: "Signed out" };
-        }
         if (res.status === 409) {
           router.refresh();
           return { kind: "conflict" };

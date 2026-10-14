@@ -2,7 +2,7 @@
 
 A one-page site for the trip: where we sleep each night, what's booked, and what still has nobody on it. Anyone in the group can edit it from their phone.
 
-The whole site sits behind one shared passphrase (`TRIP_PASSPHRASE`), because it lists where we'll be and when. Nothing sensitive goes into the data: no confirmation numbers, surnames, phone numbers or payment details. The server strips confirmation numbers, phone numbers and card details from anything saved, as a backstop.
+The site is open to anyone with the link: no passphrase, no login. Anyone with the link can read and edit the trip and use the planner, so share it only with the group. Nothing sensitive goes into the data: no confirmation numbers, surnames, phone numbers or payment details. The server strips confirmation numbers, phone numbers and card details from anything saved, as a backstop.
 
 ## Where the data lives
 
@@ -17,7 +17,7 @@ Every edit is a list of **ops** (`add_segment`, `update_segment`, `remove_segmen
 
 ## Editing on the site
 
-1. On first visit, pick your first name. It's recorded as who made each change. It's bookkeeping, not a login. ("Not you?" at the top changes it.)
+1. The first time you edit or ask the planner, pick your first name. It's recorded as who made each change. It's bookkeeping, not a login. (Settings → Change name changes it.)
 2. Use **+ Add item**, the **Edit** link on any item, the tick boxes on to-dos, and **Record the decision** on open questions.
 3. After a save, the notice at the bottom has an **Undo** button.
 
@@ -151,22 +151,19 @@ npm test
 npm run build
 ```
 
-With no env vars set, local dev keeps edits in memory (they reset when the server restarts) and skips the passphrase. The page shows a note about both. To try the real setup locally, copy `.env.example` to `.env.local` and fill it in.
+With no env vars set, local dev keeps edits in memory (they reset when the server restarts). The settings sheet shows a note about it. To try the real setup locally, copy `.env.example` to `.env.local` and fill it in.
 
 ## Deploying to Vercel
 
 1. **Import the repo** at [vercel.com/new](https://vercel.com/new). It detects Next.js; leave the build settings alone.
 2. **Add storage:** Project → Storage → Upstash for Redis (free tier) → connect it to the project. That sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
 3. **Set the variables:** Project → Settings → Environment Variables:
-   - `TRIP_PASSPHRASE`. Share it with the group out of band, not in the repo.
    - `GEMINI_API_KEY`, from Google AI Studio.
 4. **Redeploy** so the new variables take effect. The first page load seeds the store from `trip.ts`.
 
-After that, every push to `main` redeploys. Without a passphrase, production shows a locked page. Without Redis, it refuses to start unless you set `ALLOW_MEMORY_STORE=1`. That's a stopgap only: on Vercel, in-memory edits vanish whenever a new server instance starts, and different instances can show different versions. Once Redis is connected, the app uses it automatically and `ALLOW_MEMORY_STORE` can be deleted.
+After that, every push to `main` redeploys. Without Redis, it refuses to start unless you set `ALLOW_MEMORY_STORE=1`. That's a stopgap only: on Vercel, in-memory edits vanish whenever a new server instance starts, and different instances can show different versions. Once Redis is connected, the app uses it automatically and `ALLOW_MEMORY_STORE` can be deleted.
 
 Environment variable changes only apply to new deployments. Redeploy after changing one.
-
-Changing `TRIP_PASSPHRASE` signs everyone out.
 
 ## Layout
 
@@ -180,9 +177,8 @@ src/lib/ops.ts           op schemas (zod), applying one op, and its inverse
 src/lib/engine.ts        batches of ops: validate, redact, apply, build the change-log entry
 src/lib/redact.ts        strips confirmation numbers, phone numbers and card details
 src/lib/repo/            TripRepository: Redis in production, in-memory for tests and local dev
-src/lib/auth.ts          passphrase and session cookie
-src/proxy.ts             gates every page and API route behind the passphrase
-src/app/api/             login, logout, trip, ops, undo, history
+src/lib/api.ts           same-site check on writes, JSON helpers
+src/app/api/             trip, ops, undo, history, chat
 src/components/edit/     manual edit forms, name picker
 src/components/chat/     planner panel, proposal cards, activity list
 src/components/TripShell.tsx  the page layout and the proposal preview

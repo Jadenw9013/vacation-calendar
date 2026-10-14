@@ -1,12 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { clearOfflineData } from "@/lib/snapshot";
 import { useEditor } from "@/components/edit/EditorProvider";
 import { Icon } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
 
-/** Who's editing, sign out, and notes about this deployment. Out of the way until asked for. */
+/** Who's editing, and notes about this deployment. Out of the way until asked for. */
 export function SettingsSheet({ open, onClose, notes }: { open: boolean; onClose: () => void; notes: string[] }) {
   const { author, openPicker } = useEditor();
   return (
@@ -34,23 +33,6 @@ export function SettingsSheet({ open, onClose, notes }: { open: boolean; onClose
       </section>
 
       <InstallHint />
-
-      <section className="border-t border-line py-4">
-        <form
-          method="post"
-          action="/api/logout"
-          onSubmit={async (e) => {
-            // Take the saved copy off this phone before leaving.
-            e.preventDefault();
-            const form = e.currentTarget;
-            await clearOfflineData();
-            form.submit();
-          }}
-        >
-          <button className="min-h-11 rounded-xl border border-line px-4 font-semibold hover:bg-sunken">Sign out</button>
-        </form>
-        <p className="mt-2 text-sm text-muted">Signing out also removes the offline copy of the trip from this device.</p>
-      </section>
 
       {notes.length > 0 && (
         <section className="border-t border-line py-4 text-sm text-muted">

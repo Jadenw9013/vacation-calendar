@@ -1,7 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { isValidSession, SESSION_COOKIE } from "./auth";
 import { FirstName } from "./ops";
 
 export const MAX_BODY_BYTES = 64_000;
@@ -11,13 +9,10 @@ export function jsonError(status: number, error: string, extra: Record<string, u
 }
 
 /**
- * Defense in depth behind proxy.ts: every route re-checks the session, and
- * writes must come from this site (the cookie is SameSite=Lax, this covers
- * anything that slips past that).
+ * The site is open to anyone with the link. Writes must still come from this
+ * site's own pages, so another website can't edit the trip from a visitor's browser.
  */
 export async function guard(request: Request): Promise<NextResponse | null> {
-  const session = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!isValidSession(session)) return jsonError(401, "unauthorized");
   if (request.method !== "GET") {
     if (request.headers.get("sec-fetch-site") === "cross-site") return jsonError(403, "cross-site request");
     const origin = request.headers.get("origin");

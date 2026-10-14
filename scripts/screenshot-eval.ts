@@ -5,8 +5,8 @@
 //   BASE_URL=https://<deployment> npm run eval:screenshots
 //   npm run eval:screenshots -- airbnb tour      # just these
 //
-// Reads TRIP_PASSPHRASE (and, for protected Vercel previews, VERCEL_OIDC_TOKEN)
-// from the environment or .env.local. Neither is ever printed.
+// Reads VERCEL_OIDC_TOKEN for protected Vercel previews
+// from the environment or .env.local. It is never printed.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Proposal } from "../src/lib/chat/proposal";
@@ -124,21 +124,13 @@ const CASES: Case[] = [
 ];
 
 async function main() {
-  const passphrase = process.env.TRIP_PASSPHRASE;
   const oidc = process.env.VERCEL_OIDC_TOKEN;
   // Vercel Deployment Protection (previews): the local dev token, never logged.
   const protectedHeaders: Record<string, string> = oidc && BASE.includes(".vercel.app") ? { "x-vercel-trusted-oidc-idp-token": oidc } : {};
 
-  const login = await fetch(`${BASE}/api/login`, {
-    method: "POST",
-    body: new URLSearchParams({ passphrase: passphrase ?? "" }),
-    headers: protectedHeaders,
-    redirect: "manual",
-  });
-  const cookie = (login.headers.get("set-cookie") ?? "").split(";")[0];
-  const headers = { ...protectedHeaders, cookie, "content-type": "application/json", origin: BASE };
+  const headers = { ...protectedHeaders, "content-type": "application/json", origin: BASE };
   const probe = await fetch(`${BASE}/api/trip`, { headers });
-  if (!probe.ok) throw new Error(`Can't reach ${BASE}/api/trip (${probe.status}). Check BASE_URL and TRIP_PASSPHRASE.`);
+  if (!probe.ok) throw new Error(`Can't reach ${BASE}/api/trip (${probe.status}). Check BASE_URL.`);
   console.log(`Target: ${BASE}\n`);
 
   const only = process.argv.slice(2);

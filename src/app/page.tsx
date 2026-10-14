@@ -1,6 +1,5 @@
 import { connection } from "next/server";
 import { TripShell } from "@/components/TripShell";
-import { authMode } from "@/lib/auth";
 import { chatAvailability } from "@/lib/llm/provider";
 import { getRepository, isMemoryStore } from "@/lib/repo";
 
@@ -17,7 +16,6 @@ export default async function Home() {
 
   const devNotes = [
     isMemoryStore() && "Local store: edits live in memory and reset when the server restarts.",
-    authMode() === "open-dev" && "No TRIP_PASSPHRASE set, so the site is open. Fine locally; production refuses to run like this.",
   ].filter((n): n is string => !!n);
 
   // Names people have already used, offered as one-tap choices in the picker.
