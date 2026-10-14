@@ -21,7 +21,6 @@ export const trip: Trip = {
   partySize: null, // TODO: confirm. Affects lodging and shuttle bookings.
 
   segments: [
-    // ---- Confirmed -------------------------------------------------------
     {
       id: "flight-out",
       kind: "flight",
@@ -64,8 +63,6 @@ export const trip: Trip = {
         "Hiking shoes, broken in before the trip",
       ],
     },
-
-    // ---- Not booked (placeholders for "Still to book") -------------------
     {
       id: "transfer-arrival",
       kind: "transport",
@@ -79,11 +76,12 @@ export const trip: Trip = {
     {
       id: "lodging-nov24",
       kind: "lodging",
-      title: "Arrival night",
-      start: "2026-11-24",
+      title: "Arrival night hotel (name TBD)",
+      start: "2026-11-24", // Check-in and checkout times unknown.
       end: "2026-11-25",
-      status: "undecided",
-      location: "Near GUA airport or Antigua",
+      status: "booked",
+      location: "TBD",
+      notes: "Name, location, check-in and checkout times TBD.",
     },
     {
       id: "transport-to-lake",
@@ -91,29 +89,90 @@ export const trip: Trip = {
       title: "To San Marcos La Laguna",
       start: "2026-11-25",
       end: "2026-11-25",
-      status: "undecided",
-      location: "Guatemala City or Antigua → Panajachel → boat to San Marcos",
+      status: "needs-booking",
+      location: "Hotel → San Marcos La Laguna",
       notes: "Must arrive by the 2:00 PM check-in. Usual route: shuttle to Panajachel, then boat across the lake.",
+    },
+    {
+      id: "activity-cliff-jumping",
+      kind: "activity",
+      title: "Cliff jumping",
+      start: "2026-11-25",
+      end: "2026-11-25",
+      status: "needs-booking",
+      location: "Lake Atitlán",
+      notes: "After arriving at the lake. Time TBD.",
     },
     {
       id: "lodging-nov26-28",
       kind: "lodging",
-      title: "Nights of Nov 26, 27, 28",
+      title: "Airbnb, San Juan La Laguna",
+      start: "2026-11-26", // Check-in and checkout times unknown.
+      end: "2026-11-28",
+      status: "booked",
+      location: "San Juan La Laguna, Lake Atitlán",
+      notes: "Check-in and checkout times TBD.",
+    },
+    {
+      id: "transport-nov26-transfers",
+      kind: "transport",
+      title: "Transfers: San Marcos → zipline → jet skis → San Juan",
       start: "2026-11-26",
-      end: "2026-11-29",
-      status: "undecided",
-      location: "Lake Atitlán and/or Antigua",
+      end: "2026-11-26",
+      status: "needs-booking",
+      location: "San Marcos La Laguna → zipline → jet ski spot → San Juan La Laguna",
+      notes: "Times TBD.",
+    },
+    {
+      id: "activity-zipline",
+      kind: "activity",
+      title: "Zip lining",
+      start: "2026-11-26",
+      end: "2026-11-26",
+      status: "needs-booking",
+      location: "Lake Atitlán",
+      notes: "After the 10:00 AM checkout in San Marcos. Operator and time TBD.",
+    },
+    {
+      id: "activity-jet-ski",
+      kind: "activity",
+      title: "Jet skiing",
+      start: "2026-11-26T17:00:00-06:00",
+      end: null,
+      status: "needs-booking",
+      location: "Lake Atitlán",
       notes:
-        "Extending the Airbnb covers Nov 26–27 and cuts a transfer. The night of Nov 28 must be in Antigua, or close enough for the 6:30 AM hike meeting.",
+        "To verify: 5 PM is close to sunset, and the lake is often choppy in the afternoon. Confirm an operator and the time.",
+    },
+    {
+      id: "activity-indian-nose",
+      kind: "activity",
+      title: "Indian Nose hike, then paraglide down",
+      start: "2026-11-28",
+      end: "2026-11-28",
+      status: "needs-booking",
+      location: "Indian Nose, Lake Atitlán",
+      notes:
+        "To verify: this is usually a pre-dawn sunrise hike, so confirm the start time. Confirm paragliding is offered from it. The same day includes the trip to Antigua, and the Acatenango hike starts at 6:30 AM on Nov 29.",
     },
     {
       id: "transport-lake-to-antigua",
       kind: "transport",
       title: "Lake Atitlán → Antigua",
-      start: "2026-11-28", // Source says Sat Nov 28, "whenever we leave the lake". Depends on q-lake-length.
-      end: null,
-      status: "undecided",
+      start: "2026-11-28",
+      end: "2026-11-28",
+      status: "needs-booking",
       location: "Lake Atitlán → Antigua",
+    },
+    {
+      id: "lodging-antigua",
+      kind: "lodging",
+      title: "Airbnb, Antigua Guatemala",
+      start: "2026-11-28", // Check-in and checkout times unknown.
+      end: "2026-11-29",
+      status: "booked",
+      location: "Antigua Guatemala",
+      notes: "Check-in and checkout times TBD. Night before the 6:30 AM Acatenango start.",
     },
     {
       id: "lodging-nov30",
@@ -141,6 +200,7 @@ export const trip: Trip = {
     {
       id: "q-airport-night",
       question: "Arrival night: sleep near GUA airport, or shuttle straight to Antigua at midnight?",
+      answer: "Booked a hotel for the night of Nov 24. Name and location not recorded yet.",
       blocks: ["lodging-nov24", "transfer-arrival", "transport-to-lake"],
     },
     {
@@ -148,6 +208,8 @@ export const trip: Trip = {
       question: "How long on Lake Atitlán?",
       blocks: ["lodging-nov26-28", "transport-lake-to-antigua"],
       notes: "Extending the Airbnb covers Nov 26 and 27 and cuts one transfer. Leaving early gives more Antigua time before the hike.",
+      answer:
+        "On the lake through Nov 28: San Marcos the night of Nov 25, San Juan La Laguna the nights of Nov 26 and 27, then Antigua the night of Nov 28.",
     },
     {
       id: "q-return-date",
