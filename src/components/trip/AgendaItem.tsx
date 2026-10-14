@@ -57,8 +57,13 @@ export function AgendaItem({
   extra,
   ghost,
   flash,
+  updated,
+  onOpen,
 }: {
   row: AgendaRow;
+  /** Someone else changed it since this device looked: shows "Updated" until opened. */
+  updated?: boolean;
+  onOpen?: () => void;
   /** One overflow menu (Plan mode). Trip mode passes nothing: read-only. */
   actions?: ReactNode;
   /** Extra controls inside the expanded detail, e.g. Ask. */
@@ -79,7 +84,10 @@ export function AgendaItem({
       <div className="min-w-0 flex-1">
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            if (!open) onOpen?.();
+            setOpen(!open);
+          }}
           aria-expanded={hasDetail ? open : undefined}
           aria-controls={hasDetail ? detailId : undefined}
           disabled={!hasDetail}
@@ -90,6 +98,9 @@ export function AgendaItem({
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             {ghost && <span className="text-sm font-bold text-now">{GHOST_LABEL[ghost]}</span>}
+            {updated && !ghost && (
+              <span className="self-start rounded-md border-2 border-now px-1.5 text-sm font-bold text-now">Updated</span>
+            )}
             <span className={`text-base leading-snug font-semibold ${open ? "" : "line-clamp-2"} ${ghost === "removed" ? "line-through" : ""}`}>
               {rowTitle(row)}
             </span>

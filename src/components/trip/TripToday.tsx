@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { StatusMark } from "@/components/ui/StatusMark";
 import { AgendaItem, MapsLink, rowTitle } from "./AgendaItem";
 import { AskAboutItem, ChangeTime, ClaimButton } from "./ItemActions";
+import { UpdatesButton } from "@/components/shell/Updates";
 
 export interface SnapshotInfo {
   online: boolean;
@@ -29,12 +30,20 @@ export function TripToday({
   day,
   onDay,
   snapshot,
+  markers,
+  onItemSeen,
+  unread,
+  onUpdates,
 }: {
   trip: Trip;
   now: number;
   day: string;
   onDay: (date: string) => void;
   snapshot: SnapshotInfo;
+  markers: Map<string, number>;
+  onItemSeen: (id: string) => void;
+  unread: number;
+  onUpdates: () => void;
 }) {
   const days = dayStatuses(trip);
   const today = localDate(now, trip.utcOffset);
@@ -69,7 +78,12 @@ export function TripToday({
       </div>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-4">
-        <DayHeading status={status} isToday={day === today} afterHike={days.findIndex((d) => d.peakM) === index - 1} />
+        <DayHeading
+          status={status}
+          isToday={day === today}
+          afterHike={days.findIndex((d) => d.peakM) === index - 1}
+          corner={<UpdatesButton count={unread} onClick={onUpdates} onPhoto />}
+        />
         <NowCard card={card} />
 
         <section aria-labelledby="day-list">
@@ -79,7 +93,13 @@ export function TripToday({
           {rows.length > 0 ? (
             <ol className="divide-y divide-line rounded-2xl border border-line bg-surface px-3">
               {rows.map((r) => (
-                <AgendaItem key={r.key} row={r} extra={<ItemExtras row={r} trip={trip} online={snapshot.online} />} />
+                <AgendaItem
+                  key={r.key}
+                  row={r}
+                  extra={<ItemExtras row={r} trip={trip} online={snapshot.online} />}
+                  updated={markers.has(r.id)}
+                  onOpen={() => onItemSeen(r.id)}
+                />
               ))}
             </ol>
           ) : (
@@ -163,13 +183,14 @@ function photoFor(status: DayStatus, afterHike: boolean) {
 }
 
 /** The day's title over a photo of where we are, with where we sleep tonight. */
-function DayHeading({ status, isToday, afterHike }: { status: DayStatus; isToday: boolean; afterHike: boolean }) {
+function DayHeading({ status, isToday, afterHike, corner }: { status: DayStatus; isToday: boolean; afterHike: boolean; corner?: React.ReactNode }) {
   const photo = photoFor(status, afterHike);
   return (
     <header className="relative overflow-hidden rounded-3xl bg-ink">
       <Image src={photo.src} alt={photo.alt} fill priority sizes="(max-width: 672px) 100vw, 672px" className={photo.className} />
       {/* Dark at the bottom so the white text reads over any part of any photo. */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" aria-hidden="true" />
+      {corner && <div className="absolute top-2 right-2 z-10 flex gap-2">{corner}</div>}
       <div className="relative flex min-h-44 flex-col justify-end gap-1 p-4 pt-16 text-[#fff]">
         <h1 className="font-display text-2xl leading-tight font-semibold">
           {weekday(status.date, true)}, {monthDay(status.date)}

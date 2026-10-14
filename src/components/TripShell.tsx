@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { Trip } from "@/data/types";
 import { previewTrip } from "@/lib/chat/proposal";
-import { nightCoverage, stillToBook, timeline } from "@/lib/derive";
+import { nightCoverage, timeline } from "@/lib/derive";
+import type { ChangeEntry } from "@/lib/engine";
 import { defaultMode, initialDay, type Mode } from "@/lib/now";
 import { parseSnapshot, readSnapshotRaw, saveSnapshot, subscribeSnapshot } from "@/lib/snapshot";
 import { monthDay } from "@/lib/time";
@@ -19,6 +20,9 @@ import { useClock, useOnline } from "./shell/hooks";
 import { BottomNav, tabForMode, TopNav, type Tab } from "./shell/Nav";
 import { SettingsSheet } from "./shell/Settings";
 import { Toast } from "./shell/Toast";
+import { UpdatesSheet } from "./shell/Updates";
+import { useMarkSeen, useUpdates } from "./shell/useUpdates";
+import { useRouter } from "next/navigation";
 import type { Ghost } from "./trip/AgendaItem";
 import { TripToday } from "./trip/TripToday";
 import { Icon } from "./ui/Icon";
@@ -33,6 +37,8 @@ interface Props {
   /** The active model reads images; hides screenshot upload when false. */
   chatVision: boolean;
   knownNames: string[];
+  /** The change log, newest first. */
+  updates: ChangeEntry[];
 }
 
 export function TripShell(props: Props) {
@@ -94,12 +100,25 @@ function usePreview(trip: Trip, version: number) {
   }, [pending, trip, version]);
 }
 
-function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Props) {
+function App({ trip: serverTrip, version, serverNow, devNotes, knownNames, updates }: Props) {
   const now = useClock(serverNow);
   const online = useOnline();
   const { trip, savedAt, stored } = useTripCopy(serverTrip, version, serverNow, online);
   const { open: chatOpen, setOpen: setChatOpen, highlight, available, send, prefill } = useTripChat();
   const { author } = useEditor();
+  const { unread, markers, seenMs } = useUpdates(updates, author);
+  const markSeen = useMarkSeen();
+  const [updatesOpen, setUpdatesOpen] = useState(false);
+  const router = useRouter();
+
+  // Coming back to the app with signal: fetch the latest trip and changes.
+  useEffect(() => {
+    const onShow = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) router.refresh();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, [router]);
 
   /** Hand a line to the planner: sent straight away when we know who's asking. */
   function askPlanner(text: string) {
@@ -121,7 +140,6 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
   // The planner hears which day is on screen in Trip mode.
   const { setDay: setChatDay } = useTripChat();
   useEffect(() => setChatDay(mode === "trip" ? day : null), [mode, day, setChatDay]);
-  const toBook = stillToBook(trip).length;
 
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
 
@@ -144,7 +162,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
           <p className="mr-auto text-lg font-bold">
             Guatemala <span className="tnum font-normal text-muted">· {monthDay(trip.firstDay)} – {monthDay(trip.lastDay)}</span>
           </p>
-          <TopNav active={tabForMode(mode, chatOpen)} onSelect={select} toBook={toBook} askAvailable={available} />
+          <TopNav active={tabForMode(mode, chatOpen)} onSelect={select} unread={unread.length} askAvailable={available} />
           <button type="button" onClick={() => setSettings(true)} aria-label="Settings" className="flex size-11 items-center justify-center rounded-xl hover:bg-sunken">
             <Icon name="settings" />
           </button>
@@ -153,7 +171,17 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
 
       <main id="main" className="pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12">
         {mode === "trip" ? (
-          <TripToday trip={trip} now={now} day={day} onDay={setChosenDay} snapshot={{ online, savedAt, stored }} />
+          <TripToday
+            trip={trip}
+            now={now}
+            day={day}
+            onDay={setChosenDay}
+            snapshot={{ online, savedAt, stored }}
+            markers={markers}
+            onItemSeen={(id) => markSeen.item(id, markers.get(id) ?? 0)}
+            unread={unread.length}
+            onUpdates={() => setUpdatesOpen(true)}
+          />
         ) : (
           <PlanView
             trip={trip}
@@ -165,6 +193,10 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
             onSettings={() => setSettings(true)}
             nowMs={now}
             onAsk={askPlanner}
+            markers={markers}
+            onItemSeen={(id) => markSeen.item(id, markers.get(id) ?? 0)}
+            unread={unread.length}
+            onUpdates={() => setUpdatesOpen(true)}
           />
         )}
       </main>
@@ -181,10 +213,19 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
           />
       </ChatSheet>
 
-      <BottomNav active={tabForMode(mode, chatOpen)} onSelect={select} toBook={toBook} askAvailable={available} />
+      <BottomNav active={tabForMode(mode, chatOpen)} onSelect={select} unread={unread.length} askAvailable={available} />
       {manual && (
         <SegmentDialog mode="add" initialTitle={manual.title} initialKind={manual.kind} initialDate={manual.date} open onClose={() => setManual(null)} />
       )}
+      <UpdatesSheet
+        open={updatesOpen}
+        onClose={() => setUpdatesOpen(false)}
+        entries={updates}
+        trip={trip}
+        nowMs={now}
+        seenMs={seenMs}
+        online={online}
+      />
       <SettingsSheet open={settings} onClose={() => setSettings(false)} notes={devNotes} />
       <WhoPicker knownNames={knownNames} />
       <Toast />

@@ -34,6 +34,7 @@ export default async function Home() {
       chatAvailable={chat.available}
       chatVision={chat.vision}
       knownNames={knownNames}
+      updates={history}
     />
   );
 }

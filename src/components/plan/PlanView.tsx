@@ -19,6 +19,7 @@ import { Icon } from "@/components/ui/Icon";
 import { SheetAction } from "@/components/ui/Sheet";
 import { StatusMark } from "@/components/ui/StatusMark";
 import { ActionsMenu, PlanItemActions, SegmentActions } from "./ItemMenu";
+import { UpdatesButton } from "@/components/shell/Updates";
 import { PlanDialog } from "./PlanDialog";
 
 const GAP_LABEL: Record<Gap["kind"], string> = {
@@ -41,6 +42,10 @@ export function PlanView({
   onSettings,
   nowMs,
   onAsk,
+  markers,
+  onItemSeen,
+  unread,
+  onUpdates,
 }: {
   trip: Trip;
   /** Day by day, including any pending proposal as ghosts. */
@@ -53,6 +58,10 @@ export function PlanView({
   nowMs: number;
   /** Hand text to the planner (opens the chat and sends it). */
   onAsk: (text: string) => void;
+  markers: Map<string, number>;
+  onItemSeen: (id: string) => void;
+  unread: number;
+  onUpdates: () => void;
 }) {
   const { available } = useTripChat();
   const [quick, setQuick] = useState(false);
@@ -63,7 +72,7 @@ export function PlanView({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-6">
-      <PlanHeader trip={trip} onSettings={onSettings} />
+      <PlanHeader trip={trip} onSettings={onSettings} corner={<UpdatesButton count={unread} onClick={onUpdates} onPhoto />} />
 
       {!online && (
         <p className="flex items-start gap-2 rounded-2xl border-2 border-line bg-surface p-4 text-base" role="status">
@@ -125,7 +134,17 @@ export function PlanView({
         <SectionHeading id="day-by-day">Day by day</SectionHeading>
         <div className="flex flex-col gap-6">
           {days.map((d) => (
-            <PlanDay key={d.date} day={d} trip={trip} ghosts={ghosts} highlight={highlight} online={online} allDays={allDays} />
+            <PlanDay
+              key={d.date}
+              day={d}
+              trip={trip}
+              ghosts={ghosts}
+              highlight={highlight}
+              online={online}
+              allDays={allDays}
+              markers={markers}
+              onItemSeen={onItemSeen}
+            />
           ))}
         </div>
       </section>
@@ -186,7 +205,7 @@ function SectionHeading({ id, count, children, inline }: { id: string; count?: n
   );
 }
 
-function PlanHeader({ trip, onSettings }: { trip: Trip; onSettings: () => void }) {
+function PlanHeader({ trip, onSettings, corner }: { trip: Trip; onSettings: () => void; corner: React.ReactNode }) {
   return (
     <header className="relative h-36 overflow-hidden rounded-3xl bg-sunken md:h-52">
       <Image
@@ -205,14 +224,12 @@ function PlanHeader({ trip, onSettings }: { trip: Trip; onSettings: () => void }
           {monthDay(trip.firstDay)} – {monthDay(trip.lastDay)} · Party of {trip.partySize ?? "?"}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onSettings}
-        aria-label="Settings"
-        className="absolute top-2 right-2 flex size-11 items-center justify-center rounded-xl bg-surface text-ink md:hidden"
-      >
-        <Icon name="settings" />
-      </button>
+      <div className="absolute top-2 right-2 flex gap-2">
+        {corner}
+        <button type="button" onClick={onSettings} aria-label="Settings" className="flex size-11 items-center justify-center rounded-xl bg-surface text-ink md:hidden">
+          <Icon name="settings" />
+        </button>
+      </div>
     </header>
   );
 }
@@ -263,7 +280,11 @@ function PlanDay({
   highlight,
   online,
   allDays,
+  markers,
+  onItemSeen,
 }: {
+  markers: Map<string, number>;
+  onItemSeen: (id: string) => void;
   day: TimelineDay;
   trip: Trip;
   ghosts: Record<string, Ghost>;
@@ -332,7 +353,18 @@ function PlanDay({
                 ? <PlanItemActions item={items.get(r.item.id)!} online={online} />
                 : <SegmentActions segment={segments.get(r.event.segment.id)!} online={online} days={allDays} />;
             const claim = !ghost && r.type === "event" ? <ClaimButton segment={segments.get(r.event.segment.id)!} online={online} /> : undefined;
-            return <AgendaItem key={row.key} row={row} actions={actions} extra={claim} ghost={ghost} flash={highlight.has(row.id)} />;
+            return (
+              <AgendaItem
+                key={row.key}
+                row={row}
+                actions={actions}
+                extra={claim}
+                ghost={ghost}
+                flash={highlight.has(row.id)}
+                updated={markers.has(row.id)}
+                onOpen={() => onItemSeen(row.id)}
+              />
+            );
           })}
         </ol>
       ) : (

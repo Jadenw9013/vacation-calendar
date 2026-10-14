@@ -8,8 +8,8 @@ export type Tab = "today" | "trip" | "ask";
 interface NavProps {
   active: Tab;
   onSelect: (tab: Tab) => void;
-  /** Count of things still to book, shown on the Trip tab. */
-  toBook: number;
+  /** Other people's changes since this device last opened Updates, shown on the Trip tab. */
+  unread: number;
   askAvailable: boolean;
 }
 
@@ -25,7 +25,7 @@ export function tabForMode(mode: Mode, chatOpen: boolean): Tab {
 }
 
 /** Phones: a 56px bar at the bottom, in thumb reach. */
-export function BottomNav({ active, onSelect, toBook, askAvailable }: NavProps) {
+export function BottomNav({ active, onSelect, unread, askAvailable }: NavProps) {
   return (
     <nav
       aria-label="Main"
@@ -34,7 +34,7 @@ export function BottomNav({ active, onSelect, toBook, askAvailable }: NavProps) 
       <ul className="mx-auto flex h-14 max-w-md items-stretch justify-around gap-2 px-2">
         {TABS.map((t) => (
           <li key={t.id} className="flex flex-1">
-            <NavButton tab={t} active={active === t.id} onSelect={onSelect} badge={t.id === "trip" ? toBook : 0} disabled={t.id === "ask" && !askAvailable} stacked />
+            <NavButton tab={t} active={active === t.id} onSelect={onSelect} badge={t.id === "trip" ? unread : 0} disabled={t.id === "ask" && !askAvailable} stacked />
           </li>
         ))}
       </ul>
@@ -43,13 +43,13 @@ export function BottomNav({ active, onSelect, toBook, askAvailable }: NavProps) 
 }
 
 /** Laptops and tablets: the same three tabs across the top. */
-export function TopNav({ active, onSelect, toBook, askAvailable }: NavProps) {
+export function TopNav({ active, onSelect, unread, askAvailable }: NavProps) {
   return (
     <nav aria-label="Main" className="hidden md:block">
       <ul className="flex items-center gap-2">
         {TABS.map((t) => (
           <li key={t.id}>
-            <NavButton tab={t} active={active === t.id} onSelect={onSelect} badge={t.id === "trip" ? toBook : 0} disabled={t.id === "ask" && !askAvailable} />
+            <NavButton tab={t} active={active === t.id} onSelect={onSelect} badge={t.id === "trip" ? unread : 0} disabled={t.id === "ask" && !askAvailable} />
           </li>
         ))}
       </ul>
@@ -87,12 +87,12 @@ function NavButton({
       <span>{tab.label}</span>
       {badge > 0 && (
         <span
-          className={`absolute flex min-w-5 items-center justify-center rounded-full bg-action px-1 text-xs font-bold text-on-fill ${
+          className={`absolute flex min-w-5 items-center justify-center rounded-full bg-now px-1 text-xs font-bold text-on-fill ${
             stacked ? "top-0.5 right-[calc(50%-1.9rem)]" : "-top-1 -right-1"
           }`}
         >
           {badge}
-          <span className="sr-only"> still to book</span>
+          <span className="sr-only"> new</span>
         </span>
       )}
     </button>

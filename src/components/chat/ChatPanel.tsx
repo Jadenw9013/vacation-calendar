@@ -6,7 +6,6 @@ import type { Trip } from "@/data/types";
 import { computeGaps, nightCoverage, unanswered } from "@/lib/derive";
 import { formatDay } from "@/lib/time";
 import { useEditor } from "@/components/edit/EditorProvider";
-import { Activity } from "./Activity";
 import { proposalsIn, useTripChat, type TripUIMessage } from "./ChatProvider";
 import { ProposalCard } from "./ProposalCard";
 import { NameGate } from "@/components/quickadd/NameGate";
@@ -214,7 +213,6 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { author } = useEditor();
-  const [tab, setTab] = useState<"chat" | "activity">("chat");
   const endRef = useRef<HTMLDivElement>(null);
   const busy = chat.status === "submitted" || chat.status === "streaming";
   const latestProposalId = proposalsIn(chat.messages).at(-1)?.toolCallId ?? null;
@@ -242,22 +240,9 @@ export function ChatPanel({
     <aside aria-label="Ask the planner" className="flex h-full w-full flex-col overflow-hidden bg-surface">
       <header className="flex items-center gap-2 border-b border-line py-1.5 pr-1.5 pl-4">
         <h2 className="mr-auto min-w-0 truncate text-lg font-bold">
-          <span className="sm:hidden">Planner</span>
-          <span className="hidden sm:inline">Ask the planner</span>
+Ask the planner
         </h2>
-        <nav className="flex shrink-0 gap-2" aria-label="Planner views">
-          {(["chat", "activity"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              aria-current={tab === t ? "page" : undefined}
-              className={`min-h-11 rounded-xl px-3 text-base font-semibold ${tab === t ? "bg-ink text-canvas" : "text-muted hover:bg-sunken"}`}
-            >
-              {t === "chat" ? "Chat" : "Activity"}
-            </button>
-          ))}
-        </nav>
-        {chat.messages.length > 0 && tab === "chat" && (
+        {chat.messages.length > 0 && (
           <button
             onClick={() => window.confirm("Clear this conversation from this phone? The trip isn't changed.") && clearChat()}
             className="min-h-11 shrink-0 rounded-xl px-3 text-base font-semibold text-muted hover:bg-sunken"
@@ -270,9 +255,7 @@ export function ChatPanel({
         </button>
       </header>
 
-      {tab === "activity" ? (
-        <Activity />
-      ) : (
+      {
         <>
           <div ref={scrollRef} className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
             <QuickAdd
@@ -476,7 +459,7 @@ export function ChatPanel({
             </form>
           </div>
         </>
-      )}
+      }
     </aside>
   );
 }
