@@ -53,6 +53,24 @@ function errorText(error: Error): string {
 
 function MessageView({ m, latestProposalId, trip, said }: { m: TripUIMessage; latestProposalId: string | null; trip: Trip; said?: string }) {
   const { chat } = useTripChat();
+  const route = (m.metadata as { route?: string } | undefined)?.route;
+  if (m.role === "assistant" && route === "local") {
+    const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+    return (
+      <div className="mr-4 flex flex-col gap-2 rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-3 text-base">
+        <p className="text-sm font-bold tracking-wide text-muted uppercase">From the saved schedule</p>
+        <p className="whitespace-pre-wrap">{text}</p>
+        <button
+          type="button"
+          onClick={() => chat.regenerate({ body: { force: "model" } })}
+          disabled={chat.status === "submitted" || chat.status === "streaming"}
+          className="min-h-11 self-start rounded-xl border border-line bg-surface px-4 font-semibold hover:bg-sunken disabled:opacity-60"
+        >
+          Ask the planner instead
+        </button>
+      </div>
+    );
+  }
   if (m.role === "user") {
     const text = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
     const images = m.parts.filter((p) => p.type === "file" && p.mediaType.startsWith("image/"));

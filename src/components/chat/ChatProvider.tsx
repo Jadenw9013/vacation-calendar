@@ -157,8 +157,10 @@ function withoutImages(messages: TripUIMessage[]): TripUIMessage[] {
 
 const transport = new DefaultChatTransport<TripUIMessage>({
   api: "/api/chat",
-  prepareSendMessagesRequest: ({ messages }) => ({
+  prepareSendMessagesRequest: ({ messages, body }) => ({
     body: {
+      // Per-request extras, e.g. { force: "model" } from "Ask the planner instead".
+      ...(body ?? {}),
       messages: withoutOldImages(messages),
       author: requestContext.author,
       outcomes: requestContext.outcomes,

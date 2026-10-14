@@ -15,6 +15,7 @@ import { chatErrorMessage } from "@/lib/llm/provider";
 import type { TripRepository } from "@/lib/repo/types";
 import { IMAGE_LIMITS, sanitizeMessages } from "./attachments";
 import { classifyIntent, type Intent } from "./intent";
+import { quickAddOps, routeMessage } from "./router";
 import { buildProposal, type FlatOp, type Proposal } from "./proposal";
 import { buildInstructions, planningTools, todayAt, type ProposalOutcome } from "./setup";
 import { logTiming, newTiming, publicTiming, serverTimingHeader, timed, type ChatTiming } from "./timing";
@@ -185,11 +186,45 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
     }
   }
 
-  const model = deps.model;
-  if (!model) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
-
   const state = await timed(timing, "storeReadMs", () => deps.repo.get());
   const turn = lastTurn(cleaned);
+  const context = readContext(parsed.body.context, state.trip);
+
+  // Before the model: schedule questions from the saved trip, Quick Add lines as cards.
+  const routed = routeMessage(turn.text, {
+    trip: state.trip,
+    nowMs: Date.now(),
+    day: context.day,
+    images: turn.images,
+    answeringQuestion: turn.answeringQuestion,
+    force: parsed.body.force === "model",
+  });
+  if (routed.kind !== "model") {
+    timing.route = routed.kind;
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        writer.write({ type: "start", messageMetadata: { route: timing.route } });
+        if (routed.kind === "local") {
+          writer.write({ type: "text-start", id: "local" });
+          writer.write({ type: "text-delta", id: "local", delta: routed.answer });
+          writer.write({ type: "text-end", id: "local" });
+        } else {
+          const ops = quickAddOps(routed.draft);
+          const proposal = await timed(timing, "validationMs", () => buildProposal(state, undefined, ops));
+          const toolCallId = `quickadd-${ops[0].segment.id}`;
+          writer.write({ type: "tool-input-available", toolCallId, toolName: "propose_changes", input: { ops } });
+          writer.write({ type: "tool-output-available", toolCallId, output: proposal });
+        }
+        timing.totalMs = performance.now() - started;
+        logTiming(timing);
+        writer.write({ type: "finish", messageMetadata: { route: timing.route, timing: publicTiming(timing) } });
+      },
+    });
+    return createUIMessageStreamResponse({ headers: { "Server-Timing": serverTimingHeader(timing) }, stream });
+  }
+
+  const model = deps.model;
+  if (!model) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
   const intent = classifyIntent(turn.text, turn);
   const tools = planningTools();
   const { instructions, modelMessages } = await timed(timing, "contextMs", async () => ({
@@ -199,7 +234,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
       today: todayAt(state.trip.utcOffset),
       outcomes,
       now: Date.now(),
-      ...readContext(parsed.body.context, state.trip),
+      ...context,
     }),
     modelMessages: await convertToModelMessages(cleaned, { tools }),
   }));
