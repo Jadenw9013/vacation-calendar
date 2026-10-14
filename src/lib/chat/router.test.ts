@@ -62,27 +62,27 @@ const TABLE: [string, "local" | "quickadd" | "model"][] = [
 describe("router", () => {
   it("has at least 40 phrases", () => expect(TABLE.length).toBeGreaterThanOrEqual(40));
 
-  it.each(TABLE.map(([p, r]) => [p.split("\n")[0].slice(0, 50), p, r] as const))("%s → %s", (_label, phrase, route) => {
-    expect(routeMessage(phrase, ctx).kind).toBe(route);
+  it.each(TABLE.map(([p, r]) => [p.split("\n")[0].slice(0, 50), p, r] as const))("%s → %s", async (_label, phrase, route) => {
+    expect((await routeMessage(phrase, ctx)).kind).toBe(route);
   });
 
-  it("answers no edit or injection phrase locally", () => {
+  it("answers no edit or injection phrase locally", async () => {
     const risky = TABLE.filter(([p]) => /delete|remove|ignore|system|move|cancel|\bbook|\badd\b|is done|let's stay/i.test(p) && !/unbooked|needs booking/i.test(p));
     expect(risky.length).toBeGreaterThanOrEqual(15);
-    for (const [p] of risky) expect(routeMessage(p, ctx).kind, p).not.toBe("local");
+    for (const [p] of risky) expect((await routeMessage(p, ctx)).kind, p).not.toBe("local");
   });
 
-  it("local answers come from the saved trip", () => {
-    const next = routeMessage("what's next", ctx);
+  it("local answers come from the saved trip", async () => {
+    const next = await routeMessage("what's next", ctx);
     expect(next).toMatchObject({ kind: "local" });
     expect(next.kind === "local" && next.answer).toBe("Next: Jet skiing, Thu Nov 26 at 5:00 PM, Lake Atitlán (starts in 1h 20m). Not booked yet.");
-    const sleep = routeMessage("Where are we sleeping on Nov 27?", ctx);
+    const sleep = await routeMessage("Where are we sleeping on Nov 27?", ctx);
     expect(sleep.kind === "local" && sleep.answer).toBe("The night of Fri Nov 27: Airbnb, San Juan La Laguna.");
-    const when = routeMessage("when is the hike", ctx);
+    const when = await routeMessage("when is the hike", ctx);
     expect(when.kind === "local" && when.answer).toContain("Acatenango overnight hike (Wicho & Charlie's): Sun Nov 29, 6:30 AM (booked).");
   });
 
-  it("asking the planner instead skips local answers", () => {
-    expect(routeMessage("what's next", { ...ctx, force: true }).kind).toBe("model");
+  it("asking the planner instead skips local answers", async () => {
+    expect((await routeMessage("what's next", { ...ctx, force: true })).kind).toBe("model");
   });
 });

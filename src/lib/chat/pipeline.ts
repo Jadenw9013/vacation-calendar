@@ -206,7 +206,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   const context = readContext(parsed.body.context, state.trip);
 
   // Before the model: schedule questions from the saved trip, Quick Add lines as cards.
-  const routed = routeMessage(turn.text, {
+  const routed = await routeMessage(turn.text, {
     trip: state.trip,
     nowMs: Date.now(),
     day: context.day,

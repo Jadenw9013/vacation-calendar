@@ -1,8 +1,7 @@
-import * as chrono from "chrono-node";
 import type { Trip } from "@/data/types";
 import { stillToBook } from "@/lib/derive";
 import { agenda, dayStatuses, localDate, nowNext, tripDays, type AgendaRow } from "@/lib/now";
-import { draftToSegment, parseQuickAdd, type QuickDraft } from "@/lib/quickadd";
+import { draftToSegment, type QuickDraft } from "@/lib/quickadd-draft";
 import { addDays, formatDay, formatTime, parseMoment } from "@/lib/time";
 import { classifyIntent } from "./intent";
 import type { FlatOp } from "./proposal";
@@ -112,13 +111,18 @@ function whenAnswer(trip: Trip, what: string): string | null {
     .join("\n");
 }
 
-/** A Quick Add line: short, no punctuation beyond times, no verb, no names, fully understood, inside the trip. */
-function quickAddable(raw: string, ctx: RouteContext): QuickDraft | null {
+/**
+ * A Quick Add line: short, no punctuation beyond times, no verb, no names,
+ * fully understood, inside the trip. The date parser loads only for lines
+ * that pass the cheap checks, so most requests never pay for it.
+ */
+async function quickAddable(raw: string, ctx: RouteContext): Promise<QuickDraft | null> {
   const t = raw.trim();
   if (t.length > 60 || !/^[\p{L}0-9 :'-]+$/u.test(t) || t.split(/\s+/).length > 7) return null;
   // No instructions, edit words or question words anywhere in it.
   if (UNSAFE.test(t) || /\b(what|when|where|why|how|who|which|whats|what's)\b/i.test(t)) return null;
   if (classifyIntent(t) === "edit") return null;
+  const { parseQuickAdd } = await import("@/lib/quickadd");
   const parsed = parseQuickAdd(t, { trip: ctx.trip, nowMs: ctx.nowMs, selectedDay: ctx.day });
   if (parsed.type !== "draft" || parsed.missing.length || parsed.draft.outsideTrip) return null;
   // Only lines with a day or time in them: "cliff jumping" alone is a topic, not an instruction.
@@ -126,7 +130,7 @@ function quickAddable(raw: string, ctx: RouteContext): QuickDraft | null {
   return parsed.draft;
 }
 
-export function routeMessage(raw: string, ctx: RouteContext): Routed {
+export async function routeMessage(raw: string, ctx: RouteContext): Promise<Routed> {
   if (ctx.force) return { kind: "model", reason: "asked for the planner" };
   if (ctx.answeringQuestion) return { kind: "model", reason: "answer to the planner's question" };
   if ((ctx.images ?? 0) > 0) return { kind: "model", reason: "screenshot" };
@@ -149,6 +153,7 @@ export function routeMessage(raw: string, ctx: RouteContext): Routed {
       let date: string | null = today;
       if (sleep[4]?.startsWith("tomorrow")) date = addDays(today, 1);
       else if (sleep[6]) {
+        const chrono = await import("chrono-node");
         const ref = { instant: new Date(`${ctx.trip.firstDay}T00:00:00${ctx.trip.utcOffset}`), timezone: -360 };
         const hit = chrono.parse(sleep[6], ref, { forwardDate: true })[0];
         date = hit && hit.start.isCertain("day") ? `${hit.start.get("year")}-${String(hit.start.get("month")).padStart(2, "0")}-${String(hit.start.get("day")).padStart(2, "0")}` : null;
@@ -165,7 +170,7 @@ export function routeMessage(raw: string, ctx: RouteContext): Routed {
     }
   }
 
-  const draft = quickAddable(raw, ctx);
+  const draft = await quickAddable(raw, ctx);
   if (draft) return { kind: "quickadd", draft };
   return { kind: "model", reason: classifyIntent(raw) === "edit" ? "edit" : "not a schedule question" };
 }
