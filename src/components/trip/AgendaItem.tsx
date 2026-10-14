@@ -5,6 +5,7 @@ import { mapsUrl, type AgendaRow } from "@/lib/now";
 import { formatTime } from "@/lib/time";
 import { Icon } from "@/components/ui/Icon";
 import { StatusMark } from "@/components/ui/StatusMark";
+import { OwnerLine } from "./ItemActions";
 
 export type Ghost = "added" | "changed" | "removed";
 
@@ -94,6 +95,7 @@ export function AgendaItem({
             </span>
             <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               {row.status !== "plan" || row.tentative ? <StatusMark status={row.status} tentative={row.tentative} /> : null}
+              <OwnerLine row={row} />
               {(row.place || row.zone) && (
                 <span className={`min-w-0 text-base text-muted ${open ? "" : "truncate"}`}>
                   {[row.zone, row.place].filter(Boolean).join(" · ")}

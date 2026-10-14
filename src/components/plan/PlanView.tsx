@@ -14,6 +14,7 @@ import { SegmentDialog } from "@/components/edit/SegmentDialog";
 import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
 import { Sheet } from "@/components/ui/Sheet";
 import { AgendaItem, type Ghost } from "@/components/trip/AgendaItem";
+import { ClaimButton } from "@/components/trip/ItemActions";
 import { Icon } from "@/components/ui/Icon";
 import { SheetAction } from "@/components/ui/Sheet";
 import { StatusMark } from "@/components/ui/StatusMark";
@@ -330,7 +331,8 @@ function PlanDay({
               : r.type === "plan"
                 ? <PlanItemActions item={items.get(r.item.id)!} online={online} />
                 : <SegmentActions segment={segments.get(r.event.segment.id)!} online={online} days={allDays} />;
-            return <AgendaItem key={row.key} row={row} actions={actions} ghost={ghost} flash={highlight.has(row.id)} />;
+            const claim = !ghost && r.type === "event" ? <ClaimButton segment={segments.get(r.event.segment.id)!} online={online} /> : undefined;
+            return <AgendaItem key={row.key} row={row} actions={actions} extra={claim} ghost={ghost} flash={highlight.has(row.id)} />;
           })}
         </ol>
       ) : (

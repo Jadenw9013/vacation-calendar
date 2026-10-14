@@ -113,6 +113,10 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
   const [settings, setSettings] = useState(false);
   const mode = chosenMode ?? defaultMode(trip, now);
   const day = chosenDay ?? initialDay(trip, now);
+
+  // The planner hears which day is on screen in Trip mode.
+  const { setDay: setChatDay } = useTripChat();
+  useEffect(() => setChatDay(mode === "trip" ? day : null), [mode, day, setChatDay]);
   const toBook = stillToBook(trip).length;
 
   function select(tab: Tab) {

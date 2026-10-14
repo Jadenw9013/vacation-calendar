@@ -2,14 +2,14 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import type { Trip } from "@/data/types";
-import { agenda, clockLabel, dayStatuses, localDate, nowNext, type DayStatus, type NowNext } from "@/lib/now";
+import type { Segment, Trip } from "@/data/types";
+import { agenda, clockLabel, dayStatuses, localDate, nowNext, type AgendaRow, type DayStatus, type NowNext } from "@/lib/now";
 import { formatTime, monthDay, weekday } from "@/lib/time";
-import { useTripChat } from "@/components/chat/ChatProvider";
 import { InstallHint } from "@/components/shell/Settings";
 import { Icon } from "@/components/ui/Icon";
 import { StatusMark } from "@/components/ui/StatusMark";
 import { AgendaItem, MapsLink, rowTitle } from "./AgendaItem";
+import { AskAboutItem, ChangeTime, ClaimButton } from "./ItemActions";
 
 export interface SnapshotInfo {
   online: boolean;
@@ -79,7 +79,7 @@ export function TripToday({
           {rows.length > 0 ? (
             <ol className="divide-y divide-line rounded-2xl border border-line bg-surface px-3">
               {rows.map((r) => (
-                <AgendaItem key={r.key} row={r} extra={<AskAbout title={rowTitle(r)} online={snapshot.online} />} />
+                <AgendaItem key={r.key} row={r} extra={<ItemExtras row={r} trip={trip} online={snapshot.online} />} />
               ))}
             </ol>
           ) : (
@@ -254,20 +254,15 @@ function NowCard({ card }: { card: NowNext }) {
   );
 }
 
-/** "Ask about this" in a row's detail. Chat needs a connection. */
-function AskAbout({ title, online }: { title: string; online: boolean }) {
-  const { prefill, available } = useTripChat();
-  if (!available) return null;
+/** Direct edits on an expanded item: change its time, ask about it, claim it. */
+function ItemExtras({ row, trip, online }: { row: AgendaRow; trip: Trip; online: boolean }) {
+  const target = row.kind === "plan" ? trip.plan?.find((p) => p.id === row.id) : trip.segments.find((s) => s.id === row.id);
+  if (!target) return null;
   return (
-    <button
-      type="button"
-      disabled={!online}
-      onClick={() => prefill(`About “${title}”: `)}
-      className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-base font-semibold hover:bg-sunken disabled:opacity-60"
-      title={online ? undefined : "The planner needs a connection"}
-    >
-      <Icon name="ask" />
-      {online ? "Ask" : "Ask (needs a connection)"}
-    </button>
+    <>
+      <ChangeTime row={row} target={target} trip={trip} online={online} />
+      <AskAboutItem id={row.id} title={rowTitle(row)} online={online} />
+      {row.kind !== "plan" && <ClaimButton segment={target as Segment} online={online} />}
+    </>
   );
 }

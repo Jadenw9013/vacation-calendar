@@ -39,7 +39,7 @@ const STATUS_LABEL: Record<SegmentStatus, string> = {
 /** Edit, status, move to another day, ask, delete: for one booking. */
 export function SegmentActions({ segment, online, days }: { segment: Segment; online: boolean; days: string[] }) {
   const { submit, busy } = useEditor();
-  const { prefill, available } = useTripChat();
+  const { askAbout, available } = useTripChat();
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [moving, setMoving] = useState(false);
@@ -82,7 +82,7 @@ export function SegmentActions({ segment, online, days }: { segment: Segment; on
             </SheetAction>
           )}
           {available && (
-            <SheetAction disabled={!online} onClick={() => (setMenu(false), prefill(`About “${s.title}”: `))}>
+            <SheetAction disabled={!online} onClick={() => (setMenu(false), askAbout({ id: s.id, title: s.title }))}>
               Ask the planner about this
             </SheetAction>
           )}
@@ -147,7 +147,7 @@ function MoveSheet({ segment: s, days, onClose }: { segment: Segment; days: stri
 /** Edit, keep a suggested time, ask, remove: for one plan step. */
 export function PlanItemActions({ item, online }: { item: PlanItem; online: boolean }) {
   const { submit, busy } = useEditor();
-  const { prefill, available } = useTripChat();
+  const { askAbout, available } = useTripChat();
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -172,7 +172,7 @@ export function PlanItemActions({ item, online }: { item: PlanItem; online: bool
             </SheetAction>
           )}
           {available && (
-            <SheetAction disabled={!online} onClick={() => (setMenu(false), prefill(`About “${item.title}”: `))}>
+            <SheetAction disabled={!online} onClick={() => (setMenu(false), askAbout({ id: item.id, title: item.title }))}>
               Ask the planner about this
             </SheetAction>
           )}

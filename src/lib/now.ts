@@ -73,6 +73,8 @@ export interface AgendaRow {
   zone: string | null;
   place: string | null;
   status: SegmentStatus | "plan";
+  /** First name of whoever booked it or is booking it. */
+  owner: string | null;
   tentative: boolean;
   notes: string | null;
   todos: string[];
@@ -135,6 +137,7 @@ export function toAgendaRow(r: DayRow, tripOffset: string): AgendaRow {
       zone: zoneLabel(r.at, tripOffset),
       place: null,
       status: "plan",
+      owner: it.owner ?? null,
       tentative: !!it.tentative,
       notes: it.notes ?? null,
       todos: [],
@@ -156,6 +159,7 @@ export function toAgendaRow(r: DayRow, tripOffset: string): AgendaRow {
     zone: zoneLabel(at, tripOffset),
     place: placeText(s.location),
     status: s.status,
+    owner: s.owner ?? null,
     tentative: false,
     notes: s.notes ?? null,
     todos: s.todos ?? [],

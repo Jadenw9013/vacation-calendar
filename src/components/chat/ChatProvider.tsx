@@ -45,6 +45,18 @@ interface ChatApi {
   highlight: Set<string>;
   flash: (ids: string[]) => void;
   inputRef: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>;
+  /** The day on screen in Trip mode, sent so "today" and "this afternoon" mean the right thing. */
+  day: string | null;
+  setDay: (day: string | null) => void;
+  /** The item someone tapped Ask on: attached to every message until removed. */
+  focus: ChatFocus | null;
+  askAbout: (item: ChatFocus) => void;
+  clearFocus: () => void;
+}
+
+export interface ChatFocus {
+  id: string;
+  title: string;
 }
 
 const ChatContext = createContext<ChatApi | null>(null);
@@ -80,7 +92,11 @@ function answeredAskUser({ messages }: { messages: TripUIMessage[] }): boolean {
  * Extra fields sent with every chat request. Read at send time, so it lives
  * outside React and an effect keeps it current. One chat per page.
  */
-const requestContext = { author: "", outcomes: {} as Record<string, ProposalOutcome> };
+const requestContext = {
+  author: "",
+  outcomes: {} as Record<string, ProposalOutcome>,
+  context: {} as { day?: string; itemId?: string },
+};
 
 /**
  * Screenshots go to the model once, with the message they're attached to.
@@ -101,7 +117,12 @@ export function withoutOldImages(messages: TripUIMessage[]): TripUIMessage[] {
 const transport = new DefaultChatTransport<TripUIMessage>({
   api: "/api/chat",
   prepareSendMessagesRequest: ({ messages }) => ({
-    body: { messages: withoutOldImages(messages), author: requestContext.author, outcomes: requestContext.outcomes },
+    body: {
+      messages: withoutOldImages(messages),
+      author: requestContext.author,
+      outcomes: requestContext.outcomes,
+      context: requestContext.context,
+    },
   }),
 });
 
@@ -122,6 +143,8 @@ export function ChatProvider({
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachError, setAttachError] = useState<string | null>(null);
+  const [day, setDay] = useState<string | null>(null);
+  const [focus, setFocus] = useState<ChatFocus | null>(null);
 
   const addImages = useCallback(
     async (files: Blob[]) => {
@@ -146,7 +169,14 @@ export function ChatProvider({
   useEffect(() => {
     requestContext.author = author;
     requestContext.outcomes = outcomes;
-  }, [author, outcomes]);
+    requestContext.context = { ...(day ? { day } : {}), ...(focus ? { itemId: focus.id } : {}) };
+  }, [author, outcomes, day, focus]);
+
+  const askAbout = useCallback((item: ChatFocus) => {
+    setFocus(item);
+    setOpen(true);
+  }, []);
+  const clearFocus = useCallback(() => setFocus(null), []);
 
   const chat = useChat<TripUIMessage>({ transport, sendAutomaticallyWhen: answeredAskUser });
 
@@ -214,6 +244,11 @@ export function ChatProvider({
         highlight,
         flash,
         inputRef,
+        day,
+        setDay,
+        focus,
+        askAbout,
+        clearFocus,
       }}
     >
       {children}
