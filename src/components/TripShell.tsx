@@ -9,7 +9,7 @@ import { parseSnapshot, readSnapshotRaw, saveSnapshot, subscribeSnapshot } from 
 import { monthDay } from "@/lib/time";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatProvider, useTripChat } from "./chat/ChatProvider";
-import { EditorProvider } from "./edit/EditorProvider";
+import { EditorProvider, useEditor } from "./edit/EditorProvider";
 import { WhoPicker } from "./edit/WhoPicker";
 import { PlanView } from "./plan/PlanView";
 import { useClock, useOnline } from "./shell/hooks";
@@ -95,7 +95,16 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
   const now = useClock(serverNow);
   const online = useOnline();
   const { trip, savedAt, stored } = useTripCopy(serverTrip, version, serverNow, online);
-  const { open: chatOpen, setOpen: setChatOpen, highlight, available } = useTripChat();
+  const { open: chatOpen, setOpen: setChatOpen, highlight, available, send, prefill } = useTripChat();
+  const { author } = useEditor();
+
+  /** Hand a line to the planner: sent straight away when we know who's asking. */
+  function askPlanner(text: string) {
+    if (author) {
+      setChatOpen(true);
+      send(text);
+    } else prefill(text);
+  }
   const { days, ghosts, previewing } = usePreview(trip, version);
 
   // Unset until someone taps: then the date decides (Trip mode during the trip).
@@ -144,6 +153,8 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
             highlight={highlight}
             online={online}
             onSettings={() => setSettings(true)}
+            nowMs={now}
+            onAsk={askPlanner}
           />
         )}
       </main>

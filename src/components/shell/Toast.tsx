@@ -1,11 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { useEditor } from "@/components/edit/EditorProvider";
 import { Icon } from "@/components/ui/Icon";
 
 /** "Saved. …  Undo" after an edit, above the bottom bar. */
 export function Toast() {
   const { notice, dismiss, undo, busy } = useEditor();
+  // Undo stays here for 10 seconds; after that it's in Updates.
+  useEffect(() => {
+    if (!notice || notice.kind !== "ok") return;
+    const t = setTimeout(dismiss, 10_000);
+    return () => clearTimeout(t);
+  }, [notice, dismiss]);
   if (!notice) return null;
   const ok = notice.kind === "ok";
   return (

@@ -11,6 +11,8 @@ import { useTripChat } from "@/components/chat/ChatProvider";
 import { AddTodo, QuestionControls, TodoItem } from "@/components/edit/Controls";
 import { useEditor } from "@/components/edit/EditorProvider";
 import { SegmentDialog } from "@/components/edit/SegmentDialog";
+import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
+import { Sheet } from "@/components/ui/Sheet";
 import { AgendaItem, type Ghost } from "@/components/trip/AgendaItem";
 import { Icon } from "@/components/ui/Icon";
 import { SheetAction } from "@/components/ui/Sheet";
@@ -36,6 +38,8 @@ export function PlanView({
   highlight,
   online,
   onSettings,
+  nowMs,
+  onAsk,
 }: {
   trip: Trip;
   /** Day by day, including any pending proposal as ghosts. */
@@ -45,7 +49,13 @@ export function PlanView({
   highlight: Set<string>;
   online: boolean;
   onSettings: () => void;
+  nowMs: number;
+  /** Hand text to the planner (opens the chat and sends it). */
+  onAsk: (text: string) => void;
 }) {
+  const { available } = useTripChat();
+  const [quick, setQuick] = useState(false);
+  const [manual, setManual] = useState<ManualPrefill | null>(null);
   const gaps = computeGaps(trip);
   const toBook = stillToBook(trip);
   const allDays = [...tripDays(trip), trip.lastDay];
@@ -83,16 +93,9 @@ export function PlanView({
           <SectionHeading id="still-to-book" count={toBook.length} inline>
             Still to book
           </SectionHeading>
-          {online && (
-            <SegmentDialog
-              mode="add"
-              triggerLabel={
-                <span className="flex items-center gap-1.5 whitespace-nowrap">
-                  <Icon name="plus" /> Add booking
-                </span>
-              }
-            />
-          )}
+          <button type="button" onClick={() => setQuick(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl bg-ink px-4 text-base font-bold whitespace-nowrap text-canvas">
+            <Icon name="plus" /> Add
+          </button>
         </div>
         <ul className="divide-y divide-line rounded-2xl border border-line bg-surface px-3">
           {toBook.map(({ segment: s, blockedBy }) => (
@@ -127,6 +130,35 @@ export function PlanView({
       </section>
 
       <Questions trip={trip} />
+
+      <Sheet open={quick} onClose={() => setQuick(false)} title="Add to the trip">
+        <QuickAdd
+          trip={trip}
+          nowMs={nowMs}
+          online={online}
+          chatAvailable={available}
+          onAsk={(text) => {
+            setQuick(false);
+            onAsk(text);
+          }}
+          onManual={(p) => {
+            // One sheet at a time: close this one, then open the form.
+            setQuick(false);
+            setManual(p);
+          }}
+          onAdded={() => setQuick(false)}
+        />
+      </Sheet>
+      {manual && (
+        <SegmentDialog
+          mode="add"
+          initialTitle={manual.title}
+          initialKind={manual.kind}
+          initialDate={manual.date}
+          open
+          onClose={() => setManual(null)}
+        />
+      )}
 
       <section aria-labelledby="before-we-go">
         <SectionHeading id="before-we-go">Before we go</SectionHeading>

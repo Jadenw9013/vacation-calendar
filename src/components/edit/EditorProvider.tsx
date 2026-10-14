@@ -168,6 +168,8 @@ export function EditorProvider({
     [apply],
   );
 
+  const dismiss = useCallback(() => setNotice(null), []);
+
   const undo = useCallback(async () => {
     if (!author) return setPickerRequested(true);
     setBusy(true);
@@ -203,7 +205,7 @@ export function EditorProvider({
         undo,
         busy,
         notice,
-        dismiss: () => setNotice(null),
+        dismiss,
         changeCount,
       }}
     >
