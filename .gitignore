@@ -46,3 +46,7 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# benchmark runs against the real model (keep the context-size baselines)
+/bench/results/*
+!/bench/results/context-*.json

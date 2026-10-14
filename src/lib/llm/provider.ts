@@ -60,7 +60,7 @@ export function availableModels(): ResolvedModel[] {
 
 /** Local UI testing only: CHAT_MOCK=1 swaps in a scripted model. Ignored in production. */
 export function isMockModel(): boolean {
-  const mock = process.env.CHAT_MOCK === "1" || process.env.CHAT_MOCK === "text";
+  const mock = process.env.CHAT_MOCK === "1" || process.env.CHAT_MOCK === "text" || process.env.CHAT_MOCK === "eval";
   return mock && process.env.NODE_ENV !== "production" && process.env.VERCEL_ENV !== "production";
 }
 

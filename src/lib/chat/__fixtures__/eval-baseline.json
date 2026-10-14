@@ -1,0 +1,489 @@
+{
+  "1": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "lodging-casa-santo-domingo",
+                  "kind": "lodging",
+                  "title": "Hotel Casa Santo Domingo",
+                  "start": "2026-11-28",
+                  "end": "2026-11-29",
+                  "status": "needs-booking",
+                  "location": "Antigua",
+                  "owner": "Sam"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "2": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "lodging-casa-santo-domingo",
+                  "kind": "lodging",
+                  "title": "Hotel Casa Santo Domingo",
+                  "start": "2026-11-28",
+                  "end": "2026-11-29",
+                  "status": "needs-booking",
+                  "location": "Antigua",
+                  "owner": "Sam"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      },
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "set_status",
+                "id": "lodging-casa-santo-domingo",
+                "status": "booked"
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2,
+      2
+    ]
+  },
+  "3": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "needs_confirmation",
+            "ops": [
+              {
+                "op": "update_segment",
+                "id": "hike-acatenango",
+                "changes": {
+                  "start": "2026-11-30T06:30:00-06:00",
+                  "end": "2026-12-01"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "4": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "needs_confirmation",
+            "ops": [
+              {
+                "op": "remove_segment",
+                "id": "lodging-atitlan"
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "5": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [],
+        "answeredInText": true
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "6": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "update_segment",
+                "id": "flight-home",
+                "changes": {
+                  "start": "2026-12-01"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "7": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [],
+        "answeredInText": true
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "8": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "lodging-hotel-aurora",
+                  "kind": "lodging",
+                  "title": "Hotel Aurora Antigua",
+                  "start": "2026-11-27T15:00:00-06:00",
+                  "end": "2026-11-28T11:00:00-06:00",
+                  "status": "booked",
+                  "location": "Antigua",
+                  "owner": "Sam",
+                  "notes": "Double room, garden view."
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "9": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "lodging-posada-del-angel",
+                  "kind": "lodging",
+                  "title": "Hotel Posada del Angel",
+                  "start": "2026-11-26",
+                  "end": "2026-11-28",
+                  "status": "needs-booking",
+                  "location": "Antigua"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "10": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [
+          {
+            "question": "Which day is the dinner?",
+            "options": [
+              "Wed Nov 25",
+              "Thu Nov 26"
+            ]
+          }
+        ],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "11": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "set_status",
+                "id": "transfer-arrival",
+                "status": "undecided",
+                "owner": "Ana"
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "12": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "resolve_question",
+                "id": "q-airport-night",
+                "answer": "Sleep near the airport the first night."
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "13": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_todo",
+                "target": "hike-acatenango",
+                "text": "Bring a power bank"
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "14": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "complete_todo",
+                "target": "trip",
+                "text": "Travel insurance"
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "15": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [],
+        "answeredInText": true
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "16": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "needs_confirmation",
+            "ops": [
+              {
+                "op": "update_segment",
+                "id": "lodging-atitlan",
+                "changes": {
+                  "end": "2026-11-28T10:00:00-06:00"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "17": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [],
+        "answeredInText": true
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "18": {
+    "essentials": [
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "activity-pacaya-hike",
+                  "kind": "activity",
+                  "title": "Pacaya day hike",
+                  "start": "2026-11-27T06:00:00-06:00",
+                  "end": null,
+                  "status": "needs-booking",
+                  "location": "Pacaya",
+                  "owner": "Ana"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      2
+    ]
+  },
+  "19": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [],
+        "answeredInText": true
+      }
+    ],
+    "modelCalls": [
+      1
+    ]
+  },
+  "20": {
+    "essentials": [
+      {
+        "proposals": [],
+        "asks": [
+          {
+            "question": "Which day is the dinner?",
+            "options": [
+              "Fri Nov 27",
+              "Sat Nov 28"
+            ]
+          }
+        ],
+        "answeredInText": false
+      },
+      {
+        "proposals": [
+          {
+            "status": "ready",
+            "ops": [
+              {
+                "op": "add_segment",
+                "segment": {
+                  "id": "activity-dinner-nov28",
+                  "kind": "activity",
+                  "title": "Dinner reservation",
+                  "start": "2026-11-28",
+                  "end": null,
+                  "status": "needs-booking",
+                  "location": "TBD"
+                }
+              }
+            ]
+          }
+        ],
+        "asks": [],
+        "answeredInText": false
+      }
+    ],
+    "modelCalls": [
+      1,
+      2
+    ]
+  }
+}

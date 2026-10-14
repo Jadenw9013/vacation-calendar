@@ -9,6 +9,7 @@ import {
 import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
 import { IMAGE_LIMITS, sanitizeMessages } from "@/lib/chat/attachments";
 import { buildInstructions, buildTools, todayAt, type ProposalOutcome } from "@/lib/chat/setup";
+import { logTiming, newTiming, publicTiming, serverTimingHeader, timed } from "@/lib/chat/timing";
 import { CHAT_LIMITS } from "@/lib/llm/config";
 import { availableModels, chatAvailability, chatErrorMessage, isMockModel } from "@/lib/llm/provider";
 import { getRepository } from "@/lib/repo";
@@ -42,6 +43,8 @@ function readContext(raw: unknown, trip: { firstDay: string; lastDay: string; se
 
 /** Body: { messages: UIMessage[], author: string, outcomes?: Record<toolCallId, ProposalOutcome>, context?: { day?, itemId? } } */
 export async function POST(request: Request) {
+  const started = performance.now();
+  const timing = newTiming("model");
   const denied = await guard(request);
   if (denied) return denied;
   const parsed = await readJson(request, IMAGE_LIMITS.maxBodyBytes);
@@ -71,11 +74,9 @@ export async function POST(request: Request) {
   if (!model) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
 
   const repo = getRepository();
-  const state = await repo.get();
-  const tools = buildTools(() => repo.get());
-
-  const result = streamText({
-    model,
+  const state = await timed(timing, "storeReadMs", () => repo.get());
+  const tools = buildTools(() => repo.get(), timing);
+  const { instructions, messages: modelMessages } = await timed(timing, "contextMs", async () => ({
     instructions: buildInstructions({
       state,
       author,
@@ -85,6 +86,13 @@ export async function POST(request: Request) {
       ...readContext(parsed.body.context, state.trip),
     }),
     messages: await convertToModelMessages(cleaned, { tools }),
+  }));
+
+  const modelStart = performance.now();
+  const result = streamText({
+    model,
+    instructions,
+    messages: modelMessages,
     tools,
     stopWhen: isStepCount(CHAT_LIMITS.maxSteps),
     maxOutputTokens: CHAT_LIMITS.maxOutputTokens,
@@ -93,10 +101,31 @@ export async function POST(request: Request) {
   });
 
   return createUIMessageStreamResponse({
+    headers: { "Server-Timing": serverTimingHeader(timing) },
     stream: toUIMessageStream({
       stream: result.stream,
+      // Timing rides on the stream: turns and first byte as they happen, the totals on the finish event.
+      messageMetadata: ({ part }) => {
+        if (part.type === "start-step") timing.turns++;
+        if (timing.ttfbMs === null && (part.type === "text-delta" || part.type === "tool-input-start" || part.type === "reasoning-delta" || part.type === "tool-call")) {
+          timing.ttfbMs = performance.now() - modelStart;
+        }
+        if (part.type === "start") return { route: timing.route };
+        if (part.type !== "finish") return undefined;
+        timing.modelMs = performance.now() - modelStart;
+        timing.totalMs = performance.now() - started;
+        timing.finishReason = part.finishReason ?? null;
+        timing.inputTokens = part.totalUsage?.inputTokens ?? null;
+        timing.outputTokens = part.totalUsage?.outputTokens ?? null;
+        timing.thoughtsTokens = part.totalUsage?.outputTokenDetails?.reasoningTokens ?? null;
+        logTiming(timing);
+        return { route: timing.route, timing: publicTiming(timing) };
+      },
       onError: (error) => {
         logSafe(error);
+        timing.outcome = "error";
+        timing.totalMs = performance.now() - started;
+        logTiming(timing);
         return chatErrorMessage(error);
       },
     }),

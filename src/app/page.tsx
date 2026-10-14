@@ -33,6 +33,7 @@ export default async function Home() {
       devNotes={devNotes}
       chatAvailable={chat.available}
       chatVision={chat.vision}
+      debugTiming={process.env.DEBUG_TIMING === "1"}
       knownNames={knownNames}
       updates={history}
     />

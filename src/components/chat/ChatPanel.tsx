@@ -202,6 +202,7 @@ export function ChatPanel({
     focus,
     clearFocus,
     clearChat,
+    timing,
   } = useTripChat();
   const [quick, setQuick] = useState({ key: 0, text: "" });
   const lastUser = [...chat.messages].reverse().find((m) => m.role === "user");
@@ -316,6 +317,7 @@ Ask the planner
                 onQuickAdd={lastSaid ? quickAddFromChat : undefined}
               />
             )}
+            {timing && <TimingLine client={timing} server={(chat.messages.at(-1)?.metadata as { timing?: Record<string, number | string | null> } | undefined)?.timing} />}
             <div ref={endRef} />
           </div>
 
@@ -485,5 +487,16 @@ function SoftFailure({ headline, online, onRetry, onQuickAdd }: { headline: stri
         )}
       </div>
     </div>
+  );
+}
+
+/** DEBUG_TIMING=1 only: how long the last message took, in the browser and on the server. */
+function TimingLine({ client, server }: { client: { feedbackMs?: number; cardMs?: number; answerMs?: number }; server?: Record<string, number | string | null> }) {
+  const f = (n?: number | null) => (typeof n === "number" ? `${Math.round(n)} ms` : "–");
+  return (
+    <p className="font-mono text-sm text-muted" data-testid="timing">
+      feedback {f(client.feedbackMs)} · card {f(client.cardMs)} · done {f(client.answerMs)}
+      {server && ` · server ${server.route}: ttfb ${f(server.ttfbMs as number)}, model ${f(server.modelMs as number)}, turns ${server.turns}`}
+    </p>
   );
 }

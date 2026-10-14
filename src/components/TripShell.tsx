@@ -36,6 +36,8 @@ interface Props {
   chatAvailable: boolean;
   /** The active model reads images; hides screenshot upload when false. */
   chatVision: boolean;
+  /** DEBUG_TIMING=1: show how long the planner took under each reply. */
+  debugTiming?: boolean;
   knownNames: string[];
   /** The change log, newest first. */
   updates: ChangeEntry[];
@@ -44,7 +46,7 @@ interface Props {
 export function TripShell(props: Props) {
   return (
     <EditorProvider version={props.version} tripOffset={props.trip.utcOffset}>
-      <ChatProvider available={props.chatAvailable} vision={props.chatVision}>
+      <ChatProvider available={props.chatAvailable} vision={props.chatVision} debugTiming={props.debugTiming}>
         <App {...props} />
       </ChatProvider>
     </EditorProvider>

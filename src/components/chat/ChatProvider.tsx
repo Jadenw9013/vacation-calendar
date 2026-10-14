@@ -54,6 +54,8 @@ interface ChatApi {
   clearFocus: () => void;
   /** Forget the conversation on this device. */
   clearChat: () => void;
+  /** Only with DEBUG_TIMING=1: client-side timings for the last message. */
+  timing: { feedbackMs?: number; cardMs?: number; answerMs?: number } | null;
 }
 
 export interface ChatFocus {
@@ -116,6 +118,13 @@ export function withoutOldImages(messages: TripUIMessage[]): TripUIMessage[] {
   });
 }
 
+interface ClientTiming {
+  sentAt?: number;
+  feedbackMs?: number;
+  cardMs?: number;
+  answerMs?: number;
+}
+
 const CHAT_KEY = "trip-chat-v1";
 const DRAFT_KEY = "trip-chat-draft";
 
@@ -161,10 +170,12 @@ const transport = new DefaultChatTransport<TripUIMessage>({
 export function ChatProvider({
   available,
   vision,
+  debugTiming = false,
   children,
 }: {
   available: boolean;
   vision: boolean;
+  debugTiming?: boolean;
   children: ReactNode;
 }) {
   const { author } = useEditor();
@@ -179,6 +190,9 @@ export function ChatProvider({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachError, setAttachError] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
+  /** DEBUG_TIMING only: timestamps for the last message, taken the moment things happen. */
+  const debugClock = useRef<ClientTiming>({});
+  const [timingView, setTimingView] = useState<ClientTiming>({});
   const [focus, setFocus] = useState<ChatFocus | null>(null);
 
   const addImages = useCallback(
@@ -274,13 +288,35 @@ export function ChatProvider({
       if (!t || chat.status === "streaming" || chat.status === "submitted") return;
       // A new message supersedes an unanswered proposal.
       if (pending) setOutcome(pending.toolCallId, "discarded");
+      if (debugTiming) {
+        const sentAt = performance.now();
+        debugClock.current = { sentAt };
+        // First frame after the message is echoed and the working state shows.
+        requestAnimationFrame(() => {
+          debugClock.current.feedbackMs = performance.now() - sentAt;
+          setTimingView({ ...debugClock.current });
+        });
+      }
       chat.sendMessage(files.length ? { text: t, files } : { text: t });
       setInput("");
       setAttachments([]);
       setAttachError(null);
     },
-    [chat, pending, setOutcome, attachments, vision],
+    [chat, pending, setOutcome, attachments, vision, debugTiming],
   );
+
+  // DEBUG_TIMING: when the card (or answer) showed up, measured from the tap.
+  const latestCard = proposalsIn(chat.messages).at(-1)?.toolCallId;
+  useEffect(() => {
+    const sentAt = debugClock.current.sentAt;
+    if (!debugTiming || sentAt === undefined) return;
+    const now = performance.now();
+    if (latestCard && debugClock.current.cardMs === undefined) debugClock.current.cardMs = now - sentAt;
+    if (chat.status === "ready" && debugClock.current.answerMs === undefined) debugClock.current.answerMs = now - sentAt;
+    const id = requestAnimationFrame(() => setTimingView({ ...debugClock.current }));
+    return () => cancelAnimationFrame(id);
+  }, [debugTiming, latestCard, chat.status]);
+  const timing = debugTiming ? timingView : null;
 
   return (
     <ChatContext.Provider
@@ -310,6 +346,7 @@ export function ChatProvider({
         askAbout,
         clearFocus,
         clearChat,
+        timing,
       }}
     >
       {children}

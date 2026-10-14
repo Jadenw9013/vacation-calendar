@@ -5,6 +5,7 @@ import { computeGaps, unanswered } from "@/lib/derive";
 import type { TripState } from "@/lib/engine";
 import { addDays, formatDay, formatTime, parseMoment } from "@/lib/time";
 import { buildProposal, FlatOpSchema } from "./proposal";
+import { timed, type ChatTiming } from "./timing";
 
 export type ProposalOutcome = "applied" | "discarded" | "stale";
 
@@ -127,7 +128,7 @@ ${outcomeLines.length ? `\nEarlier proposals in this chat:\n${outcomeLines.join(
  * trip at call time and returns a proposal; it never writes. ask_user has no
  * execute: the page renders it as tappable options and returns the choice.
  */
-export function buildTools(getState: () => Promise<TripState>) {
+export function buildTools(getState: () => Promise<TripState>, timing?: ChatTiming) {
   return {
     propose_changes: tool({
       description:
@@ -136,7 +137,11 @@ export function buildTools(getState: () => Promise<TripState>) {
         summary: z.string().describe("One short line describing the change, e.g. 'Add Antigua hotel for Nov 28'"),
         ops: z.array(FlatOpSchema).min(1).max(20),
       }),
-      execute: async ({ summary, ops }) => buildProposal(await getState(), summary, ops),
+      execute: async ({ summary, ops }) => {
+        if (!timing) return buildProposal(await getState(), summary, ops);
+        const state = await timed(timing, "storeReadMs", getState);
+        return timed(timing, "validationMs", () => buildProposal(state, summary, ops));
+      },
     }),
     ask_user: tool({
       description: "Ask the person one short question with 2 to 4 short options they can tap.",
