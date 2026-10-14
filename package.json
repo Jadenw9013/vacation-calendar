@@ -11,7 +11,7 @@
     "gaps": "tsx scripts/print-gaps.ts",
     "chat:eval": "tsx --env-file-if-exists=.env.local scripts/chat-eval.ts",
     "eval:screenshots": "tsx --env-file-if-exists=.env.local scripts/screenshot-eval.ts",
-    "e2e": "next build && playwright test"
+    "e2e": "NEXT_DIST_DIR=.next-e2e next build && NEXT_DIST_DIR=.next-e2e playwright test"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.77",

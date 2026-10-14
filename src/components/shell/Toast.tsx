@@ -5,7 +5,8 @@ import { useEditor } from "@/components/edit/EditorProvider";
 import { Icon } from "@/components/ui/Icon";
 
 /** "Saved. …  Undo" after an edit, above the bottom bar. */
-export function Toast() {
+/** `inSheet`: shown inside the planner, above its composer. */
+export function Toast({ inSheet }: { inSheet?: boolean }) {
   const { notice, dismiss, undo, busy } = useEditor();
   // Undo stays here for 10 seconds; after that it's in Updates.
   useEffect(() => {
@@ -18,7 +19,7 @@ export function Toast() {
   return (
     <div
       role="status"
-      className={`fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-2 rounded-2xl border-2 p-2 pl-4 text-base shadow-xl md:bottom-6 ${
+      className={`${inSheet ? "absolute bottom-24" : "fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6"} inset-x-4 z-50 mx-auto flex max-w-md min-h-14 items-center gap-2 rounded-2xl border-2 p-2 pl-4 text-base shadow-xl ${
         ok ? "border-ink bg-ink text-canvas" : "border-action bg-action-soft text-ink"
       }`}
     >

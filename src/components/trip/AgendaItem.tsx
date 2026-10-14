@@ -91,9 +91,9 @@ export function AgendaItem({
           aria-expanded={hasDetail ? open : undefined}
           aria-controls={hasDetail ? detailId : undefined}
           disabled={!hasDetail}
-          className="flex min-h-11 w-full items-start gap-2 py-3 text-left disabled:cursor-default sm:gap-3"
+          className="agenda-row flex min-h-11 w-full items-start gap-2 py-3 text-left disabled:cursor-default sm:gap-3"
         >
-          <span className="w-[6.25rem] shrink-0 pt-px text-xl leading-tight whitespace-nowrap">
+          <span className="time-col w-[6.25rem] shrink-0 pt-px text-xl leading-tight whitespace-nowrap">
             <TimeText row={row} />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">

@@ -228,7 +228,8 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames, updat
       />
       <SettingsSheet open={settings} onClose={() => setSettings(false)} notes={devNotes} />
       <WhoPicker knownNames={knownNames} />
-      <Toast />
+      {/* While the planner is open the page behind it is inert, so the toast moves into the sheet. */}
+      {!chatOpen && <Toast />}
     </div>
   );
 }

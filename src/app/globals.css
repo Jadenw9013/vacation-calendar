@@ -141,6 +141,15 @@
 :root[data-text="large"] {
   font-size: 112.5%;
 }
+/* On narrow phones at Large, a row's time sits above its title instead of beside it. */
+@media (max-width: 420px) {
+  :root[data-text="large"] .agenda-row {
+    flex-wrap: wrap;
+  }
+  :root[data-text="large"] .agenda-row .time-col {
+    width: 100%;
+  }
+}
 
 @theme inline {
   --color-canvas: var(--canvas);

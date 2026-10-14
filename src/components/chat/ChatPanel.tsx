@@ -12,6 +12,7 @@ import { NameGate } from "@/components/quickadd/NameGate";
 import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
 import { missingPrompt, parseQuickAdd } from "@/lib/quickadd";
 import { Icon } from "@/components/ui/Icon";
+import { Toast } from "@/components/shell/Toast";
 
 interface Chip {
   label: string;
@@ -143,10 +144,11 @@ function MessageView({ m, latestProposalId, trip, said }: { m: TripUIMessage; la
 }
 
 /** First thing in an empty chat: what the planner can do. */
-function Greeting() {
+function Greeting({ photo }: { photo: boolean }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative h-36 overflow-hidden rounded-2xl bg-sunken">
+      {photo && (
+        <div className="relative h-36 overflow-hidden rounded-2xl bg-sunken">
         {/* The photo has a frame painted round its edge; the zoom crops it off. */}
         <Image
           src="/antigua-hotel.jpg"
@@ -155,7 +157,8 @@ function Greeting() {
           sizes="(max-width: 768px) 100vw, 448px"
           className="scale-110 object-cover"
         />
-      </div>
+        </div>
+      )}
       <div className="rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-3 text-base">
       Ask anything about the trip, paste a booking confirmation, or have me draft a day&apos;s plan. I&apos;ll propose changes; nothing is
       saved until you apply it.
@@ -237,7 +240,7 @@ export function ChatPanel({
   }
 
   return (
-    <aside aria-label="Ask the planner" className="flex h-full w-full flex-col overflow-hidden bg-surface">
+    <aside aria-label="Ask the planner" className="relative flex h-full w-full flex-col overflow-hidden bg-surface">
       <header className="flex items-center gap-2 border-b border-line py-1.5 pr-1.5 pl-4">
         <h2 className="mr-auto min-w-0 truncate text-lg font-bold">
 Ask the planner
@@ -271,7 +274,7 @@ Ask the planner
             />
             {!online && (
               <p className="flex items-start gap-2 rounded-xl border-2 border-line p-3 text-base" role="status">
-                <Icon name="offline" className="mt-0.5 shrink-0" />
+                <Icon name="offline" className="size-5 mt-0.5 shrink-0" />
                 You&apos;re offline. The planner needs a connection; your trip is still here in Trip mode.
               </p>
             )}
@@ -281,7 +284,8 @@ Ask the planner
               </p>
             )}
 
-            {chat.messages.length === 0 && <Greeting />}
+            {/* Offline, the photo may not be cached yet: leave it out rather than show a broken image. */}
+            {chat.messages.length === 0 && <Greeting photo={online} />}
 
             {chat.messages.map((m, i) => {
               const prior = chat.messages.slice(0, i).reverse().find((x) => x.role === "user");
@@ -430,7 +434,7 @@ Ask the planner
                 }}
                 maxLength={6000}
                 disabled={!usable}
-                placeholder={!online ? "Needs a connection" : available ? "Ask anything about the trip…" : "Planner unavailable"}
+                placeholder={!online ? "Needs a connection" : available ? "Ask about the trip…" : "Planner unavailable"}
                 aria-label="Message"
                 className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-2.5 text-base outline-none placeholder:text-muted disabled:opacity-60"
               />
@@ -460,6 +464,7 @@ Ask the planner
           </div>
         </>
       }
+      <Toast inSheet />
     </aside>
   );
 }

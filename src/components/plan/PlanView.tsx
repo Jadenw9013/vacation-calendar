@@ -76,7 +76,7 @@ export function PlanView({
 
       {!online && (
         <p className="flex items-start gap-2 rounded-2xl border-2 border-line bg-surface p-4 text-base" role="status">
-          <Icon name="offline" className="mt-0.5 shrink-0" />
+          <Icon name="offline" className="size-5 mt-0.5 shrink-0" />
           You&apos;re offline, so this is the copy saved on this phone. Editing and the planner need a connection; they&apos;ll be back when you are.
         </p>
       )}
@@ -103,7 +103,12 @@ export function PlanView({
           <SectionHeading id="still-to-book" count={toBook.length} inline>
             Still to book
           </SectionHeading>
-          <button type="button" onClick={() => setQuick(true)} className="flex min-h-11 items-center gap-1.5 rounded-xl bg-ink px-4 text-base font-bold whitespace-nowrap text-canvas">
+          <button
+            type="button"
+            onClick={() => setQuick(true)}
+            aria-label="Add to the trip"
+            className="flex min-h-11 items-center gap-1.5 rounded-xl bg-ink px-4 text-base font-bold whitespace-nowrap text-canvas"
+          >
             <Icon name="plus" /> Add
           </button>
         </div>

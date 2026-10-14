@@ -1,43 +1,41 @@
 import { defineConfig } from "@playwright/test";
 
 /*
- * UI audit: screenshots, axe, touch targets, layout and offline.
- * Run with `npm run e2e` (builds first: the offline test needs the production service worker).
+ * UI audit: screenshots, axe, touch targets, layout, keyboard, dialogs,
+ * proposals, updates and offline. Run with `npm run e2e`: it builds into
+ * .next-e2e first (the offline test needs the production service worker),
+ * so a running `npm start` on .next is left alone.
  *
- * Both servers use the in-memory store, never Redis, so tests can't touch the live trip.
+ * Every server uses the in-memory store, never Redis, so nothing here can
+ * touch the live trip, and the scripted stand-in model, never Gemini.
  */
-const memoryStore = {
+const isolated = {
   ALLOW_MEMORY_STORE: "1",
   KV_REST_API_URL: "",
   KV_REST_API_TOKEN: "",
   UPSTASH_REDIS_REST_URL: "",
   UPSTASH_REDIS_REST_TOKEN: "",
+  GEMINI_API_KEY: "",
+  NEXT_DIST_DIR: ".next-e2e",
 };
 
+/** Dev server with the scripted chat model (CHAT_MOCK only runs outside production). */
 export const DEV_URL = "http://localhost:3200";
+/** Production build: read-only screens and the offline test. */
 export const PROD_URL = "http://localhost:3300";
+/** Production build for tests that change the trip; each one puts it back. */
+export const EDIT_URL = "http://localhost:3400";
 
 export default defineConfig({
   testDir: "e2e",
   timeout: 60_000,
-  workers: 2,
+  // One at a time: tests that edit the trip share a server with others reading it.
+  workers: 1,
   reporter: [["list"]],
-  use: { baseURL: DEV_URL },
+  use: { baseURL: PROD_URL },
   webServer: [
-    {
-      // Scripted chat model (CHAT_MOCK) for the chat and proposal screens; it only runs outside production.
-      command: "npx next dev -p 3200",
-      url: DEV_URL,
-      env: { ...memoryStore, CHAT_MOCK: "1" },
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-    {
-      command: "npx next start -p 3300",
-      url: PROD_URL,
-      env: memoryStore,
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
+    { command: "npx next dev -p 3200", url: DEV_URL, env: { ...isolated, CHAT_MOCK: "1" }, reuseExistingServer: false, timeout: 120_000 },
+    { command: "npx next start -p 3300", url: PROD_URL, env: isolated, reuseExistingServer: false, timeout: 120_000 },
+    { command: "npx next start -p 3400", url: EDIT_URL, env: isolated, reuseExistingServer: false, timeout: 120_000 },
   ],
 });
