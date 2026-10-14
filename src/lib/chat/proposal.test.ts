@@ -129,13 +129,14 @@ describe("chat setup", () => {
     expect(todayAt("-06:00", new Date("2026-09-30T07:00:00Z"))).toBe("2026-09-30");
   });
 
-  it("puts the speaker, date, data, gaps and proposal outcomes in the instructions", () => {
+  it("puts the speaker, date, data and proposal outcomes in the instructions, and leaves out the gaps", () => {
     const text = buildInstructions({ state: state(), author: "Ana", today: "2026-09-29", outcomes: { call_1: "discarded" } });
     expect(text).toContain("Who is talking: Ana");
     expect(text).toContain("Tue Sep 29");
     expect(text).toContain("lodging-atitlan");
-    expect(text).toContain("Night of Mon Nov 30");
     expect(text).toContain("Proposal call_1: discarded");
+    // The server works out gaps itself; the model doesn't need them.
+    expect(text).not.toContain("Night of Mon Nov 30");
   });
 
   it("propose_changes validates against the latest stored state and never writes", async () => {

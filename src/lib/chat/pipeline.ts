@@ -14,6 +14,7 @@ import { CHAT_LIMITS, MODEL_SETTINGS } from "@/lib/llm/config";
 import { chatErrorMessage } from "@/lib/llm/provider";
 import type { TripRepository } from "@/lib/repo/types";
 import { IMAGE_LIMITS, sanitizeMessages } from "./attachments";
+import { compactHistory } from "./history";
 import { classifyIntent, type Intent } from "./intent";
 import { quickAddOps, routeMessage } from "./router";
 import { buildProposal, type FlatOp, type Proposal } from "./proposal";
@@ -234,9 +235,10 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
       today: todayAt(state.trip.utcOffset),
       outcomes,
       now: Date.now(),
+      message: turn.text,
       ...context,
     }),
-    modelMessages: await convertToModelMessages(cleaned, { tools }),
+    modelMessages: await convertToModelMessages(compactHistory(cleaned, outcomes), { tools }),
   }));
 
   // Abort the model call when the person stops or leaves.

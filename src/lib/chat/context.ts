@@ -1,5 +1,5 @@
 import type { TripState } from "@/lib/engine";
-import { buildInstructions, buildTools } from "./setup";
+import { buildInstructions, planningTools } from "./setup";
 
 /*
  * Everything the model is sent for one request, in one place, so its size can
@@ -11,8 +11,8 @@ export function modelRequestFor(
   opts: { author: string; today: string; now?: number; day?: string | null; itemId?: string | null },
 ) {
   return {
-    instructions: buildInstructions({ state, ...opts }),
-    tools: buildTools(async () => state),
+    instructions: buildInstructions({ state, ...opts, message }),
+    tools: planningTools(),
     messages: [{ role: "user" as const, content: message }],
   };
 }

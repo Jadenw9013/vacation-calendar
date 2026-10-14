@@ -1,0 +1,168 @@
+{
+  "label": "after",
+  "method": "approximate: characters / 4",
+  "median": 3371,
+  "mean": 3402,
+  "rows": [
+    {
+      "scenario": 1,
+      "instructions": 8668,
+      "tools": 4792,
+      "messages": 114,
+      "chars": 13574,
+      "approxTokens": 3394
+    },
+    {
+      "scenario": 2,
+      "instructions": 8668,
+      "tools": 4792,
+      "messages": 114,
+      "chars": 13574,
+      "approxTokens": 3394
+    },
+    {
+      "scenario": 3,
+      "instructions": 9531,
+      "tools": 4792,
+      "messages": 62,
+      "chars": 14385,
+      "approxTokens": 3596
+    },
+    {
+      "scenario": 4,
+      "instructions": 8694,
+      "tools": 4792,
+      "messages": 54,
+      "chars": 13540,
+      "approxTokens": 3385
+    },
+    {
+      "scenario": 5,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 52,
+      "chars": 13359,
+      "approxTokens": 3340
+    },
+    {
+      "scenario": 6,
+      "instructions": 8630,
+      "tools": 4792,
+      "messages": 61,
+      "chars": 13483,
+      "approxTokens": 3371
+    },
+    {
+      "scenario": 7,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 53,
+      "chars": 13360,
+      "approxTokens": 3340
+    },
+    {
+      "scenario": 8,
+      "instructions": 8668,
+      "tools": 4792,
+      "messages": 379,
+      "chars": 13839,
+      "approxTokens": 3460
+    },
+    {
+      "scenario": 9,
+      "instructions": 8668,
+      "tools": 4792,
+      "messages": 243,
+      "chars": 13703,
+      "approxTokens": 3426
+    },
+    {
+      "scenario": 10,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 49,
+      "chars": 13356,
+      "approxTokens": 3339
+    },
+    {
+      "scenario": 11,
+      "instructions": 8682,
+      "tools": 4792,
+      "messages": 64,
+      "chars": 13538,
+      "approxTokens": 3385
+    },
+    {
+      "scenario": 12,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 83,
+      "chars": 13390,
+      "approxTokens": 3348
+    },
+    {
+      "scenario": 13,
+      "instructions": 9531,
+      "tools": 4792,
+      "messages": 76,
+      "chars": 14399,
+      "approxTokens": 3600
+    },
+    {
+      "scenario": 14,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 55,
+      "chars": 13362,
+      "approxTokens": 3341
+    },
+    {
+      "scenario": 15,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 84,
+      "chars": 13391,
+      "approxTokens": 3348
+    },
+    {
+      "scenario": 16,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 71,
+      "chars": 13378,
+      "approxTokens": 3345
+    },
+    {
+      "scenario": 17,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 62,
+      "chars": 13369,
+      "approxTokens": 3342
+    },
+    {
+      "scenario": 18,
+      "instructions": 9531,
+      "tools": 4792,
+      "messages": 93,
+      "chars": 14416,
+      "approxTokens": 3604
+    },
+    {
+      "scenario": 19,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 58,
+      "chars": 13365,
+      "approxTokens": 3341
+    },
+    {
+      "scenario": 20,
+      "instructions": 8515,
+      "tools": 4792,
+      "messages": 55,
+      "chars": 13362,
+      "approxTokens": 3341
+    }
+  ]
+}
