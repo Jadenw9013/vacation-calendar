@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { Trip } from "@/data/types";
 import { previewTrip } from "@/lib/chat/proposal";
 import { nightCoverage, stillToBook, timeline } from "@/lib/derive";
@@ -8,6 +8,7 @@ import { defaultMode, initialDay, type Mode } from "@/lib/now";
 import { parseSnapshot, readSnapshotRaw, saveSnapshot, subscribeSnapshot } from "@/lib/snapshot";
 import { monthDay } from "@/lib/time";
 import { ChatPanel } from "./chat/ChatPanel";
+import { ChatSheet } from "./chat/ChatSheet";
 import { ChatProvider, useTripChat } from "./chat/ChatProvider";
 import { EditorProvider, useEditor } from "./edit/EditorProvider";
 import { SegmentDialog } from "./edit/SegmentDialog";
@@ -122,6 +123,8 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
   useEffect(() => setChatDay(mode === "trip" ? day : null), [mode, day, setChatDay]);
   const toBook = stillToBook(trip).length;
 
+  const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
+
   function select(tab: Tab) {
     if (tab === "ask") return setChatOpen(!chatOpen);
     setChatOpen(false);
@@ -148,7 +151,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
         </div>
       </header>
 
-      <main id="main" className={`pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12 ${chatOpen ? "md:pr-[28rem]" : ""}`}>
+      <main id="main" className="pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12">
         {mode === "trip" ? (
           <TripToday trip={trip} now={now} day={day} onDay={setChosenDay} snapshot={{ online, savedAt, stored }} />
         ) : (
@@ -166,9 +169,8 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
         )}
       </main>
 
-      {chatOpen && (
-        <div className="fixed inset-x-0 top-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 md:top-16 md:bottom-0 md:left-auto md:w-[28rem] md:border-l md:border-line">
-          <ChatPanel
+      <ChatSheet open={chatOpen} onClose={closeChat}>
+        <ChatPanel
             trip={trip}
             online={online}
             nowMs={now}
@@ -177,8 +179,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
               setManual(p);
             }}
           />
-        </div>
-      )}
+      </ChatSheet>
 
       <BottomNav active={tabForMode(mode, chatOpen)} onSelect={select} toBook={toBook} askAvailable={available} />
       {manual && (

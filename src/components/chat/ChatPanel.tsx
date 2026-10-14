@@ -9,6 +9,7 @@ import { useEditor } from "@/components/edit/EditorProvider";
 import { Activity } from "./Activity";
 import { proposalsIn, useTripChat, type TripUIMessage } from "./ChatProvider";
 import { ProposalCard } from "./ProposalCard";
+import { NameGate } from "@/components/quickadd/NameGate";
 import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
 import { missingPrompt, parseQuickAdd } from "@/lib/quickadd";
 import { Icon } from "@/components/ui/Icon";
@@ -181,8 +182,25 @@ export function ChatPanel({
   /** Open the full add form (the chat closes first: one sheet at a time). */
   onManual: (prefill: ManualPrefill) => void;
 }) {
-  const { available, setOpen, input, setInput, send, chat, inputRef, prefill, vision, attachments, addImages, removeAttachment, attachError, day, focus, clearFocus } =
-    useTripChat();
+  const {
+    available,
+    setOpen,
+    input,
+    setInput,
+    send,
+    chat,
+    inputRef,
+    prefill,
+    vision,
+    attachments,
+    addImages,
+    removeAttachment,
+    attachError,
+    day,
+    focus,
+    clearFocus,
+    clearChat,
+  } = useTripChat();
   const [quick, setQuick] = useState({ key: 0, text: "" });
   const lastUser = [...chat.messages].reverse().find((m) => m.role === "user");
   const lastSaid = lastUser ? userText(lastUser) : "";
@@ -195,7 +213,7 @@ export function ChatPanel({
   }
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { author, openPicker } = useEditor();
+  const { author } = useEditor();
   const [tab, setTab] = useState<"chat" | "activity">("chat");
   const endRef = useRef<HTMLDivElement>(null);
   const busy = chat.status === "submitted" || chat.status === "streaming";
@@ -209,7 +227,7 @@ export function ChatPanel({
   function submit() {
     const t = input.trim();
     if (!t && !attachments.length) return;
-    if (!author) return openPicker();
+    if (!author) return; // the name field above the composer comes first
     const last = chat.messages.at(-1);
     const waiting = last?.role === "assistant" ? last.parts.find((p) => p.type === "tool-ask_user" && p.state === "input-available") : undefined;
     if (waiting && waiting.type === "tool-ask_user" && !attachments.length) {
@@ -239,6 +257,14 @@ export function ChatPanel({
             </button>
           ))}
         </nav>
+        {chat.messages.length > 0 && tab === "chat" && (
+          <button
+            onClick={() => window.confirm("Clear this conversation from this phone? The trip isn't changed.") && clearChat()}
+            className="min-h-11 shrink-0 rounded-xl px-3 text-base font-semibold text-muted hover:bg-sunken"
+          >
+            Clear
+          </button>
+        )}
         <button onClick={() => setOpen(false)} aria-label="Close the planner" className="flex size-11 shrink-0 items-center justify-center rounded-xl hover:bg-sunken">
           <Icon name="close" />
         </button>
@@ -312,7 +338,7 @@ export function ChatPanel({
                 {suggestionChips(trip).map((c) => (
                   <button
                     key={c.label}
-                    onClick={() => (c.prefill ? prefill(c.text) : author ? send(c.text) : openPicker())}
+                    onClick={() => (c.prefill ? prefill(c.text) : author ? send(c.text) : setInput(c.text))}
                     className="min-h-11 shrink-0 rounded-full border border-line px-4 text-base font-medium whitespace-nowrap hover:bg-sunken"
                   >
                     {c.label}
@@ -354,12 +380,17 @@ export function ChatPanel({
               <p className="mb-2 text-base text-muted">Screenshots are off: the planner is on a text-only model right now. Paste the confirmation text instead.</p>
             )}
 
+            {usable && !author && (
+              <div className="mb-2">
+                <NameGate why="The planner uses it when you say “I”.">{null}</NameGate>
+              </div>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 submit();
               }}
-              className="flex items-center gap-2 rounded-2xl border border-line bg-canvas p-1 focus-within:border-now"
+              className="flex items-end gap-2 rounded-2xl border border-line bg-canvas p-1 focus-within:border-now"
             >
               {vision && (
                 <>
@@ -390,10 +421,19 @@ export function ChatPanel({
                   </button>
                 </>
               )}
-              <input
-                ref={inputRef as React.Ref<HTMLInputElement>}
+              <textarea
+                ref={inputRef as React.Ref<HTMLTextAreaElement>}
                 value={input}
+                rows={Math.min(4, Math.max(1, input.split("\n").length))}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter sends; Shift+Enter is a new line.
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                enterKeyHint="send"
                 onPaste={(e) => {
                   if (!vision) return;
                   const images = Array.from(e.clipboardData.items)
@@ -409,7 +449,7 @@ export function ChatPanel({
                 disabled={!usable}
                 placeholder={!online ? "Needs a connection" : available ? "Ask anything about the trip…" : "Planner unavailable"}
                 aria-label="Message"
-                className="min-h-11 min-w-0 flex-1 bg-transparent px-2 text-base outline-none placeholder:text-muted disabled:opacity-60"
+                className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-2.5 text-base outline-none placeholder:text-muted disabled:opacity-60"
               />
               {busy ? (
                 <button

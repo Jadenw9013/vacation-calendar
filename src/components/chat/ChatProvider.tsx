@@ -52,6 +52,8 @@ interface ChatApi {
   focus: ChatFocus | null;
   askAbout: (item: ChatFocus) => void;
   clearFocus: () => void;
+  /** Forget the conversation on this device. */
+  clearChat: () => void;
 }
 
 export interface ChatFocus {
@@ -114,6 +116,36 @@ export function withoutOldImages(messages: TripUIMessage[]): TripUIMessage[] {
   });
 }
 
+const CHAT_KEY = "trip-chat-v1";
+const DRAFT_KEY = "trip-chat-draft";
+
+function readStored<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: unknown) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Private mode or full: the conversation just isn't kept.
+  }
+}
+
+/** Screenshots aren't kept on the device: a note stands in for them. */
+function withoutImages(messages: TripUIMessage[]): TripUIMessage[] {
+  return messages.map((m) => {
+    const n = m.parts.filter((p) => p.type === "file").length;
+    if (!n) return m;
+    return { ...m, parts: [...m.parts.filter((p) => p.type !== "file"), { type: "text" as const, text: `[${n} screenshot${n > 1 ? "s" : ""} sent]` }] };
+  });
+}
+
 const transport = new DefaultChatTransport<TripUIMessage>({
   api: "/api/chat",
   prepareSendMessagesRequest: ({ messages }) => ({
@@ -137,8 +169,11 @@ export function ChatProvider({
 }) {
   const { author } = useEditor();
   const [open, setOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const [outcomes, setOutcomes] = useState<Record<string, ProposalOutcome>>({});
+  // Read on the client only: the panel that shows it isn't rendered on the server.
+  const [input, setInput] = useState(() => readStored<string>(DRAFT_KEY) ?? "");
+  const [outcomes, setOutcomes] = useState<Record<string, ProposalOutcome>>(
+    () => readStored<{ outcomes: Record<string, ProposalOutcome> }>(CHAT_KEY)?.outcomes ?? {},
+  );
   const [highlight, setHighlight] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -199,6 +234,8 @@ export function ChatProvider({
   const prefill = useCallback((text: string) => {
     setInput(text);
     setOpen(true);
+    // On a phone the keyboard would cover the sheet: focus waits for a tap.
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     setTimeout(() => {
       const el = inputRef.current;
       if (!el) return;
@@ -206,6 +243,29 @@ export function ChatProvider({
       el.setSelectionRange(el.value.length, el.value.length);
     }, 50);
   }, []);
+
+  // The conversation and an unsent draft survive a reload on this device.
+  const restored = useRef(false);
+  const { setMessages } = chat;
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const saved = readStored<{ messages: TripUIMessage[]; outcomes: Record<string, ProposalOutcome> }>(CHAT_KEY);
+    if (saved?.messages?.length) setMessages(saved.messages);
+  }, [setMessages]);
+  useEffect(() => {
+    if (!restored.current || chat.status === "streaming" || chat.status === "submitted") return;
+    writeStored(CHAT_KEY, chat.messages.length ? { messages: withoutImages(chat.messages), outcomes } : null);
+  }, [chat.messages, chat.status, outcomes]);
+  useEffect(() => {
+    if (restored.current) writeStored(DRAFT_KEY, input || null);
+  }, [input]);
+
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    setOutcomes({});
+    writeStored(CHAT_KEY, null);
+  }, [setMessages]);
 
   const send = useCallback(
     (text: string) => {
@@ -249,6 +309,7 @@ export function ChatProvider({
         focus,
         askAbout,
         clearFocus,
+        clearChat,
       }}
     >
       {children}
