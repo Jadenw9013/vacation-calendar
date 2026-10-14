@@ -5,7 +5,8 @@ import Image from "next/image";
 import type { Segment, Trip } from "@/data/types";
 import { agenda, clockLabel, dayStatuses, localDate, nowNext, type AgendaRow, type DayStatus, type NowNext } from "@/lib/now";
 import { formatTime, monthDay, weekday } from "@/lib/time";
-import { InstallHint } from "@/components/shell/Settings";
+import { InstallHint, SunlightToggle } from "@/components/shell/Settings";
+import { useSunlight } from "@/components/shell/prefs";
 import { Icon } from "@/components/ui/Icon";
 import { StatusMark } from "@/components/ui/StatusMark";
 import { AgendaItem, MapsLink, rowTitle } from "./AgendaItem";
@@ -52,6 +53,7 @@ export function TripToday({
   const card = nowNext(trip, day, now);
   const index = days.findIndex((d) => d.date === day);
   const touch = useRef<{ x: number; y: number } | null>(null);
+  const [sun, setSun] = useSunlight();
 
   function step(by: number) {
     const next = days[index + by];
@@ -82,7 +84,12 @@ export function TripToday({
           status={status}
           isToday={day === today}
           afterHike={days.findIndex((d) => d.peakM) === index - 1}
-          corner={<UpdatesButton count={unread} onClick={onUpdates} onPhoto />}
+          corner={
+            <>
+              <SunlightToggle on={sun} onChange={setSun} onPhoto />
+              <UpdatesButton count={unread} onClick={onUpdates} onPhoto />
+            </>
+          }
         />
         <NowCard card={card} />
 
@@ -186,10 +193,10 @@ function photoFor(status: DayStatus, afterHike: boolean) {
 function DayHeading({ status, isToday, afterHike, corner }: { status: DayStatus; isToday: boolean; afterHike: boolean; corner?: React.ReactNode }) {
   const photo = photoFor(status, afterHike);
   return (
-    <header className="relative overflow-hidden rounded-3xl bg-ink">
+    <header className="photo-card relative overflow-hidden rounded-3xl bg-[#14171c]">
       <Image src={photo.src} alt={photo.alt} fill priority sizes="(max-width: 672px) 100vw, 672px" className={photo.className} />
       {/* Dark at the bottom so the white text reads over any part of any photo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" aria-hidden="true" />
+      <div className="photo-shade absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" aria-hidden="true" />
       {corner && <div className="absolute top-2 right-2 z-10 flex gap-2">{corner}</div>}
       <div className="relative flex min-h-44 flex-col justify-end gap-1 p-4 pt-16 text-[#fff]">
         <h1 className="font-display text-2xl leading-tight font-semibold">

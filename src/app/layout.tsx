@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { PREFS_BOOT } from "@/components/shell/prefs";
 import { ServiceWorker } from "@/components/shell/ServiceWorker";
 import "./globals.css";
 
@@ -42,7 +43,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} antialiased`}>
+    // The boot script may add data-sunlight / data-text before React loads.
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: PREFS_BOOT }} />
+      </head>
       <body className="min-h-dvh bg-canvas text-ink font-sans">
         <ServiceWorker>{children}</ServiceWorker>
       </body>

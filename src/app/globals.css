@@ -6,7 +6,8 @@
  *   action  – loudest: needs booking or a decision
  *   now     – what's happening now, links and focus
  *   ink / muted / line / canvas / surface – everything else
- * Every pair used for text is at least 4.5:1, times and statuses about 7:1.
+ * Primary text is at least 12:1 on every background, secondary text and
+ * status labels at least 7:1, in light, dark and Sunlight mode.
  */
 :root {
   color-scheme: light;
@@ -14,13 +15,13 @@
   --surface: #ffffff;
   --sunken: #eeede8;
   --ink: #14171c;
-  --muted: #4a5260;
+  --muted: #3e4550;
   --line: #d5d3cc;
-  --booked: #0f5f57;
+  --booked: #0b5048;
   --booked-soft: #e3f1ee;
-  --action: #9a3412;
+  --action: #86300f;
   --action-soft: #fdede4;
-  --now: #1e40af;
+  --now: #1e3a9e;
   --now-soft: #e6edfd;
   /* Text on a booked, action or now fill. */
   --on-fill: #ffffff;
@@ -30,9 +31,9 @@
   --g100: #efeee9;
   --g200: #e2e0da;
   --g300: #cfcdc6;
-  --g400: #5f6673;
-  --g500: #4a5260;
-  --g600: #3f4652;
+  --g400: #3e4550;
+  --g500: #3e4550;
+  --g600: #353b45;
   --g700: #333944;
   --g800: #1f242c;
   --g900: #14171c;
@@ -67,6 +68,78 @@
     --g800: #e5e8ec;
     --g900: #f1f3f5;
   }
+}
+
+/*
+ * Sunlight mode: maximum contrast for reading outdoors. Pure black on white
+ * (or white on black at night), heavier type, thicker borders, no photos or
+ * translucency behind text.
+ */
+:root[data-sunlight] {
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --sunken: #f2f2f2;
+  --ink: #000000;
+  --muted: #24272d;
+  --line: #000000;
+  --booked: #00443c;
+  --booked-soft: #ffffff;
+  --action: #7a1c00;
+  --action-soft: #ffffff;
+  --now: #0b2a8f;
+  --now-soft: #ffffff;
+  --on-fill: #ffffff;
+  --g400: #24272d;
+  --g500: #24272d;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-sunlight] {
+    --canvas: #000000;
+    --surface: #000000;
+    --sunken: #1a1a1a;
+    --ink: #ffffff;
+    --muted: #e6e6e6;
+    --line: #ffffff;
+    --booked: #7ef5e2;
+    --booked-soft: #000000;
+    --action: #ffc796;
+    --action-soft: #000000;
+    --now: #c2d3ff;
+    --now-soft: #000000;
+    --on-fill: #000000;
+    --g400: #e6e6e6;
+    --g500: #e6e6e6;
+  }
+}
+:root[data-sunlight] body {
+  font-weight: 500;
+}
+:root[data-sunlight] .font-semibold,
+:root[data-sunlight] .font-medium {
+  font-weight: 700;
+}
+:root[data-sunlight] .border {
+  border-width: 2px;
+}
+:root[data-sunlight] .border-2 {
+  border-width: 3px;
+}
+:root[data-sunlight] dialog::backdrop {
+  background: rgb(0 0 0 / 0.85);
+}
+/* Photo headers become solid black with white text. */
+:root[data-sunlight] .photo-card img,
+:root[data-sunlight] .photo-card .photo-shade {
+  display: none;
+}
+:root[data-sunlight] .photo-card {
+  background: #000000;
+  outline: 2px solid var(--line);
+}
+
+/* Large text: everything is sized in rem, so this (and browser text zoom) scales it all. */
+:root[data-text="large"] {
+  font-size: 112.5%;
 }
 
 @theme inline {

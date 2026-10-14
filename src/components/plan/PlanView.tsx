@@ -207,7 +207,7 @@ function SectionHeading({ id, count, children, inline }: { id: string; count?: n
 
 function PlanHeader({ trip, onSettings, corner }: { trip: Trip; onSettings: () => void; corner: React.ReactNode }) {
   return (
-    <header className="relative h-36 overflow-hidden rounded-3xl bg-sunken md:h-52">
+    <header className="photo-card relative h-36 overflow-hidden rounded-3xl bg-[#14171c] md:h-52">
       <Image
         src="/lake-atitlan-hero.jpg"
         alt="Lake Atitlán with its three volcanoes"
@@ -217,7 +217,7 @@ function PlanHeader({ trip, onSettings, corner }: { trip: Trip; onSettings: () =
         className="object-cover"
       />
       {/* Dark at the bottom so the white title stays readable over any part of the photo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" aria-hidden="true" />
+      <div className="photo-shade absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" aria-hidden="true" />
       <div className="absolute inset-x-0 bottom-0 p-4 text-[#fff] md:p-6">
         <h1 className="text-2xl leading-tight font-bold md:text-3xl">Trip plan</h1>
         <p className="tnum text-base">
