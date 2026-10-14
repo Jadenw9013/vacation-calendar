@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import type { Trip } from "@/data/types";
 import { agenda, clockLabel, dayStatuses, localDate, nowNext, type DayStatus, type NowNext } from "@/lib/now";
 import { formatTime, monthDay, weekday } from "@/lib/time";
@@ -96,6 +97,18 @@ export function TripToday({
         </p>
 
         <InstallHint compact />
+
+        <figure className="relative h-44 overflow-hidden rounded-3xl bg-sunken md:h-56">
+          <Image
+            src="/volcano-sidebar-night.jpg"
+            alt="Volcán de Fuego erupting at night, seen through the pines on Acatenango"
+            fill
+            sizes="(max-width: 672px) 100vw, 672px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" aria-hidden="true" />
+          <figcaption className="absolute inset-x-0 bottom-0 p-4 text-lg font-semibold text-[#fff]">Same friends. Higher places.</figcaption>
+        </figure>
       </div>
     </div>
   );

@@ -79,15 +79,15 @@ export function PlanView({
       </section>
 
       <section aria-labelledby="still-to-book">
-        <div className="flex items-start justify-between gap-3">
-          <SectionHeading id="still-to-book" count={toBook.length}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <SectionHeading id="still-to-book" count={toBook.length} inline>
             Still to book
           </SectionHeading>
           {online && (
             <SegmentDialog
               mode="add"
               triggerLabel={
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
                   <Icon name="plus" /> Add booking
                 </span>
               }
@@ -142,9 +142,9 @@ export function PlanView({
   );
 }
 
-function SectionHeading({ id, count, children }: { id: string; count?: number; children: React.ReactNode }) {
+function SectionHeading({ id, count, children, inline }: { id: string; count?: number; children: React.ReactNode; inline?: boolean }) {
   return (
-    <h2 id={id} className="mb-3 flex items-center gap-2 text-xl font-bold">
+    <h2 id={id} className={`flex items-center gap-2 text-xl font-bold whitespace-nowrap ${inline ? "" : "mb-3"}`}>
       {children}
       {count !== undefined && count > 0 && (
         <span className="tnum rounded-full bg-sunken px-2.5 text-base font-semibold text-ink">{count}</span>
@@ -155,18 +155,29 @@ function SectionHeading({ id, count, children }: { id: string; count?: number; c
 
 function PlanHeader({ trip, onSettings }: { trip: Trip; onSettings: () => void }) {
   return (
-    <header className="flex items-center gap-3">
-      {/* A small picture on phones; the top bar carries the name from tablet width up. */}
-      <div className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-sunken md:hidden">
-        <Image src="/lake-atitlan-hero.jpg" alt="" fill sizes="48px" className="object-cover" />
-      </div>
-      <div className="min-w-0 flex-1">
+    <header className="relative h-36 overflow-hidden rounded-3xl bg-sunken md:h-52">
+      <Image
+        src="/lake-atitlan-hero.jpg"
+        alt="Lake Atitlán with its three volcanoes"
+        fill
+        priority
+        sizes="(max-width: 768px) 100vw, 768px"
+        className="object-cover"
+      />
+      {/* Dark at the bottom so the white title stays readable over any part of the photo. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 p-4 text-[#fff] md:p-6">
         <h1 className="text-2xl leading-tight font-bold md:text-3xl">Trip plan</h1>
-        <p className="tnum text-base text-muted">
+        <p className="tnum text-base">
           {monthDay(trip.firstDay)} – {monthDay(trip.lastDay)} · Party of {trip.partySize ?? "?"}
         </p>
       </div>
-      <button type="button" onClick={onSettings} aria-label="Settings" className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-line md:hidden">
+      <button
+        type="button"
+        onClick={onSettings}
+        aria-label="Settings"
+        className="absolute top-2 right-2 flex size-11 items-center justify-center rounded-xl bg-surface text-ink md:hidden"
+      >
         <Icon name="settings" />
       </button>
     </header>

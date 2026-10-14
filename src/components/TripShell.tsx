@@ -132,7 +132,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames }: Pro
         </div>
       </header>
 
-      <main id="main" className={`pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12 ${chatOpen ? "xl:pr-[28rem]" : ""}`}>
+      <main id="main" className={`pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-12 ${chatOpen ? "md:pr-[28rem]" : ""}`}>
         {mode === "trip" ? (
           <TripToday trip={trip} now={now} day={day} onDay={setChosenDay} snapshot={{ online, savedAt, stored }} />
         ) : (

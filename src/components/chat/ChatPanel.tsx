@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Trip } from "@/data/types";
 import { computeGaps, nightCoverage, unanswered } from "@/lib/derive";
 import { formatDay } from "@/lib/time";
@@ -140,9 +141,21 @@ function MessageView({ m, latestProposalId }: { m: TripUIMessage; latestProposal
 /** First thing in an empty chat: what the planner can do. */
 function Greeting() {
   return (
-    <div className="rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-3 text-base">
+    <div className="flex flex-col gap-3">
+      <div className="relative h-36 overflow-hidden rounded-2xl bg-sunken">
+        {/* The photo has a frame painted round its edge; the zoom crops it off. */}
+        <Image
+          src="/antigua-hotel.jpg"
+          alt="Calle del Arco in Antigua, with the yellow Santa Catalina Arch and Volcán de Agua behind it"
+          fill
+          sizes="(max-width: 768px) 100vw, 448px"
+          className="scale-110 object-cover"
+        />
+      </div>
+      <div className="rounded-2xl rounded-tl-sm border border-line bg-canvas px-4 py-3 text-base">
       Ask anything about the trip, paste a booking confirmation, or have me draft a day&apos;s plan. I&apos;ll propose changes; nothing is
       saved until you apply it.
+      </div>
     </div>
   );
 }
@@ -179,8 +192,11 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
   return (
     <aside aria-label="Ask the planner" className="flex h-full w-full flex-col overflow-hidden bg-surface">
       <header className="flex items-center gap-2 border-b border-line py-1.5 pr-1.5 pl-4">
-        <h2 className="mr-auto text-lg font-bold">Ask the planner</h2>
-        <nav className="flex gap-2" aria-label="Planner views">
+        <h2 className="mr-auto min-w-0 truncate text-lg font-bold">
+          <span className="sm:hidden">Planner</span>
+          <span className="hidden sm:inline">Ask the planner</span>
+        </h2>
+        <nav className="flex shrink-0 gap-2" aria-label="Planner views">
           {(["chat", "activity"] as const).map((t) => (
             <button
               key={t}
@@ -192,7 +208,7 @@ export function ChatPanel({ trip, online }: { trip: Trip; online: boolean }) {
             </button>
           ))}
         </nav>
-        <button onClick={() => setOpen(false)} aria-label="Close the planner" className="flex size-11 items-center justify-center rounded-xl hover:bg-sunken">
+        <button onClick={() => setOpen(false)} aria-label="Close the planner" className="flex size-11 shrink-0 items-center justify-center rounded-xl hover:bg-sunken">
           <Icon name="close" />
         </button>
       </header>
