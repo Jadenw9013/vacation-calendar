@@ -5,13 +5,14 @@ import {
   isStepCount,
   streamText,
   type LanguageModel,
+  type ModelMessage,
   type UIMessage,
   type UIMessageStreamWriter,
 } from "ai";
 import { guard, jsonError, parseAuthor, readJson } from "@/lib/api";
 import type { TripState } from "@/lib/engine";
 import { CHAT_LIMITS, MODEL_SETTINGS } from "@/lib/llm/config";
-import { chatErrorMessage } from "@/lib/llm/provider";
+import { chatErrorMessage, isTransient } from "@/lib/llm/provider";
 import type { TripRepository } from "@/lib/repo/types";
 import { IMAGE_LIMITS, sanitizeMessages } from "./attachments";
 import { compactHistory } from "./history";
@@ -37,10 +38,15 @@ import { logTiming, newTiming, publicTiming, serverTimingHeader, timed, type Cha
 
 export interface ChatDeps {
   repo: TripRepository;
-  /** The model to use, or null when none is configured. */
-  model: LanguageModel | null;
+  /** The configured model, then its fallbacks. Empty when none is configured. */
+  models: LanguageModel[];
   vision: boolean;
+  /** Backoff before the transient retry, ms (jitter is added). Tests set 0. */
+  backoffMs?: number;
 }
+
+/** Retry budgets, kept apart: a bad tool call never uses up the retry meant for a network blip. */
+export const RETRY = { transient: 1, repair: 1 };
 
 const OUTCOMES = new Set<ProposalOutcome>(["applied", "discarded", "stale"]);
 
@@ -98,7 +104,7 @@ interface HeldCall {
 /** One model call: text forwarded as it streams, tool calls held. */
 async function callModel(
   writer: UIMessageStreamWriter,
-  args: { model: LanguageModel; instructions: string; messages: Awaited<ReturnType<typeof convertToModelMessages>>; intent: Intent; signal: AbortSignal; timing: ChatTiming },
+  args: { model: LanguageModel; instructions: string; messages: ModelMessage[]; intent: Intent; signal: AbortSignal; timing: ChatTiming },
 ) {
   const { timing } = args;
   const start = performance.now();
@@ -113,7 +119,8 @@ async function callModel(
     activeTools: ["propose_changes", "ask_user"],
     stopWhen: isStepCount(1),
     maxOutputTokens: MODEL_SETTINGS.maxOutputTokens,
-    maxRetries: CHAT_LIMITS.maxRetries,
+    // Retries are decided below, where a retry can't follow output already on screen.
+    maxRetries: 0,
     abortSignal: args.signal,
     providerOptions: { google: { thinkingConfig: { thinkingLevel: MODEL_SETTINGS.thinkingLevel } } },
   });
@@ -122,18 +129,25 @@ async function callModel(
   let finishReason: string | null = null;
   let streamError: unknown = null;
   let sentText = false;
+  // A text part is opened only when its first words arrive, so a call that fails before
+  // saying anything leaves nothing on screen and can be retried from scratch.
+  const opened = new Set<string>();
   for await (const part of result.fullStream) {
     if (timing.ttfbMs === null && part.type !== "start" && part.type !== "start-step") timing.ttfbMs = performance.now() - start;
     switch (part.type) {
       case "text-start":
-        writer.write({ type: "text-start", id: part.id });
         break;
       case "text-delta":
+        if (!part.text) break;
+        if (!opened.has(part.id)) {
+          opened.add(part.id);
+          writer.write({ type: "text-start", id: part.id });
+        }
         sentText = true;
         writer.write({ type: "text-delta", id: part.id, delta: part.text });
         break;
       case "text-end":
-        writer.write({ type: "text-end", id: part.id });
+        if (opened.has(part.id)) writer.write({ type: "text-end", id: part.id });
         break;
       case "tool-call":
         calls.push({ toolCallId: part.toolCallId, toolName: part.toolName, input: part.input, invalid: !!(part as { invalid?: boolean }).invalid });
@@ -224,8 +238,7 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
     return createUIMessageStreamResponse({ headers: { "Server-Timing": serverTimingHeader(timing) }, stream });
   }
 
-  const model = deps.model;
-  if (!model) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
+  if (!deps.models.length) return jsonError(503, "The assistant isn't set up (no GEMINI_API_KEY). Manual editing still works.");
   const intent = classifyIntent(turn.text, turn);
   const tools = planningTools();
   const { instructions, modelMessages } = await timed(timing, "contextMs", async () => ({
@@ -255,38 +268,102 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       writer.write({ type: "start", messageMetadata: { route: timing.route } });
-      const out = await callModel(writer, { model, instructions, messages: modelMessages, intent, signal: abort.signal, timing });
+      const models = [...deps.models];
+      let model = models.shift()!;
+      let transientLeft = RETRY.transient;
+      let repairLeft = RETRY.repair;
+      let messagesNow: ModelMessage[] = modelMessages;
+      let intentNow = intent;
 
-      // Cut off by the output cap: whatever arrived is incomplete. No card.
-      if (out.finishReason === "length") {
-        writer.write({ type: "error", errorText: FAILURE.length });
-        return finish(writer, "error");
-      }
-      if (out.streamError) {
-        logSafe(out.streamError);
-        // Forced to call a tool and didn't: the reply isn't usable.
-        const violation = (out.streamError as { name?: string })?.name === "AI_ToolChoiceViolationError";
-        writer.write({ type: "error", errorText: violation ? FAILURE.malformed : out.sentText ? FAILURE.broken : chatErrorMessage(out.streamError) });
-        return finish(writer, "error");
-      }
-      for (const call of out.calls) {
-        if (call.invalid) {
-          writer.write({ type: "error", errorText: FAILURE.malformed });
+      for (;;) {
+        const out = await callModel(writer, { model, instructions, messages: messagesNow, intent: intentNow, signal: abort.signal, timing });
+        if (abort.signal.aborted) return finish(writer, "aborted");
+
+        // Cut off by the output cap: whatever arrived is incomplete. No card, no retry.
+        if (out.finishReason === "length") {
+          writer.write({ type: "error", errorText: FAILURE.length });
           return finish(writer, "error");
         }
-      }
-      // Complete, parsed calls only: now the card (or the question) goes out, whole.
-      for (const call of out.calls) {
-        if (call.toolName === "propose_changes") {
-          const ops = ((call.input as { ops?: FlatOp[] })?.ops ?? []) as FlatOp[];
-          const proposal: Proposal = await timed(timing, "validationMs", () => buildProposal(state, undefined, ops));
-          writer.write({ type: "tool-input-available", toolCallId: call.toolCallId, toolName: call.toolName, input: call.input });
-          writer.write({ type: "tool-output-available", toolCallId: call.toolCallId, output: proposal });
-        } else if (call.toolName === "ask_user") {
-          writer.write({ type: "tool-input-available", toolCallId: call.toolCallId, toolName: call.toolName, input: call.input });
+
+        if (out.streamError) {
+          logSafe(out.streamError);
+          const violation = (out.streamError as { name?: string })?.name === "AI_ToolChoiceViolationError";
+          // Network, overload or rate limit before anything reached the screen: try again from scratch.
+          if (!out.sentText && !violation && isTransient(out.streamError)) {
+            if (transientLeft > 0) {
+              transientLeft--;
+              const base = deps.backoffMs ?? 800;
+              await new Promise((r) => setTimeout(r, base + Math.random() * base));
+              continue;
+            }
+            if (models.length) {
+              model = models.shift()!;
+              continue;
+            }
+          }
+          if (violation && repairLeft > 0) {
+            repairLeft--;
+            messagesNow = [...modelMessages, { role: "user", content: "Answer with a propose_changes or ask_user call." }];
+            intentNow = "edit";
+            continue;
+          }
+          writer.write({ type: "error", errorText: violation ? FAILURE.malformed : out.sentText ? FAILURE.broken : chatErrorMessage(out.streamError) });
+          return finish(writer, "error");
         }
+
+        // Check every call before anything is sent; collect what needs fixing.
+        const problems: { call: HeldCall; issues: string[] }[] = [];
+        const ready: { call: HeldCall; proposal?: Proposal }[] = [];
+        for (const call of out.calls) {
+          if (call.invalid) {
+            problems.push({ call, issues: [`The arguments for ${call.toolName} weren't valid. Send them again as JSON matching the schema.`] });
+            continue;
+          }
+          if (call.toolName === "propose_changes") {
+            const ops = ((call.input as { ops?: FlatOp[] })?.ops ?? []) as FlatOp[];
+            const proposal: Proposal = await timed(timing, "validationMs", () => buildProposal(state, undefined, ops));
+            if (proposal.status === "invalid") problems.push({ call, issues: proposal.issues.map((i) => i.message) });
+            else ready.push({ call, proposal });
+          } else if (call.toolName === "ask_user") {
+            ready.push({ call });
+          }
+        }
+
+        if (problems.length) {
+          // One repair: the model sees exactly what was wrong and tries again. Nothing from the first try is sent.
+          if (repairLeft > 0) {
+            repairLeft--;
+            intentNow = "edit";
+            messagesNow = [
+              ...modelMessages,
+              {
+                role: "assistant",
+                content: problems.map(({ call }) => ({ type: "tool-call" as const, toolCallId: call.toolCallId, toolName: call.toolName, input: call.invalid ? {} : call.input })),
+              },
+              {
+                role: "tool",
+                content: problems.map(({ call, issues }) => ({
+                  type: "tool-result" as const,
+                  toolCallId: call.toolCallId,
+                  toolName: call.toolName,
+                  output: { type: "json" as const, value: { status: "invalid", issues } },
+                })),
+              },
+            ];
+            continue;
+          }
+          const malformed = problems.some((p) => p.call.invalid);
+          writer.write({ type: "error", errorText: malformed ? FAILURE.malformed : FAILURE.invalid });
+          return finish(writer, "error");
+        }
+
+        // Complete, checked calls only: now the card (or the question) goes out, whole.
+        for (const { call, proposal } of ready) {
+          writer.write({ type: "tool-input-available", toolCallId: call.toolCallId, toolName: call.toolName, input: call.input });
+          if (proposal) writer.write({ type: "tool-output-available", toolCallId: call.toolCallId, output: proposal });
+        }
+        return finish(writer);
       }
-      finish(writer);
     },
     onError: (error) => {
       logSafe(error);

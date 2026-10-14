@@ -50,6 +50,27 @@ function build(config: ProviderConfig, apiKey: string): LanguageModel {
   }
 }
 
+/**
+ * The models for the planner, in order: the configured one, then its
+ * fallbacks. The chat pipeline decides when to move down the list (one retry
+ * on a transient error, then the next model), so these aren't wrapped.
+ */
+export function modelChain(): LanguageModel[] {
+  const config = PROVIDERS.find((p) => process.env[p.apiKeyEnv]);
+  if (!config) return [];
+  if (config.kind !== "google") throw new Error(`Provider "${config.id}" needs @ai-sdk/openai-compatible, which isn't installed.`);
+  const google = createGoogleGenerativeAI({ apiKey: process.env[config.apiKeyEnv] });
+  return [config.model, ...(config.fallbackModels ?? [])].map((id) => google(id));
+}
+
+/** Network trouble, overload or rate limits: worth one more try. */
+export function isTransient(error: unknown): boolean {
+  if (isRetryable(error)) return true;
+  const e = error as { name?: string; message?: string; cause?: { code?: string } };
+  if (e?.name === "AbortError") return false;
+  return e?.name === "TypeError" || /fetch failed|network|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up/i.test(`${e?.message ?? ""} ${e?.cause?.code ?? ""}`);
+}
+
 /** Providers that have an API key set, in configured order. */
 export function availableModels(): ResolvedModel[] {
   return PROVIDERS.flatMap((config) => {

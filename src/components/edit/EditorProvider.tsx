@@ -131,14 +131,25 @@ export function EditorProvider({
       // Show it straight away; the result below confirms or reverts it.
       setPendingState({ ops, base: version });
       let applied = false;
+      // One key per Apply: a resend (double tap, dropped connection) is recognised, not applied twice.
+      const key = crypto.randomUUID();
+      const send = async (body: Record<string, unknown>) => {
+        try {
+          return await post("/api/ops", { ...body, key });
+        } catch {
+          // The connection dropped: one resend, same key, so it can't apply twice.
+          await new Promise((r) => setTimeout(r, 600));
+          return post("/api/ops", { ...body, key });
+        }
+      };
       try {
         let sent = options.confirmed ? withConfirmation(ops) : ops;
-        let res = await post("/api/ops", { ops: sent, expectedVersion, author });
+        let res = await send({ ops: sent, expectedVersion, author });
         const issues = res.body.issues as OpIssue[] | undefined;
         if (res.status === 422 && issues?.[0]?.code === "needs_confirmation") {
           if (!window.confirm(`${issues[0].message}\n\nDo it anyway?`)) return { kind: "cancelled" };
           sent = withConfirmation(ops);
-          res = await post("/api/ops", { ops: sent, expectedVersion, author });
+          res = await send({ ops: sent, expectedVersion, author });
         }
         if (res.status === 200) {
           applied = true;

@@ -45,7 +45,7 @@ async function run(chunks: Chunk[], text = "Mark the zipline as booked") {
   const repo = new MemoryTripRepository(seed);
   const before = (await repo.get()).version;
   const { model, seen } = modelFrom(chunks);
-  const res = await handleChat(request(text), { repo, model, vision: false });
+  const res = await handleChat(request(text), { repo, models: [model], vision: false, backoffMs: 0 });
   const out = await readChunks(res);
   return { out, seen, versionUnchanged: (await repo.get()).version === before };
 }
@@ -117,7 +117,7 @@ describe("stopping", () => {
       [{ type: "text-start", id: "t" }, ...Array.from({ length: 50 }, () => ({ type: "text-delta", id: "t", delta: "word " })), { type: "text-end", id: "t" }, finish("stop")],
       { delayMs: 20 },
     );
-    const res = await handleChat(request("what should we do on friday"), { repo, model, vision: false });
+    const res = await handleChat(request("what should we do on friday"), { repo, models: [model], vision: false, backoffMs: 0 });
     const reader = res.body!.getReader();
     await readUntilText(reader); // the model is streaming
     await reader.cancel("stopped");
@@ -132,7 +132,7 @@ describe("stopping", () => {
       { delayMs: 20 },
     );
     const ac = new AbortController();
-    const res = await handleChat(request("what should we do on friday", ac.signal), { repo, model, vision: false });
+    const res = await handleChat(request("what should we do on friday", ac.signal), { repo, models: [model], vision: false, backoffMs: 0 });
     const reader = res.body!.getReader();
     await readUntilText(reader); // the model is streaming
     ac.abort();

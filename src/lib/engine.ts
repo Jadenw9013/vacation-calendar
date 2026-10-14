@@ -24,6 +24,8 @@ export interface ChangeEntry {
   inverse: Op[];
   /** Set when this change is an undo of another. */
   undoOf?: string;
+  /** The Apply request that made this change, so a resend can be recognised. */
+  requestKey?: string;
   /** Kinds of sensitive text stripped from the ops before storing. */
   redacted?: RedactionKind[];
 }
@@ -42,6 +44,8 @@ export type PrepareResult =
 export interface ChangeMeta {
   author: string;
   undoOf?: string;
+  /** The client's idempotency key for this Apply: a resend with the same key isn't applied twice. */
+  requestKey?: string;
   /** Injected for tests. */
   now?: () => Date;
   newId?: () => string;
@@ -132,6 +136,7 @@ export function prepareChange(state: TripState, rawOps: unknown, meta: ChangeMet
     inverse: inverseChunks.reverse().flat(),
   };
   if (meta.undoOf) entry.undoOf = meta.undoOf;
+  if (meta.requestKey) entry.requestKey = meta.requestKey;
   if (found.size) entry.redacted = [...found];
   return { ok: true, trip, entry };
 }
