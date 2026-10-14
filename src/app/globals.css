@@ -10,63 +10,38 @@
  * status labels at least 7:1, in light, dark and Sunlight mode.
  */
 :root {
-  color-scheme: light;
-  --canvas: #f6f5f1;
-  --surface: #ffffff;
-  --sunken: #eeede8;
-  --ink: #14171c;
-  --muted: #3e4550;
-  --line: #d5d3cc;
-  --booked: #0b5048;
-  --booked-soft: #e3f1ee;
-  --action: #86300f;
-  --action-soft: #fdede4;
-  --now: #1e3a9e;
-  --now-soft: #e6edfd;
+  color-scheme: dark;
+  --canvas: #090d12;
+  --surface: #10161d;
+  --sunken: #161f2a;
+  --ink: #f1f5f9;
+  --muted: #94a3b8;
+  --line: #1e293b;
+  --booked: #34d399;
+  --booked-soft: #064e3b;
+  --action: #f97316;
+  --action-soft: #2a1406;
+  --now: #60a5fa;
+  --now-soft: #172554;
   /* Text on a booked, action or now fill. */
   --on-fill: #ffffff;
 
-  /* Neutral ramp the older components use (bg-gray-50, text-gray-500…). */
-  --g50: #f7f7f5;
-  --g100: #efeee9;
-  --g200: #e2e0da;
-  --g300: #cfcdc6;
-  --g400: #3e4550;
-  --g500: #3e4550;
-  --g600: #353b45;
-  --g700: #333944;
-  --g800: #1f242c;
-  --g900: #14171c;
+  /* Neutral ramp matching the dark slate design */
+  --g50: #161d26;
+  --g100: #1c2532;
+  --g200: #263344;
+  --g300: #334155;
+  --g400: #64748b;
+  --g500: #94a3b8;
+  --g600: #cbd5e1;
+  --g700: #e2e8f0;
+  --g800: #f1f5f9;
+  --g900: #ffffff;
 }
 
-/* Dark: follows the system. Checked at night on the volcano, so no grey-on-grey. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --canvas: #0d1014;
-    --surface: #161a20;
-    --sunken: #1e232b;
-    --ink: #f1f3f5;
-    --muted: #aeb6c2;
-    --line: #353d48;
-    --booked: #6ee7d6;
-    --booked-soft: #12302c;
-    --action: #fdba74;
-    --action-soft: #3a2414;
-    --now: #9db9ff;
-    --now-soft: #18264a;
-    --on-fill: #0d1014;
-
-    --g50: #1b2027;
-    --g100: #212731;
-    --g200: #2b323d;
-    --g300: #38414d;
-    --g400: #a3acb8;
-    --g500: #aeb6c2;
-    --g600: #c3c9d2;
-    --g700: #d5dae1;
-    --g800: #e5e8ec;
-    --g900: #f1f3f5;
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    /* If specifically in light mode without dark preference, keep dark luxury as default theme */
   }
 }
 
@@ -168,9 +143,9 @@
 
   /*
    * The older palette names, mapped onto the tokens so components not yet
-   * restyled still follow the theme. White and the greys flip in dark mode.
+   * restyled still follow the theme.
    */
-  --color-white: var(--surface);
+  --color-white: #ffffff;
   --color-gray-50: var(--g50);
   --color-gray-100: var(--g100);
   --color-gray-200: var(--g200);
@@ -212,11 +187,20 @@
   --color-on-hazard: var(--on-fill);
   --color-ember: var(--action);
 
-  /* One sans family for everything; the display face is for day titles only. */
+  /* One sans family for everything; the display face is for titles. */
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: var(--font-sans);
+  --font-serif: var(--font-fraunces), Georgia, serif;
   --font-mono: var(--font-sans);
   --font-display: var(--font-fraunces), Georgia, serif;
+  --font-handwriting: var(--font-caveat), cursive;
+}
+
+.font-handwriting {
+  font-family: var(--font-caveat), cursive;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
 }
 
 html {

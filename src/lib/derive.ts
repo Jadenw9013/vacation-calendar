@@ -82,8 +82,18 @@ function sleepsThere(s: Segment): boolean {
 
 /** Lodging-type segment spans the night of `date` by calendar date. */
 function spansNight(s: Segment, date: string): boolean {
-  if (!s.start || !s.end) return false;
-  return parseMoment(s.start).date <= date && parseMoment(s.end).date > date;
+  if (!s.start) return false;
+  const start = parseMoment(s.start).date;
+  if (!start) return false;
+  if (!s.end) {
+    // If checkout/end date is not specified, a lodging segment covers at least its check-in night.
+    return start === date;
+  }
+  const end = parseMoment(s.end).date;
+  if (start === end) {
+    return start === date;
+  }
+  return start <= date && end > date;
 }
 
 /** A flight in the air across local midnight also takes care of that night. */

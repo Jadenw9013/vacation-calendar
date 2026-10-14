@@ -29,7 +29,7 @@ export function BottomNav({ active, onSelect, unread, askAvailable }: NavProps) 
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800/80 bg-[#090d12]/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="mx-auto flex h-14 max-w-md items-stretch justify-around gap-2 px-2">
         {TABS.map((t) => (
@@ -79,20 +79,28 @@ function NavButton({
       aria-current={active ? "page" : undefined}
       title={tab.hint}
       disabled={disabled}
-      className={`relative flex min-h-11 min-w-11 flex-1 items-center justify-center rounded-xl font-semibold disabled:opacity-50 ${
-        stacked ? "flex-col gap-0.5 text-sm" : "gap-2 px-4 text-base"
-      } ${active ? "bg-ink text-canvas" : "text-muted hover:bg-sunken hover:text-ink"}`}
+      className={`relative flex items-center justify-center rounded-xl font-medium transition-colors disabled:opacity-50 ${
+        stacked
+          ? `flex-col gap-0.5 text-xs py-1.5 min-h-12 min-w-12 flex-1 ${active ? "text-white bg-slate-800/80 font-semibold" : "text-slate-400 hover:text-white"}`
+          : `gap-1.5 px-3.5 py-1.5 text-sm ${
+              active
+                ? "bg-slate-800/90 text-white border border-slate-700/60 shadow-sm font-semibold"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+            }`
+      }`}
     >
-      <Icon name={tab.icon} className={stacked ? "size-5" : "size-5"} />
+      <Icon name={tab.icon} className={stacked ? "size-5" : "size-4"} />
       <span>{tab.label}</span>
       {badge > 0 && (
         <span
-          className={`absolute flex min-w-5 items-center justify-center rounded-full bg-now px-1 text-xs font-bold text-on-fill ${
-            stacked ? "top-0.5 right-[calc(50%-1.9rem)]" : "-top-1 -right-1"
+          className={`flex items-center justify-center rounded-full bg-amber-600 text-white text-[11px] font-bold ${
+            stacked
+              ? "absolute top-1 right-[calc(50%-1.4rem)] size-4 text-[10px]"
+              : "ml-1 px-1.5 min-w-5 h-5"
           }`}
         >
           {badge}
-          <span className="sr-only"> new</span>
+          <span className="sr-only"> items</span>
         </span>
       )}
     </button>

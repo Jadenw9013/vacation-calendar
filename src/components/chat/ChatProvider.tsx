@@ -35,7 +35,7 @@ interface ChatApi {
   setInput: (text: string) => void;
   /** Opens the chat with the input prefilled (Tweak, Ask about this, chips). */
   prefill: (text: string) => void;
-  send: (text: string) => void;
+  send: (text: string, customAuthor?: string) => void;
   chat: ReturnType<typeof useChat<TripUIMessage>>;
   outcomes: Record<string, ProposalOutcome>;
   setOutcome: (toolCallId: string, outcome: ProposalOutcome) => void;
@@ -102,6 +102,10 @@ const requestContext = {
   context: {} as { day?: string; itemId?: string },
 };
 
+export function setChatAuthor(author: string) {
+  requestContext.author = author;
+}
+
 /**
  * Screenshots go to the model once, with the message they're attached to.
  * On later turns they're swapped for a short note so they aren't uploaded
@@ -157,16 +161,19 @@ function withoutImages(messages: TripUIMessage[]): TripUIMessage[] {
 
 const transport = new DefaultChatTransport<TripUIMessage>({
   api: "/api/chat",
-  prepareSendMessagesRequest: ({ messages, body }) => ({
-    body: {
-      // Per-request extras, e.g. { force: "model" } from "Ask the planner instead".
-      ...(body ?? {}),
-      messages: withoutOldImages(messages),
-      author: requestContext.author,
-      outcomes: requestContext.outcomes,
-      context: requestContext.context,
-    },
-  }),
+  prepareSendMessagesRequest: ({ messages, body }) => {
+    const localAuthor = typeof window !== "undefined" ? localStorage.getItem("trip-author") || "" : "";
+    return {
+      body: {
+        // Per-request extras, e.g. { force: "model" } from "Ask the planner instead".
+        ...(body ?? {}),
+        messages: withoutOldImages(messages),
+        author: requestContext.author || localAuthor,
+        outcomes: requestContext.outcomes,
+        context: requestContext.context,
+      },
+    };
+  },
 });
 
 export function ChatProvider({
@@ -284,7 +291,10 @@ export function ChatProvider({
   }, [setMessages]);
 
   const send = useCallback(
-    (text: string) => {
+    (text: string, customAuthor?: string) => {
+      if (customAuthor) {
+        requestContext.author = customAuthor;
+      }
       const files = vision ? attachments.map((a) => a.part) : [];
       const t = text.trim() || (files.length ? `Here ${files.length > 1 ? "are some booking screenshots" : "is a booking screenshot"}.` : "");
       if (!t || chat.status === "streaming" || chat.status === "submitted") return;

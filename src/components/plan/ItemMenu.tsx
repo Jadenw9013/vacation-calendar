@@ -18,9 +18,9 @@ export function MenuButton({ label, onClick }: { label: string; onClick: () => v
       onClick={onClick}
       aria-label={`Actions for ${label}`}
       aria-haspopup="dialog"
-      className="flex size-11 items-center justify-center rounded-xl text-ink hover:bg-sunken"
+      className="flex size-9 md:size-10 items-center justify-center rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 border border-slate-700/40 transition-colors shrink-0 shadow-sm"
     >
-      <Icon name="more" className="size-6" />
+      <Icon name="more" className="size-5" />
     </button>
   );
 }

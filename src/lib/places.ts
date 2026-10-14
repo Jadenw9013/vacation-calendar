@@ -1,6 +1,6 @@
 import type { Segment, Trip } from "@/data/types";
 import { nightCoverage, type NightStatus } from "./derive";
-import { daysBetween, parseMoment } from "./time";
+import { addDays, daysBetween, parseMoment } from "./time";
 
 /**
  * Where the group is each day, worked out from the trip data rather than
@@ -48,7 +48,7 @@ export interface DayInfo {
 
 function nightOf(seg: Segment, date: string): { night: number; of: number } {
   const start = parseMoment(seg.start!).date;
-  const end = parseMoment(seg.end!).date;
+  const end = seg.end ? parseMoment(seg.end).date : addDays(start, 1);
   return { night: daysBetween(start, date) + 1, of: Math.max(1, daysBetween(start, end)) };
 }
 

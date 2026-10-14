@@ -6,9 +6,9 @@ import type { Trip } from "@/data/types";
 import { computeGaps, nightCoverage, unanswered } from "@/lib/derive";
 import { formatDay } from "@/lib/time";
 import { useEditor } from "@/components/edit/EditorProvider";
-import { proposalsIn, useTripChat, type TripUIMessage } from "./ChatProvider";
+import { proposalsIn, setChatAuthor, useTripChat, type TripUIMessage } from "./ChatProvider";
 import { ProposalCard } from "./ProposalCard";
-import { NameGate } from "@/components/quickadd/NameGate";
+import { FIRST_NAME, NameGate } from "@/components/quickadd/NameGate";
 import { QuickAdd, type ManualPrefill } from "@/components/quickadd/QuickAdd";
 import { missingPrompt, parseQuickAdd } from "@/lib/quickadd";
 import { Icon } from "@/components/ui/Icon";
@@ -257,7 +257,8 @@ export function ChatPanel({
   }
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { author } = useEditor();
+  const { author, setAuthor } = useEditor();
+  const [nameError, setNameError] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const busy = chat.status === "submitted" || chat.status === "streaming";
   const latestProposalId = proposalsIn(chat.messages).at(-1)?.toolCallId ?? null;
@@ -270,7 +271,24 @@ export function ChatPanel({
   function submit() {
     const t = input.trim();
     if (!t && !attachments.length) return;
-    if (!author) return; // the name field above the composer comes first
+
+    let activeAuthor = author;
+    if (!activeAuthor) {
+      const nameEl = document.getElementById("name-gate") as HTMLInputElement | null;
+      const candidate = nameEl?.value.trim() ?? "";
+      if (candidate && FIRST_NAME.test(candidate)) {
+        setAuthor(candidate);
+        setChatAuthor(candidate);
+        activeAuthor = candidate;
+        setNameError(false);
+      } else {
+        setNameError(true);
+        nameEl?.focus();
+        nameEl?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
+    }
+
     setTimedOut(false);
     const last = chat.messages.at(-1);
     const waiting = last?.role === "assistant" ? last.parts.find((p) => p.type === "tool-ask_user" && p.state === "input-available") : undefined;
@@ -279,7 +297,7 @@ export function ChatPanel({
       setInput("");
       return;
     }
-    send(t);
+    send(t, activeAuthor);
   }
 
   return (
@@ -418,7 +436,23 @@ Ask the planner
 
             {usable && !author && (
               <div className="mb-2">
-                <NameGate why="The planner uses it when you say “I”.">{null}</NameGate>
+                <NameGate
+                  why="The planner uses it when you say “I”."
+                  onSaved={(savedName) => {
+                    setNameError(false);
+                    setChatAuthor(savedName);
+                    if (input.trim()) {
+                      send(input.trim(), savedName);
+                    }
+                  }}
+                >
+                  {null}
+                </NameGate>
+                {nameError && (
+                  <p className="mt-1.5 text-sm font-semibold text-action">
+                    Please enter your first name above to send.
+                  </p>
+                )}
               </div>
             )}
             <form

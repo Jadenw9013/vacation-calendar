@@ -111,6 +111,16 @@ describe("night coverage", () => {
     expect(nightCoverage(t).map((n) => n.booked?.id ?? null)).toEqual(["a", "a", null]);
   });
 
+  it("counts a lodging segment with null end or same-day end as covering its check-in night", () => {
+    const singleNight: Segment = { id: "b", kind: "lodging", title: "b", start: "2026-11-24", end: null, status: "booked", location: "x" };
+    const t = makeTrip([singleNight]);
+    expect(nightCoverage(t).map((n) => n.booked?.id ?? null)).toEqual(["b", null, null]);
+
+    const sameDay: Segment = { id: "c", kind: "lodging", title: "c", start: "2026-11-25", end: "2026-11-25", status: "booked", location: "x" };
+    const t2 = makeTrip([sameDay]);
+    expect(nightCoverage(t2).map((n) => n.booked?.id ?? null)).toEqual([null, "c", null]);
+  });
+
   it("ignores placeholders when deciding coverage but reports them as planned", () => {
     const t = makeTrip([lodging("p", "2026-11-24", "2026-11-25", "undecided")]);
     const [first] = nightCoverage(t);

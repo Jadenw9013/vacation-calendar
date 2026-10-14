@@ -66,8 +66,9 @@ export function modelChain(): LanguageModel[] {
 /** Network trouble, overload or rate limits: worth one more try. */
 export function isTransient(error: unknown): boolean {
   if (isRetryable(error)) return true;
-  const e = error as { name?: string; message?: string; cause?: { code?: string } };
+  const e = error as { name?: string; message?: string; statusCode?: number; cause?: { code?: string } };
   if (e?.name === "AbortError") return false;
+  if (e?.statusCode === 404 || /no longer available|not found/i.test(e?.message ?? "")) return true;
   return e?.name === "TypeError" || /fetch failed|network|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up/i.test(`${e?.message ?? ""} ${e?.cause?.code ?? ""}`);
 }
 

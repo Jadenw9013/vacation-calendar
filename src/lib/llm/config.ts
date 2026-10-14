@@ -32,9 +32,9 @@ export const PROVIDERS: ProviderConfig[] = [
     id: "gemini",
     kind: "google",
     // Newest Flash in @ai-sdk/google's docs at the time of writing. Check AI Studio for your key's limits.
-    model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+    model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
     // Override with GEMINI_FALLBACK_MODELS=comma,separated,ids.
-    fallbackModels: (process.env.GEMINI_FALLBACK_MODELS || "gemini-3.5-flash,gemini-3.5-flash-lite")
+    fallbackModels: (process.env.GEMINI_FALLBACK_MODELS || "gemini-flash-lite-latest,gemini-3.8-flash,gemini-3.5-flash")
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean),

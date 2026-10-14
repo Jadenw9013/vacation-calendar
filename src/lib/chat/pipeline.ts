@@ -290,7 +290,9 @@ export async function handleChat(request: Request, deps: ChatDeps): Promise<Resp
           const violation = (out.streamError as { name?: string })?.name === "AI_ToolChoiceViolationError";
           // Network, overload or rate limit before anything reached the screen: try again from scratch.
           if (!out.sentText && !violation && isTransient(out.streamError)) {
-            if (transientLeft > 0) {
+            const err = out.streamError as { statusCode?: number; message?: string };
+            const isModelGone = err?.statusCode === 404 || /no longer available|not found/i.test(err?.message ?? "");
+            if (!isModelGone && transientLeft > 0) {
               transientLeft--;
               const base = deps.backoffMs ?? 800;
               await new Promise((r) => setTimeout(r, base + Math.random() * base));
