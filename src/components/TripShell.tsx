@@ -8,6 +8,7 @@ import type { ChangeEntry } from "@/lib/engine";
 import { defaultMode, initialDay, type Mode } from "@/lib/now";
 import { parseSnapshot, readSnapshotRaw, saveSnapshot, subscribeSnapshot } from "@/lib/snapshot";
 import { monthDay } from "@/lib/time";
+import { opsTouched } from "@/lib/updates";
 import { ChatPanel } from "./chat/ChatPanel";
 import { ChatSheet } from "./chat/ChatSheet";
 import { ChatProvider, useTripChat } from "./chat/ChatProvider";
@@ -105,9 +106,12 @@ function usePreview(trip: Trip, version: number) {
 function App({ trip: serverTrip, version, serverNow, devNotes, knownNames, updates }: Props) {
   const now = useClock(serverNow);
   const online = useOnline();
-  const { trip, savedAt, stored } = useTripCopy(serverTrip, version, serverNow, online);
+  const { trip: savedTrip, savedAt, stored } = useTripCopy(serverTrip, version, serverNow, online);
   const { open: chatOpen, setOpen: setChatOpen, highlight, available, send, prefill } = useTripChat();
-  const { author } = useEditor();
+  const { author, pending } = useEditor();
+  // A change being saved shows at once, marked "Saving…"; a failed save takes it back off.
+  const trip = useMemo(() => (pending ? (previewTrip({ trip: savedTrip, version }, pending) ?? savedTrip) : savedTrip), [pending, savedTrip, version]);
+  const saving = useMemo(() => new Set(pending ? opsTouched(pending) : []), [pending]);
   const { unread, markers, seenMs } = useUpdates(updates, author);
   const markSeen = useMarkSeen();
   const [updatesOpen, setUpdatesOpen] = useState(false);
@@ -129,7 +133,12 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames, updat
       send(text);
     } else prefill(text);
   }
-  const { days, ghosts, previewing } = usePreview(trip, version);
+  const { days, ghosts: proposalGhosts, previewing } = usePreview(trip, version);
+  const ghosts = useMemo(() => {
+    const g: Record<string, Ghost> = { ...proposalGhosts };
+    for (const id of saving) g[id] = "saving";
+    return g;
+  }, [proposalGhosts, saving]);
 
   // Unset until someone taps: then the date decides (Trip mode during the trip).
   const [chosenMode, setChosenMode] = useState<Mode | null>(null);
@@ -183,6 +192,7 @@ function App({ trip: serverTrip, version, serverNow, devNotes, knownNames, updat
             onItemSeen={(id) => markSeen.item(id, markers.get(id) ?? 0)}
             unread={unread.length}
             onUpdates={() => setUpdatesOpen(true)}
+            saving={saving}
           />
         ) : (
           <PlanView

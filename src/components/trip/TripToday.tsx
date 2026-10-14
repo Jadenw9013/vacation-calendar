@@ -35,6 +35,7 @@ export function TripToday({
   onItemSeen,
   unread,
   onUpdates,
+  saving,
 }: {
   trip: Trip;
   now: number;
@@ -45,6 +46,8 @@ export function TripToday({
   onItemSeen: (id: string) => void;
   unread: number;
   onUpdates: () => void;
+  /** Items with a change being saved. */
+  saving?: Set<string>;
 }) {
   const days = dayStatuses(trip);
   const today = localDate(now, trip.utcOffset);
@@ -106,6 +109,7 @@ export function TripToday({
                   extra={<ItemExtras row={r} trip={trip} online={snapshot.online} />}
                   updated={markers.has(r.id)}
                   onOpen={() => onItemSeen(r.id)}
+                  ghost={saving?.has(r.id) ? "saving" : undefined}
                 />
               ))}
             </ol>

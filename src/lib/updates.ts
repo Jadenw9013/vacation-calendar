@@ -94,7 +94,12 @@ export function timeAgo(at: string, nowMs: number): string {
 
 /** Ids of the segments and plan steps an entry changed. */
 export function touchedIds(entry: ChangeEntry): string[] {
-  return entry.ops.flatMap((o) =>
+  return opsTouched(entry.ops);
+}
+
+/** Ids of the segments and plan steps a list of ops changes. */
+export function opsTouched(ops: Op[]): string[] {
+  return ops.flatMap((o) =>
     o.op === "add_segment" ? [o.segment.id] : o.op === "add_plan_item" ? [o.item.id] : "id" in o ? [o.id] : [],
   );
 }

@@ -119,10 +119,9 @@ function MessageView({ m, latestProposalId, trip, said }: { m: TripUIMessage; la
             );
           }
           return (
-            <div key={key} className="flex items-center gap-2 py-1 text-base text-muted">
-              <span className="size-2 animate-pulse rounded-full bg-now" />
-              <span>Drafting a trip change…</span>
-            </div>
+            <p key={key} className="py-1 text-base text-muted">
+              Drafting a trip change…
+            </p>
           );
         }
         if (p.type === "tool-ask_user") {
@@ -228,6 +227,30 @@ export function ChatPanel({
   // When the planner can't help, say what's missing in a few words and offer Quick add with their text.
   const lastParse = lastSaid ? parseQuickAdd(lastSaid, { trip, nowMs, selectedDay: day }) : null;
   const missingHint = lastParse?.type === "draft" && lastParse.missing.length ? missingPrompt(lastParse.missing) : null;
+  // Waiting on the planner: a skeleton card right away, "Still working" at 8 s, give up at 25 s.
+  const lastMsg = chat.messages.at(-1);
+  const hasOutput = lastMsg?.role === "assistant" && lastMsg.parts.some((p) => (p.type === "text" && p.text.trim()) || p.type.startsWith("tool-"));
+  const waiting = (chat.status === "submitted" || chat.status === "streaming") && !hasOutput;
+  const [slow, setSlow] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!waiting) return;
+    const slowTimer = setTimeout(() => setSlow(true), 8_000);
+    const stopTimer = setTimeout(() => {
+      void chat.stop();
+      setTimedOut(true);
+      // Keep what they wrote: back in the box, ready to send again or edit.
+      if (!input.trim()) setInput(lastSaid);
+    }, 25_000);
+    return () => {
+      clearTimeout(slowTimer);
+      clearTimeout(stopTimer);
+      setSlow(false);
+    };
+    // Timers run per wait; input and lastSaid are read when they fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting]);
+
   function quickAddFromChat() {
     setQuick((q) => ({ key: q.key + 1, text: lastSaid }));
     scrollRef.current?.scrollTo({ top: 0 });
@@ -248,6 +271,7 @@ export function ChatPanel({
     const t = input.trim();
     if (!t && !attachments.length) return;
     if (!author) return; // the name field above the composer comes first
+    setTimedOut(false);
     const last = chat.messages.at(-1);
     const waiting = last?.role === "assistant" ? last.parts.find((p) => p.type === "tool-ask_user" && p.state === "input-available") : undefined;
     if (waiting && waiting.type === "tool-ask_user" && !attachments.length) {
@@ -311,11 +335,16 @@ Ask the planner
               return <MessageView key={m.id} m={m} latestProposalId={latestProposalId} trip={trip} said={prior ? userText(prior) : undefined} />;
             })}
 
-            {chat.status === "submitted" && (
-              <div className="flex items-center gap-2 py-1 text-base text-muted">
-                <span className="size-2 animate-pulse rounded-full bg-now" />
-                <span>Thinking…</span>
-              </div>
+            {waiting && <WorkingCard said={lastSaid} slow={slow} onCancel={() => chat.stop()} />}
+            {timedOut && !waiting && (
+              <SoftFailure
+                headline="The planner took too long, so nothing was proposed. Your message is back in the box."
+                online={online}
+                onRetry={() => {
+                  setTimedOut(false);
+                  void chat.regenerate();
+                }}
+              />
             )}
 
             {!chat.error && chat.status === "ready" && isEmptyAnswer(chat.messages.at(-1)) && (
@@ -516,5 +545,24 @@ function TimingLine({ client, server }: { client: { feedbackMs?: number; cardMs?
       feedback {f(client.feedbackMs)} · card {f(client.cardMs)} · done {f(client.answerMs)}
       {server && ` · server ${server.route}: ttfb ${f(server.ttfbMs as number)}, model ${f(server.modelMs as number)}, turns ${server.turns}`}
     </p>
+  );
+}
+
+/** Shown the moment a message is sent: their words, and that the planner is on it. No animation. */
+function WorkingCard({ said, slow, onCancel }: { said: string; slow: boolean; onCancel: () => void }) {
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col gap-2 rounded-2xl border-2 border-dashed border-line bg-surface p-4 text-base">
+      <p className="font-semibold">{slow ? "Still working…" : "Working…"}</p>
+      {said && <p className="text-muted">You said: “{said.length > 140 ? `${said.slice(0, 140)}…` : said}”</p>}
+      <div aria-hidden="true" className="flex flex-col gap-2">
+        <span className="h-3 w-3/4 rounded bg-sunken" />
+        <span className="h-3 w-1/2 rounded bg-sunken" />
+      </div>
+      {slow && (
+        <button type="button" onClick={onCancel} className="min-h-11 self-start rounded-xl border border-line px-4 font-semibold hover:bg-sunken">
+          Cancel
+        </button>
+      )}
+    </div>
   );
 }

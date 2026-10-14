@@ -60,6 +60,11 @@ interface Editor {
   dismiss: () => void;
   /** Bumped after every applied change, so the activity list can refetch. */
   changeCount: number;
+  /**
+   * Ops on their way to the server. The page shows them applied, marked
+   * "Saving…", until the new version arrives; a failure takes them back off.
+   */
+  pending: Op[] | null;
 }
 
 const EditorContext = createContext<Editor | null>(null);
@@ -98,6 +103,9 @@ export function EditorProvider({
   const [notice, setNotice] = useState<Notice | null>(null);
   const [pickerRequested, setPickerRequested] = useState(false);
   const [changeCount, setChangeCount] = useState(0);
+  // Ops being saved, and the version they were sent against: cleared when the page has a newer one.
+  const [pendingState, setPendingState] = useState<{ ops: Op[]; base: number } | null>(null);
+  const pending = pendingState && version <= pendingState.base ? pendingState.ops : null;
   // Asked for when someone edits or sends without a name, never on arrival:
   // reading the trip doesn't need one.
   const pickerOpen = pickerRequested;
@@ -119,8 +127,11 @@ export function EditorProvider({
         return { kind: "cancelled" };
       }
       setBusy(true);
+      const expectedVersion = options.expectedVersion ?? version;
+      // Show it straight away; the result below confirms or reverts it.
+      setPendingState({ ops, base: version });
+      let applied = false;
       try {
-        const expectedVersion = options.expectedVersion ?? version;
         let sent = options.confirmed ? withConfirmation(ops) : ops;
         let res = await post("/api/ops", { ops: sent, expectedVersion, author });
         const issues = res.body.issues as OpIssue[] | undefined;
@@ -130,6 +141,7 @@ export function EditorProvider({
           res = await post("/api/ops", { ops: sent, expectedVersion, author });
         }
         if (res.status === 200) {
+          applied = true;
           const entry = res.body.entry as ChangeEntry;
           setNotice({
             kind: "ok",
@@ -146,8 +158,12 @@ export function EditorProvider({
         }
         if (res.status === 422) return { kind: "rejected", issues: (res.body.issues as OpIssue[]) ?? [] };
         return { kind: "error", message: String(res.body.error ?? `Something went wrong (${res.status}).`) };
+      } catch {
+        return { kind: "error", message: "Couldn't reach the server, so nothing was changed. Check the connection and try again." };
       } finally {
         setBusy(false);
+        // Not saved: take the optimistic version back off. Saved: it clears when the new version arrives.
+        if (!applied) setPendingState(null);
       }
     },
     [author, version, router],
@@ -207,6 +223,7 @@ export function EditorProvider({
         notice,
         dismiss,
         changeCount,
+        pending,
       }}
     >
       {children}

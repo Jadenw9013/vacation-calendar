@@ -7,12 +7,13 @@ import { Icon } from "@/components/ui/Icon";
 import { StatusMark } from "@/components/ui/StatusMark";
 import { OwnerLine } from "./ItemActions";
 
-export type Ghost = "added" | "changed" | "removed";
+export type Ghost = "added" | "changed" | "removed" | "saving";
 
 const GHOST_LABEL: Record<Ghost, string> = {
   added: "Proposed",
   changed: "Proposed change",
   removed: "Would be removed",
+  saving: "Saving…",
 };
 
 /** "5:00 PM", or "TBD" when only the day is known. */

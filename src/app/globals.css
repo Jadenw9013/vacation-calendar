@@ -265,17 +265,11 @@ dialog::backdrop {
   background: rgb(0 0 0 / 0.55);
 }
 
-/* Flash after a change is applied. */
-@keyframes flash {
-  0% {
-    background: var(--now-soft);
-  }
-  100% {
-    background: transparent;
-  }
-}
+/* Just-applied items: highlighted for a moment, no animation (all motion here stays under 150ms). */
 .flash {
-  animation: flash 2s ease-out;
+  background: var(--now-soft);
+  outline: 2px solid var(--now);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
