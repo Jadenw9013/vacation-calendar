@@ -80,9 +80,8 @@ ${contextLines(trip, { today, now, day, itemId })}
 Keep replies to one to three short lines unless they ask for more. People read this on a phone, often outdoors.
 
 How changes work:
-- You cannot change anything yourself. To change the trip, call propose_changes with every op for the request in one call. The page shows it as a card and a person taps Apply.
-- After propose_changes, reply with one short sentence. The card already lists the changes; don't repeat them. Say you proposed or drafted it: nothing is added until someone taps Apply.
-- If propose_changes returns status "invalid", fix the ops using the issues and call it again. If you can't fix them, say what's wrong.
+- You cannot change anything yourself. To change the trip, call propose_changes with every op for the request in one call. The page builds the card (title, rows, gap changes) from your ops and a person taps Apply. Write only the ops: no summary, no reply text.
+- Refer to existing items by their exact id. In update ops, include only the fields that change; leave everything else out.
 - If the request is ambiguous (which day, which item, which option), call ask_user with one short question and 2 to 4 short options instead of guessing.
 - To answer a question about the trip, reply in text from the data below. No tool call.
 
@@ -131,28 +130,41 @@ ${outcomeLines.length ? `\nEarlier proposals in this chat:\n${outcomeLines.join(
 export function buildTools(getState: () => Promise<TripState>, timing?: ChatTiming) {
   return {
     propose_changes: tool({
-      description:
-        "Propose changes to the trip. Nothing changes until a person taps Apply. Put every op for the request in one call.",
-      inputSchema: z.object({
-        summary: z.string().describe("One short line describing the change, e.g. 'Add Antigua hotel for Nov 28'"),
-        ops: z.array(FlatOpSchema).min(1).max(20),
-      }),
-      execute: async ({ summary, ops }) => {
-        if (!timing) return buildProposal(await getState(), summary, ops);
+      ...proposeChangesSpec,
+      execute: async ({ ops }) => {
+        if (!timing) return buildProposal(await getState(), undefined, ops);
         const state = await timed(timing, "storeReadMs", getState);
-        return timed(timing, "validationMs", () => buildProposal(state, summary, ops));
+        return timed(timing, "validationMs", () => buildProposal(state, undefined, ops));
       },
     }),
-    ask_user: tool({
-      description: "Ask the person one short question with 2 to 4 short options they can tap.",
-      inputSchema: z.object({
-        question: z.string(),
-        options: z.array(z.string()).min(2).max(4),
-      }),
-      /** The option they tapped, or what they typed instead. */
-      outputSchema: z.string(),
-    }),
+    ask_user: tool(askUserSpec),
   };
 }
+
+const proposeChangesSpec = {
+  description: "Propose changes to the trip as ops. Nothing changes until a person taps Apply. Put every op for the request in one call.",
+  inputSchema: z.object({ ops: z.array(FlatOpSchema).min(1).max(20) }),
+};
+
+const askUserSpec = {
+  description: "Ask the person one short question with 2 to 4 short options they can tap.",
+  inputSchema: z.object({
+    question: z.string(),
+    options: z.array(z.string()).min(2).max(4),
+  }),
+  /** The option they tapped, or what they typed instead. */
+  outputSchema: z.string(),
+};
+
+/**
+ * The tools as the chat route offers them: no execute, so the model's turn
+ * ends at the call. The route validates the ops itself and sends the card;
+ * nothing goes back to the model for a closing sentence.
+ */
+export function planningTools() {
+  return { propose_changes: tool(proposeChangesSpec), ask_user: tool(askUserSpec) };
+}
+
+export type PlanningTools = ReturnType<typeof planningTools>;
 
 export type ChatTools = ReturnType<typeof buildTools>;

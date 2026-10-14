@@ -5,6 +5,7 @@ import { prepareChange, type OpIssue, type TripState } from "@/lib/engine";
 import { applyOp, OpError, type Op } from "@/lib/ops";
 import type { RedactionKind } from "@/lib/redact";
 import type { Trip } from "@/data/types";
+import { opRows, summarizeOps, type ChangeRow } from "./summary";
 
 /**
  * The op shape the model sees. Gemini tool schemas can't use unions, so this
@@ -245,6 +246,8 @@ export interface Proposal {
   ops: Op[];
   /** One plain-language line per op. */
   changes: string[];
+  /** One row per op, written by the server from the ops: verb, title, before and after. */
+  rows?: ChangeRow[];
   gapDelta: GapDelta;
   /** Why confirmation is needed, one line per booked item touched. */
   confirmations: string[];
@@ -281,12 +284,15 @@ function bookedTouches(trip: Trip, ops: Op[]): string[] {
   return messages;
 }
 
-/** Validates model ops against the current trip and describes the result. Stores nothing. */
-export function buildProposal(state: TripState, summary: string, flat: FlatOp[]): Proposal {
+/**
+ * Validates model ops against the current trip and describes the result.
+ * Stores nothing. The title is written here from the ops unless one is given.
+ */
+export function buildProposal(state: TripState, summary: string | undefined, flat: FlatOp[]): Proposal {
   const empty = { changes: [], gapDelta: { closes: [], opens: [] }, confirmations: [], redacted: [] };
-  const base = { summary, baseVersion: state.version };
-
   const converted = toStrictOps(flat);
+  const base = { summary: summary ?? summarizeOps(converted.ops, state.trip), baseVersion: state.version };
+
   if (converted.issues.length) return { ...base, ...empty, status: "invalid", ops: [], issues: converted.issues };
 
   // Drop anything the model tried to pass as confirmation; only a person confirms.
@@ -301,6 +307,7 @@ export function buildProposal(state: TripState, summary: string, flat: FlatOp[])
     status: confirmations.length ? "needs_confirmation" : "ready",
     ops: cleanOps,
     changes: prepared.entry.summary,
+    rows: opRows(cleanOps, state.trip),
     gapDelta: gapDelta(state.trip, prepared.trip),
     confirmations,
     issues: [],

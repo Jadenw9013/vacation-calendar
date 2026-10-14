@@ -146,7 +146,7 @@ function fromReply(r: Reply): Chunk[] {
   return r.kind === "text" ? text(r.text) : call(r.tool, r.input);
 }
 
-function evalScript(prompt: { role: string; content: unknown }[]): Chunk[] {
+function evalScript(prompt: { role: string; content: unknown }[], forced = false): Chunk[] {
   const last = prompt.at(-1);
   if (last?.role === "tool") {
     const parts = (last.content as { toolName?: string; output?: { value?: unknown } }[]) ?? [];
@@ -154,7 +154,10 @@ function evalScript(prompt: { role: string; content: unknown }[]): Chunk[] {
     if (answered) return fromReply(afterAnswer(String(answered.output?.value ?? "")));
     return text("Drafted it. Tap Apply if that looks right.");
   }
-  return fromReply(evalReply(lastUserText(prompt)));
+  const reply = evalReply(lastUserText(prompt));
+  // Like Gemini with function calling forced: it must call a tool, so a text answer becomes a question.
+  if (forced && reply.kind === "text") return call("ask_user", { question: "What would you like to change?", options: ["Add something", "Move something"] });
+  return fromReply(reply);
 }
 
 /** Waits `ms`, or rejects as soon as the call is aborted. */
@@ -171,7 +174,7 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
 
 export function mockModel(): LanguageModel {
   const latency = Number(process.env.CHAT_MOCK_LATENCY_MS ?? 0);
-  const scriptFor = process.env.CHAT_MOCK === "eval" ? evalScript : script;
+  const scriptFor = process.env.CHAT_MOCK === "eval" ? evalScript : (p: Parameters<typeof script>[0]) => script(p);
   return new MockLanguageModelV4({
     doStream: async ({ prompt, abortSignal, toolChoice }) => {
       mockStats.calls++;
@@ -179,7 +182,10 @@ export function mockModel(): LanguageModel {
       abortSignal?.addEventListener("abort", () => mockStats.aborted++);
       if (latency) await wait(latency, abortSignal);
       return {
-        stream: simulateReadableStream({ chunks: scriptFor(prompt as never) as never, chunkDelayInMs: latency ? Math.min(40, latency) : 40 }),
+        stream: simulateReadableStream({
+          chunks: scriptFor(prompt as never, (toolChoice as { type?: string } | undefined)?.type === "required") as never,
+          chunkDelayInMs: latency ? Math.min(40, latency) : 40,
+        }),
       };
     },
   });

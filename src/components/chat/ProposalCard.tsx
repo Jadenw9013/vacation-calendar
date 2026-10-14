@@ -173,7 +173,11 @@ export function ProposalCard({
 
         <ul className="mt-3 flex flex-col gap-2">
           {ops.map((op, i) => {
-            const d = describeOp(op, trip, p.changes[i] ?? op.op);
+            // The server's row (before → after) unless the person edited this change here.
+            const row = !edits[i] ? p.rows?.[i] : undefined;
+            const d = row
+              ? { head: `${row.verb} “${row.title}”`, detail: row.before && row.after ? `${row.before} → ${row.after}` : (row.after ?? row.before) }
+              : describeOp(op, trip, p.changes[i] ?? op.op);
             const canEdit = !settled && !stale && editable(op);
             return (
               <li key={i} className="flex flex-col gap-2 rounded-xl border border-line p-2">

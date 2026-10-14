@@ -69,6 +69,26 @@ describe("eval scenarios on the stand-in", () => {
     }
     const baseline = JSON.parse(readFileSync(BASELINE, "utf8"))[num];
     expect(essentials(turns)).toEqual(baseline.essentials);
+    // One model call per message now; the baseline records what it was before.
+    for (const t of turns) expect(t.modelCalls).toBeLessThanOrEqual(1);
+  });
+
+  it("an edit takes exactly one model call (it took two before)", async () => {
+    const baseline = JSON.parse(readFileSync(BASELINE, "utf8"));
+    const editScenarios = [1, 3, 4, 6, 8, 9, 11, 12, 13, 14, 16, 18];
+    for (const num of editScenarios) {
+      const [turn] = await run(num - 1);
+      expect(turn.modelCalls, `scenario ${num}`).toBe(1);
+      expect(baseline[num].modelCalls[0], `scenario ${num} before`).toBe(2);
+      repoHolder.tripRepo = new MemoryTripRepository(seed);
+    }
+  });
+
+  it("forces a tool call for edits and leaves questions to the model", async () => {
+    await run(2); // "Move the volcano hike to Nov 30."
+    expect(mockStats.lastToolChoice).toEqual({ type: "required" });
+    await run(6); // "How much is the airbnb?"
+    expect(mockStats.lastToolChoice).toEqual({ type: "auto" });
   });
 
   afterAll(() => {

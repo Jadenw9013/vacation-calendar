@@ -145,10 +145,11 @@ describe("chat setup", () => {
       return state();
     });
     const out = await tools.propose_changes.execute!(
-      { summary: "Add hotel", ops: [hotelNov30] },
+      { ops: [hotelNov30] },
       { toolCallId: "t1", messages: [] } as never,
     );
     expect(reads).toBe(1);
-    expect(out).toMatchObject({ status: "ready", baseVersion: 7 });
+    // The title is the server's, from the ops: the model doesn't write it.
+    expect(out).toMatchObject({ status: "ready", baseVersion: 7, summary: "Add Hotel Casa Santo Domingo" });
   });
 });
