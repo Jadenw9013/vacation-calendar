@@ -41,15 +41,18 @@ for (const size of [
   });
 }
 
-test("no serious accessibility problems on the main screens", async ({ page }) => {
-  await join(page);
-  for (const t of ["Today", "Plan", "To-do", "Trip"]) {
-    await tab(page, t).click();
-    const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-    const serious = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-    expect(serious.map((v) => `${v.id}: ${v.nodes[0]?.target}`), t).toEqual([]);
-  }
-});
+for (const scheme of ["light", "dark"] as const) {
+  test(`no serious accessibility problems on the main screens (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await join(page);
+    for (const t of ["Today", "Plan", "To-do", "Trip"]) {
+      await tab(page, t).click();
+      const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+      const serious = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(serious.map((v) => `${v.id}: ${v.nodes[0]?.target}`), `${t} (${scheme})`).toEqual([]);
+    }
+  });
+}
 
 test("add a dinner by typing one line, see it on the plan, undo it", async ({ page }) => {
   await join(page);
@@ -111,4 +114,21 @@ test("Back from an item page returns to the plan", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Acatenango/ })).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page).toHaveURL(/\/plan$/);
+});
+
+test("a saved post shows as a picture in Plan, Posts and opens in its own player", async ({ page }) => {
+  await join(page);
+  await page.goto("/t/guatemala/item/activity-zipline");
+  await page.getByLabel("Add a link").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await page.getByRole("button", { name: "Add", exact: true }).first().click();
+  await expect(page.getByRole("region", { name: "Saved posts" }).getByRole("button", { name: /^YouTube/ })).toBeVisible({ timeout: 15_000 });
+
+  await page.goto("/t/guatemala/plan/posts");
+  const tile = page.getByRole("button", { name: /^YouTube.*saved to Zip lining/ });
+  await expect(tile).toBeVisible();
+  await tile.click();
+  const viewer = page.getByRole("dialog", { name: /YouTube 1 of/ });
+  await expect(viewer).toBeVisible();
+  await expect(viewer.locator('iframe[src*="youtube-nocookie.com/embed/dQw4w9WgXcQ"]')).toBeVisible();
+  await expect(viewer.getByRole("link", { name: "Open in YouTube" })).toHaveAttribute("href", /dQw4w9WgXcQ/);
 });

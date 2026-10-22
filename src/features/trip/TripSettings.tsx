@@ -7,6 +7,7 @@ import { costs } from "@/domain/derive";
 import { formatRange, formatTime, localParts, monthDay, zoneName } from "@/domain/time";
 import { useTheme, useSunlight, useTextSize, type Theme } from "@/client/prefs";
 import { useTrip } from "@/client/store";
+import { Avatar } from "@/ui/badges";
 import { Icon } from "@/ui/Icon";
 import { btn, field, label, SectionTitle } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
@@ -100,7 +101,8 @@ function People() {
       <SectionTitle>People</SectionTitle>
       <ul className="flex flex-wrap gap-2">
         {everyone.map((p) => (
-          <li key={p} className="flex min-h-10 items-center gap-1 rounded-full border border-line bg-surface pr-1 pl-4 text-base font-semibold">
+          <li key={p} className="flex min-h-10 items-center gap-2 rounded-full border border-line bg-surface py-1 pr-1 pl-1 text-base font-semibold">
+            <Avatar name={p} />
             {p}
             {p === me ? (
               <button type="button" onClick={() => setRenaming(true)} className="min-h-9 rounded-full px-2 text-sm text-accent hover:bg-sunken">

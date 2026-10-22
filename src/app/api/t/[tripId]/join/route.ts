@@ -29,10 +29,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tri
   const store = getStore();
   if (!(await store.get(tripId))) return jsonError(404, "No such trip.");
 
+  // Only wrong passcodes count: a group joining from one hotel wifi must not lock itself out.
   const ip = (request.headers.get("x-forwarded-for") ?? "local").split(",")[0].trim();
-  if ((await store.hit(`join:${tripId}:${ip}`, WINDOW_SECONDS)) > MAX_TRIES) {
-    return jsonError(429, "Too many tries. Wait 15 minutes and try again.");
-  }
+  const failKey = `join:${tripId}:${ip}`;
+  if ((await store.count(failKey)) >= MAX_TRIES) return jsonError(429, "Too many wrong passcodes. Wait 15 minutes and try again.");
 
   // The original trip can have its passcode set at deploy time, so nobody has to claim it first.
   if (tripId === SEED_TRIP_ID && process.env.TRIP_PASSCODE && !(await store.getPass(tripId))) {
@@ -44,6 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tri
     created = await store.claimPass(tripId, await hashPasscode(passcode.trim()));
     if (!created) return jsonError(409, "Someone just set the passcode. Ask the group for it.");
   } else if (!(await checkPasscode(passcode.trim(), stored))) {
+    await store.hit(failKey, WINDOW_SECONDS);
     return jsonError(403, "That passcode doesn't match.", { field: "passcode" });
   }
 

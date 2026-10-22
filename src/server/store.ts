@@ -39,6 +39,8 @@ export interface Backend {
   putIndex(id: string, summary: string): Promise<void>;
   /** Increments a counter that expires after `ttlSeconds`; returns the new count. */
   hit(key: string, ttlSeconds: number): Promise<number>;
+  /** A counter's current value (0 when unset or expired). */
+  count(key: string): Promise<number>;
   /** The v1 trip, if the old single-trip keys exist. */
   legacy(): Promise<string | null>;
 }
@@ -133,6 +135,9 @@ export class TripStore {
   hit(key: string, ttlSeconds: number) {
     return this.db.hit(key, ttlSeconds);
   }
+  count(key: string) {
+    return this.db.count(key);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +194,10 @@ export class MemoryBackend implements Backend {
     const next = c && c.until > now ? { n: c.n + 1, until: c.until } : { n: 1, until: now + ttlSeconds * 1000 };
     this.counters.set(key, next);
     return next.n;
+  }
+  async count(key: string) {
+    const c = this.counters.get(key);
+    return c && c.until > Date.now() ? c.n : 0;
   }
   async legacy() {
     return this.legacyTrip;
@@ -270,6 +279,9 @@ export class RedisBackend implements Backend {
   }
   async hit(key: string, ttlSeconds: number) {
     return Number(await this.redis.eval(HIT, [`rl:${key}`], [String(ttlSeconds)]));
+  }
+  async count(key: string) {
+    return Number((await this.redis.get(`rl:${key}`)) ?? 0);
   }
   async legacy() {
     const v = await this.redis.get("trip:v1:state");

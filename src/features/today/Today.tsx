@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { dayRows, nightOf, nowNext, phase, stayOn, toBook, tripDays, type Row } from "@/domain/derive";
+import { dayRows, nightOf, nights, nowNext, phase, stayOn, toBook, tripDays, type Row } from "@/domain/derive";
 import { directionsUrl, telUrl, whatsappUrl } from "@/domain/links";
 import { daysBetween, formatDay, formatDuration, formatTime, monthDay, todayIn, weekday } from "@/domain/time";
 import type { Item } from "@/domain/types";
 import { useClock } from "@/client/hooks";
 import type { View } from "@/client/router";
 import { useTrip } from "@/client/store";
+import { KindChip } from "@/ui/badges";
 import { Icon } from "@/ui/Icon";
 import { ActionChip, btn, useCopy } from "@/ui/kit";
 import { useCompose } from "../composer/Composer";
@@ -42,7 +43,7 @@ export function Today({ day: chosen, go, serverNow }: { day?: string; go: (v: Vi
           <h1 className="text-2xl font-bold">{trip.name}</h1>
           <Countdown when={when} startDate={trip.startDate} today={today} />
         </div>
-        <DayStrip days={tripDays(trip)} selected={day} today={today} onPick={(d) => go({ tab: "today", day: d })} />
+        <DayStrip days={tripDays(trip)} selected={day} today={today} noBed={new Set(nights(trip).filter((n) => !n.stay).map((n) => n.date))} onPick={(d) => go({ tab: "today", day: d })} />
       </header>
 
       <div className="flex flex-col gap-5 px-4">
@@ -88,7 +89,7 @@ function Countdown({ when, startDate, today }: { when: ReturnType<typeof phase>;
   return <p className="shrink-0 text-base font-semibold text-muted">{n === 1 ? "Tomorrow" : `In ${n} days`}</p>;
 }
 
-function DayStrip({ days, selected, today, onPick }: { days: string[]; selected: string; today: string; onPick: (d: string) => void }) {
+function DayStrip({ days, selected, today, noBed, onPick }: { days: string[]; selected: string; today: string; noBed: Set<string>; onPick: (d: string) => void }) {
   const ref = useRef<HTMLUListElement>(null);
   useEffect(() => {
     ref.current?.querySelector("[aria-current='date']")?.scrollIntoView({ block: "nearest", inline: "center" });
@@ -103,13 +104,14 @@ function DayStrip({ days, selected, today, onPick }: { days: string[]; selected:
               type="button"
               onClick={() => onPick(d)}
               aria-current={sel ? "date" : undefined}
-              aria-label={`${weekday(d, true)} ${monthDay(d)}${d === today ? ", today" : ""}`}
-              className={`flex h-14 w-12 flex-col items-center justify-center rounded-2xl leading-none ${
+              aria-label={`${weekday(d, true)} ${monthDay(d)}${d === today ? ", today" : ""}${noBed.has(d) ? ", nowhere to stay yet" : ""}`}
+              className={`flex h-16 w-12 flex-col items-center justify-center rounded-2xl leading-none ${
                 sel ? "bg-ink text-canvas" : "bg-surface text-ink hover:bg-sunken"
               } ${d === today && !sel ? "ring-2 ring-accent ring-inset" : ""}`}
             >
               <span className="text-xs font-semibold">{weekday(d)}</span>
               <span className="tnum mt-1 text-lg font-bold">{Number(d.slice(8))}</span>
+              <span aria-hidden="true" className={`mt-0.5 size-1.5 rounded-full ${noBed.has(d) ? "bg-todo" : "bg-transparent"}`} />
             </button>
           </li>
         );
@@ -197,7 +199,7 @@ function Tonight({ stay, day, last, onOpen, onFind, onAdd }: { stay: Item | null
   return (
     <section className="rounded-2xl bg-surface p-4">
       <button type="button" onClick={() => onOpen(stay)} className="flex w-full items-start gap-3 text-left">
-        <Icon name={stay.kind === "flight" ? "plane" : "bed"} className="mt-0.5 size-6 text-accent" />
+        <KindChip kind={stay.kind} />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-muted">
             Tonight{n && n.of > 1 ? `, night ${n.night} of ${n.of}` : ""}

@@ -1,20 +1,22 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { tripDays } from "@/domain/derive";
 import { newId } from "@/domain/ids";
-import { classifyLink } from "@/domain/links";
+import { classifyLink, postInfo } from "@/domain/links";
 import type { Op } from "@/domain/ops";
 import { parseLine, type Draft } from "@/domain/parse";
 import { formatDay, formatTime } from "@/domain/time";
 import type { Item, ItemKind, Link } from "@/domain/types";
 import { useClock } from "@/client/hooks";
 import { useTrip } from "@/client/store";
-import { Icon, KIND_ICON, LINK_ICON } from "@/ui/Icon";
+import { KindChip } from "@/ui/badges";
+import { Icon, LINK_ICON } from "@/ui/Icon";
 import { btn, field } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
 import { Assistant } from "../assistant/Assistant";
-import { unfurl } from "../links/unfurl";
+import { unfurl, type Preview } from "../links/unfurl";
+import { InstagramThumb, postThumbSrc } from "../posts/Posts";
 
 /*
  * The one box. Type a plan and it's added; paste a link and it's saved; ask
@@ -164,7 +166,7 @@ function ItemPreview({ draft, kindHint, onDone, onAsk }: { draft: Draft; kindHin
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-line bg-canvas p-4">
       <div className="flex items-start gap-3">
-        <Icon name={KIND_ICON[kind]} className="mt-0.5 size-6" />
+        <KindChip kind={kind} />
         <div className="min-w-0 flex-1">
           <p className="text-lg leading-snug font-bold">{draft.title || <span className="text-muted">What is it?</span>}</p>
           <p className="text-base text-muted">
@@ -222,17 +224,28 @@ function LinkSaver({ urls, rest, itemId, day, onDone }: { urls: string[]; rest: 
   const [target, setTarget] = useState<string>(itemId ?? "new");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const previews = urls.map((u) => ({ url: u, ...classifyLink(u) }));
+  // Previews load as soon as a link is pasted, so the picture shows before anything is saved.
+  const [metas, setMetas] = useState<Record<string, Preview | null>>({});
+  const key = urls.join(" ");
+  useEffect(() => {
+    let live = true;
+    void Promise.all(urls.map(async (u) => [u, await unfurl(trip.id, u)] as const)).then((r) => live && setMetas(Object.fromEntries(r)));
+    return () => {
+      live = false;
+    };
+    // The list of links is the key; re-run only when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, trip.id]);
+  const loading = urls.some((u) => !(u in metas));
   const dated = trip.items.filter((i) => i.start).sort((a, b) => a.start!.date.localeCompare(b.start!.date));
   const undated = trip.items.filter((i) => !i.start);
 
   async function save() {
     setBusy(true);
     setError(null);
-    // Previews where we can get them; a link with no preview is still worth saving.
-    const metas = await Promise.all(urls.map((u) => unfurl(trip.id, u)));
-    const links: Link[] = urls.map((url, i) => {
-      const m = metas[i];
+    // A link whose preview never came is still worth saving.
+    const links: Link[] = urls.map((url) => {
+      const m = metas[url];
       const c = classifyLink(url);
       return {
         id: newId("l"),
@@ -247,7 +260,7 @@ function LinkSaver({ urls, rest, itemId, day, onDone }: { urls: string[]; rest: 
     });
     let ops: Op[];
     if (target === "new") {
-      const placeName = metas.find((m) => m?.placeName)?.placeName;
+      const placeName = Object.values(metas).find((m) => m?.placeName)?.placeName;
       const title = (rest || placeName || links[0].title || `Saved from ${links[0].site}`).slice(0, 200);
       const maps = links.find((l) => l.kind === "maps");
       const item: Item = {
@@ -274,14 +287,9 @@ function LinkSaver({ urls, rest, itemId, day, onDone }: { urls: string[]; rest: 
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-line bg-canvas p-4">
-      <ul className="flex flex-col gap-2">
-        {previews.map((p) => (
-          <li key={p.url} className="flex items-center gap-3">
-            <Icon name={LINK_ICON[p.kind]} className="size-5" />
-            <span className="min-w-0 flex-1 truncate text-base">
-              <span className="font-semibold">{p.site}</span> <span className="text-muted">{p.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
-            </span>
-          </li>
+      <ul className="flex flex-col gap-3">
+        {urls.map((u) => (
+          <LinkPreview key={u} url={u} meta={metas[u]} loading={!(u in metas)} />
         ))}
       </ul>
       <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
@@ -309,10 +317,47 @@ function LinkSaver({ urls, rest, itemId, day, onDone }: { urls: string[]; rest: 
         </select>
       </label>
       {error && <p className="text-base font-semibold text-danger">{error}</p>}
-      <button id="composer-primary" type="button" onClick={save} disabled={busy} className={`${btn.primary} self-start`}>
+      <button id="composer-primary" type="button" onClick={save} disabled={busy || loading} className={`${btn.primary} self-start`}>
         <Icon name="link" />
-        {busy ? "Saving…" : urls.length > 1 ? `Save ${urls.length} links` : "Save link"}
+        {busy ? "Saving…" : loading ? "Getting the preview…" : urls.length > 1 ? `Save ${urls.length} links` : "Save link"}
       </button>
     </div>
+  );
+}
+
+/** A pasted link as it will look once saved: a post's picture and caption, or a page's image and title. */
+function LinkPreview({ url, meta, loading }: { url: string; meta: Preview | null | undefined; loading: boolean }) {
+  const { trip } = useTrip();
+  const c = classifyLink(meta?.url ?? url);
+  const post = postInfo(meta?.url ?? url);
+  const title = meta?.title ?? meta?.placeName;
+  return (
+    <li className="flex items-start gap-3">
+      <span className={`relative shrink-0 overflow-hidden rounded-xl bg-sunken ${post ? "h-28 w-21" : "size-16"}`}>
+        {post?.platform === "instagram" ? (
+          <InstagramThumb code={post.id} />
+        ) : post ? (
+          // eslint-disable-next-line @next/next/no-img-element -- through our own route: TikTok's image servers refuse other sites
+          <img src={postThumbSrc(trip.id, meta?.url ?? url)} alt="" className="absolute inset-0 size-full object-cover" />
+        ) : meta?.image ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a fresh preview, shown once
+          <img src={meta.image} alt="" referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover" />
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <Icon name={LINK_ICON[meta?.kind ?? c.kind]} className={`size-6 ${loading ? "animate-pulse" : ""}`} />
+          </span>
+        )}
+        {post && (
+          <span className="absolute top-1 left-1 flex size-6 items-center justify-center rounded-full bg-black/50 text-white">
+            <Icon name={LINK_ICON[meta?.kind ?? c.kind]} className="size-3.5" />
+          </span>
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-muted">{post?.label ?? meta?.site ?? c.site}</span>
+        <span className="line-clamp-3 text-base leading-snug font-semibold">{loading ? "Getting the preview…" : (title ?? url.replace(/^https?:\/\/(www\.)?/, ""))}</span>
+        {meta?.description && <span className="block truncate text-sm text-muted">{meta.description}</span>}
+      </span>
+    </li>
   );
 }

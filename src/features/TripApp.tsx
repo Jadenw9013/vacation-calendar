@@ -50,7 +50,7 @@ function Screens({ tripId, serverNow }: { tripId: string; serverNow: number }) {
       <TopBar active={active} onPick={(t) => go({ tab: t } as View)} />
       <main id="main" className="pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-16">
         {view.tab === "today" && <Today day={view.day} go={go} serverNow={serverNow} />}
-        {view.tab === "plan" && <Plan go={go} />}
+        {view.tab === "plan" && <Plan section={view.section} go={go} />}
         {view.tab === "todo" && <Todo go={go} />}
         {view.tab === "trip" && <TripSettings />}
         {view.tab === "item" && <ItemPage key={view.itemId} itemId={view.itemId} go={go} back={() => back({ tab: "plan" })} />}
@@ -86,8 +86,9 @@ function BottomBar({ active, onPick }: { active: Tab; onPick: (t: Tab) => void }
         type="button"
         onClick={() => onPick(t.id)}
         aria-current={active === t.id ? "page" : undefined}
-        className={`flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${active === t.id ? "text-ink" : "text-muted"}`}
+        className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold ${active === t.id ? "text-accent" : "text-muted"}`}
       >
+        {active === t.id && <span aria-hidden="true" className="absolute top-0 h-1 w-8 rounded-b-full bg-accent" />}
         <Icon name={t.icon} className="size-6" />
         {t.label}
       </button>
@@ -120,7 +121,7 @@ function TopBar({ active, onPick }: { active: Tab; onPick: (t: Tab) => void }) {
                 type="button"
                 onClick={() => onPick(t.id)}
                 aria-current={active === t.id ? "page" : undefined}
-                className={`flex min-h-11 items-center gap-2 rounded-xl px-3 text-base font-semibold ${active === t.id ? "bg-sunken text-ink" : "text-muted hover:text-ink"}`}
+                className={`flex min-h-11 items-center gap-2 rounded-xl px-3 text-base font-semibold ${active === t.id ? "bg-accent-soft text-accent" : "text-muted hover:text-ink"}`}
               >
                 <Icon name={t.icon} />
                 {t.label}

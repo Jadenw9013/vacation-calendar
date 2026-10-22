@@ -140,3 +140,13 @@ describe("creating a trip", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("joining from one address", () => {
+  it("lets a whole group join from the same wifi", async () => {
+    await join("Sam", "volcano");
+    for (let i = 0; i < 15; i++) {
+      jar.clear();
+      expect((await join(`Friend${String.fromCharCode(97 + i)}`, "volcano")).status).toBe(200);
+    }
+  });
+});

@@ -299,8 +299,20 @@ Not done yet, or not checked:
 - **The real assistant was run (Oct 22):** 10 of 10 eval cases pass on Gemini 3.8 Flash with Maps and Search, in 2 to 32 seconds per answer. The run caught and fixed three problems: guest and host names copied from bookings, a host set as "who's on it", and a batch that touched one booked item being refused whole, which made planning a day take 83 seconds instead of 14.
 - **Desktop is one centered column.** The two-pane layout (list and item side by side) isn't built.
 - **No photo uploads.** An item's picture comes from its first link's preview.
-- **Instagram links show without a thumbnail** (Meta needs an app token for oEmbed).
+- **Instagram pictures come from Instagram's own embed**, loaded on the phone. Servers get a login wall, so there's no caption and no offline picture for Instagram posts.
 - **Others' changes** appear within a minute (or when the app comes back into view), not instantly, and they aren't flagged as "Updated". The Activity list on the Trip tab shows who changed what.
 - **Undo for offline edits** appears once they sync.
 
 The v1 app is kept unchanged in `../vacation-calendar-v1-backup`.
+
+### Added after the first merge (Oct 22)
+
+- **Saved posts** as a profile-style grid on the Plan tab and on each item page, with a full-screen viewer that plays the post in its own player. TikTok covers are fetched fresh because TikTok's image links expire; YouTube thumbnails are permanent; Instagram uses its official embed.
+- **Color for meaning:**
+  - a color and icon chip for each kind of item
+  - filled status pills: green Booked, amber To book, violet Maybe
+  - colored initial avatars for people
+  - an amber dot on days with nowhere to stay
+  - all checked against WCAG AA in light and dark
+- **Joining no longer locks out a group on shared wifi.** Only wrong passcodes count toward the limit.
+- **A message typed while the assistant is still answering** is queued and sent when it finishes, instead of being ignored.

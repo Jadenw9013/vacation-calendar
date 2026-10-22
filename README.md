@@ -7,7 +7,10 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
 ## Using it
 
 - **Today**: the next thing on the day, as a big ticket, with one tap to get directions, call, message on WhatsApp or copy the confirmation. Below it, where you sleep tonight, then the rest of the day. Before the trip, a countdown and what's left to book.
-- **Plan**: every day in order, where you sleep each night, a link that opens the day's route in Google Maps, and **Ideas**: things saved without a day yet.
+- **Plan**: laid out like a profile, with the trip's photo, the people and its numbers, then three tabs:
+  - **Days:** every day in order, where you sleep each night, and a link that opens the day's route in Google Maps.
+  - **Ideas:** things saved without a day yet.
+  - **Posts:** every saved TikTok, Reel and YouTube video as a grid of pictures. Tap one to play it full screen in its own player, swipe through the rest, or open it in the app.
 - **To-do**: things still to book (with their booking link and a one-tap **Booked** that asks for the confirmation number), what's missing (a night with no bed, the flight home), and the group's list.
 - **Trip**: details, people, inviting someone, the passcode, trip notes (entry rules, money), costs, everything that's changed with **Undo**, and display settings: light, dark, **Sunlight** (black on white for reading outdoors) and large text.
 - **The + button**: one box for everything.
@@ -18,13 +21,23 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
   - when and where it is
   - the reservation, with link, confirmation, price and who booked it
   - contact details: phone, WhatsApp, email, website, Instagram
-  - links and posts, with previews
+  - saved posts as a picture grid, and other links with previews
   - notes and a checklist
   - who's on it
   - **Ask about this**
 
   Every field is edited in place, and every change can be undone.
 - **Sharing from other apps (Android)**: once the app is installed, it appears in the share sheet. Share a TikTok, a Reel or a Maps place and it lands in the trip. On iPhone, copy the link and paste it into the + box.
+
+## Post pictures
+
+| Platform | Where the picture comes from |
+|---|---|
+| YouTube | Its permanent thumbnails. |
+| TikTok | The server reads the video page for the caption, author and cover. TikTok's image links expire, so the picture is fetched fresh through `/api/t/{id}/thumb`. |
+| Instagram | Instagram shows servers a login wall, so tiles show Instagram's own embed, cropped to the photo. |
+
+Pictures are kept on the phone by the service worker, so the grid still shows offline. The videos themselves need a connection.
 
 ## Privacy
 
@@ -98,6 +111,7 @@ All trip routes need the trip's cookie, from joining. POST routes refuse cross-s
 | `POST /api/t/{id}/undo` | `{ entryId }`. Undoes that change on top of whatever happened since |
 | `GET /api/t/{id}/history` | The change log, newest first |
 | `POST /api/t/{id}/unfurl` | `{ url }`. A link's title, picture and kind |
+| `GET /api/t/{id}/thumb` | `?item=&link=` a saved link's picture, or `?post=` a post's picture before saving (post links only) |
 | `POST /api/t/{id}/chat` | The assistant (AI SDK UI message stream) |
 
 ## Running locally
