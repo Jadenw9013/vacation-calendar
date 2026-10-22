@@ -1,41 +1,23 @@
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { TripShell } from "@/components/TripShell";
-import { chatAvailability } from "@/lib/llm/provider";
-import { getRepository, isMemoryStore } from "@/lib/repo";
+import { Home } from "@/features/home/Home";
+import { joinedTrips } from "@/server/auth";
+import { getStore } from "@/server/db";
+import { SEED_TRIP_ID } from "@/server/seed";
 
-/** The stored trip, its recent history, and when it was read (shown as "updated 2:14 PM" offline). */
-async function readTrip() {
-  const repo = getRepository();
-  const [{ trip, version }, history] = await Promise.all([repo.get(), repo.history(50)]);
-  return { trip, version, history, readAt: Date.now() };
-}
+/** Your trips. With exactly one, it opens straight away. */
+export default async function Page({ searchParams }: { searchParams: Promise<{ all?: string }> }) {
+  await connection();
+  const { all } = await searchParams;
+  const store = getStore();
+  const ids = await joinedTrips();
+  const trips = ids.length ? await store.list(ids) : [];
+  if (trips.length === 1 && !all) redirect(`/t/${trips[0].id}`);
 
-export default async function Home() {
-  await connection(); // always render with the latest stored trip
-  const { trip, version, history, readAt } = await readTrip();
+  // The original trip, so the old link to this site still leads to it. The passcode still guards it.
+  const seed = await store.get(SEED_TRIP_ID);
+  const claimed = !!process.env.TRIP_PASSCODE || (await store.getPass(SEED_TRIP_ID)) !== null;
+  const original = seed && !ids.includes(SEED_TRIP_ID) ? { id: SEED_TRIP_ID, name: seed.trip.name, claimed } : null;
 
-  const devNotes = [
-    isMemoryStore() && "Local store: edits live in memory and reset when the server restarts.",
-  ].filter((n): n is string => !!n);
-
-  // Names people have already used, offered as one-tap choices in the picker.
-  const knownNames = [...new Set([...history.map((e) => e.author), ...trip.segments.flatMap((s) => (s.owner ? [s.owner] : []))])]
-    .filter((n) => n !== "assistant")
-    .slice(0, 8);
-
-  const chat = chatAvailability();
-
-  return (
-    <TripShell
-      trip={trip}
-      version={version}
-      serverNow={readAt}
-      devNotes={devNotes}
-      chatAvailable={chat.available}
-      chatVision={chat.vision}
-      debugTiming={process.env.DEBUG_TIMING === "1"}
-      knownNames={knownNames}
-      updates={history}
-    />
-  );
+  return <Home trips={trips} original={original} />;
 }

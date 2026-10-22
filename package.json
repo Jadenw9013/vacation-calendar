@@ -1,5 +1,5 @@
 {
-  "name": "guatemala-trip",
+  "name": "trip",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,12 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "gaps": "tsx scripts/print-gaps.ts",
-    "chat:eval": "tsx --env-file-if-exists=.env.local scripts/chat-eval.ts",
-    "eval:screenshots": "tsx --env-file-if-exists=.env.local scripts/screenshot-eval.ts",
-    "e2e": "NEXT_DIST_DIR=.next-e2e next build && NEXT_DIST_DIR=.next-e2e playwright test",
-    "chat:bench": "tsx scripts/chat-bench.ts"
+    "e2e": "playwright test",
+    "summary": "tsx --conditions=react-server scripts/trip-summary.ts",
+    "assistant:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/assistant-eval.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.77",

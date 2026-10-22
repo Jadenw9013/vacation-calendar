@@ -1,90 +1,90 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Four colors with one job each, plus neutrals:
- *   booked  – quiet: done, nothing to do
- *   action  – loudest: needs booking or a decision
- *   now     – what's happening now, links and focus
- *   ink / muted / line / canvas / surface – everything else
- * Primary text is at least 12:1 on every background, secondary text and
- * status labels at least 7:1, in light, dark and Sunlight mode.
+ * Tokens. Light by default, dark when the phone is dark, Sunlight for
+ * reading outdoors. Components use only these names, never raw colors.
+ *
+ *   canvas / surface / sunken   page, raised rows and sheets, wells
+ *   ink / muted / line          text, secondary text, rules
+ *   accent                      links and primary actions (lagoon teal)
+ *   ticket / on-ticket          the "Next" stub on Today: the one loud thing
+ *   todo                        "needs booking" marks: quiet, never a banner
+ *   danger                      delete
  */
 :root {
-  color-scheme: dark;
-  --canvas: #090d12;
-  --surface: #10161d;
-  --sunken: #161f2a;
-  --ink: #f1f5f9;
-  --muted: #94a3b8;
-  --line: #1e293b;
-  --booked: #34d399;
-  --booked-soft: #064e3b;
-  --action: #f97316;
-  --action-soft: #2a1406;
-  --now: #60a5fa;
-  --now-soft: #172554;
-  /* Text on a booked, action or now fill. */
-  --on-fill: #ffffff;
-
-  /* Neutral ramp matching the dark slate design */
-  --g50: #161d26;
-  --g100: #1c2532;
-  --g200: #263344;
-  --g300: #334155;
-  --g400: #64748b;
-  --g500: #94a3b8;
-  --g600: #cbd5e1;
-  --g700: #e2e8f0;
-  --g800: #f1f5f9;
-  --g900: #ffffff;
+  color-scheme: light;
+  --canvas: #f1f3f2;
+  --surface: #ffffff;
+  --sunken: #e6eae9;
+  --ink: #15191d;
+  --muted: #535d64;
+  --line: #d3d9dc;
+  --accent: #0b6476;
+  --accent-soft: #dceff2;
+  --on-accent: #ffffff;
+  --ticket: #ffc21a;
+  --on-ticket: #15191d;
+  --todo: #8a4b00;
+  --todo-soft: #fbecd6;
+  --danger: #b3261e;
+  --shadow: 0 1px 2px rgb(21 25 29 / 0.06), 0 8px 24px rgb(21 25 29 / 0.08);
 }
 
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    /* If specifically in light mode without dark preference, keep dark luxury as default theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #0f1214;
+    --surface: #171b1f;
+    --sunken: #21272c;
+    --ink: #ecf0f2;
+    --muted: #a3aeb5;
+    --line: #2d353b;
+    --accent: #5cc6d8;
+    --accent-soft: #123a42;
+    --on-accent: #0f1214;
+    --ticket: #ffc21a;
+    --on-ticket: #15191d;
+    --todo: #ffb95c;
+    --todo-soft: #3a2a12;
+    --danger: #ff8a80;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
   }
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0f1214;
+  --surface: #171b1f;
+  --sunken: #21272c;
+  --ink: #ecf0f2;
+  --muted: #a3aeb5;
+  --line: #2d353b;
+  --accent: #5cc6d8;
+  --accent-soft: #123a42;
+  --on-accent: #0f1214;
+  --todo: #ffb95c;
+  --todo-soft: #3a2a12;
+  --danger: #ff8a80;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+}
 
-/*
- * Sunlight mode: maximum contrast for reading outdoors. Pure black on white
- * (or white on black at night), heavier type, thicker borders, no photos or
- * translucency behind text.
- */
+/* Sunlight: black on white, heavier type and rules, nothing translucent. Wins over light and dark. */
 :root[data-sunlight] {
+  color-scheme: light;
   --canvas: #ffffff;
   --surface: #ffffff;
-  --sunken: #f2f2f2;
+  --sunken: #ececec;
   --ink: #000000;
-  --muted: #24272d;
+  --muted: #1f2328;
   --line: #000000;
-  --booked: #00443c;
-  --booked-soft: #ffffff;
-  --action: #7a1c00;
-  --action-soft: #ffffff;
-  --now: #0b2a8f;
-  --now-soft: #ffffff;
-  --on-fill: #ffffff;
-  --g400: #24272d;
-  --g500: #24272d;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-sunlight] {
-    --canvas: #000000;
-    --surface: #000000;
-    --sunken: #1a1a1a;
-    --ink: #ffffff;
-    --muted: #e6e6e6;
-    --line: #ffffff;
-    --booked: #7ef5e2;
-    --booked-soft: #000000;
-    --action: #ffc796;
-    --action-soft: #000000;
-    --now: #c2d3ff;
-    --now-soft: #000000;
-    --on-fill: #000000;
-    --g400: #e6e6e6;
-    --g500: #e6e6e6;
-  }
+  --accent: #00404d;
+  --accent-soft: #ffffff;
+  --on-accent: #ffffff;
+  --ticket: #ffd23f;
+  --on-ticket: #000000;
+  --todo: #5c2f00;
+  --todo-soft: #ffffff;
+  --danger: #8c0000;
+  --shadow: none;
 }
 :root[data-sunlight] body {
   font-weight: 500;
@@ -93,37 +93,18 @@
 :root[data-sunlight] .font-medium {
   font-weight: 700;
 }
-:root[data-sunlight] .border {
+:root[data-sunlight] .border,
+:root[data-sunlight] .border-b,
+:root[data-sunlight] .border-t {
   border-width: 2px;
 }
-:root[data-sunlight] .border-2 {
-  border-width: 3px;
-}
-:root[data-sunlight] dialog::backdrop {
-  background: rgb(0 0 0 / 0.85);
-}
-/* Photo headers become solid black with white text. */
-:root[data-sunlight] .photo-card img,
-:root[data-sunlight] .photo-card .photo-shade {
+:root[data-sunlight] .cover-photo {
   display: none;
 }
-:root[data-sunlight] .photo-card {
-  background: #000000;
-  outline: 2px solid var(--line);
-}
 
-/* Large text: everything is sized in rem, so this (and browser text zoom) scales it all. */
+/* Large text: everything is in rem, so this (and browser zoom) scales it all. */
 :root[data-text="large"] {
   font-size: 112.5%;
-}
-/* On narrow phones at Large, a row's time sits above its title instead of beside it. */
-@media (max-width: 420px) {
-  :root[data-text="large"] .agenda-row {
-    flex-wrap: wrap;
-  }
-  :root[data-text="large"] .agenda-row .time-col {
-    width: 100%;
-  }
 }
 
 @theme inline {
@@ -133,85 +114,22 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
-  --color-booked: var(--booked);
-  --color-booked-soft: var(--booked-soft);
-  --color-action: var(--action);
-  --color-action-soft: var(--action-soft);
-  --color-now: var(--now);
-  --color-now-soft: var(--now-soft);
-  --color-on-fill: var(--on-fill);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-ticket: var(--ticket);
+  --color-on-ticket: var(--on-ticket);
+  --color-todo: var(--todo);
+  --color-todo-soft: var(--todo-soft);
+  --color-danger: var(--danger);
+  --shadow-lift: var(--shadow);
 
-  /*
-   * The older palette names, mapped onto the tokens so components not yet
-   * restyled still follow the theme.
-   */
-  --color-white: #ffffff;
-  --color-gray-50: var(--g50);
-  --color-gray-100: var(--g100);
-  --color-gray-200: var(--g200);
-  --color-gray-300: var(--g300);
-  --color-gray-400: var(--g400);
-  --color-gray-500: var(--g500);
-  --color-gray-600: var(--g600);
-  --color-gray-700: var(--g700);
-  --color-gray-800: var(--g800);
-  --color-gray-900: var(--g900);
-  --color-red-50: var(--action-soft);
-  --color-red-100: var(--action-soft);
-  --color-red-200: var(--action);
-  --color-red-600: var(--action);
-  --color-red-700: var(--action);
-  --color-emerald-400: var(--booked);
-  --color-emerald-500: var(--booked);
-  --color-volcano: var(--ink);
-  --color-basalt: var(--ink);
-  --color-lake: var(--booked);
-  --color-lake-hover: var(--booked);
-  --color-maya: var(--action);
-  --color-maya-light: var(--action-soft);
-  --color-maya-border: var(--action);
-  --color-antigua: var(--muted);
-  --color-stone: var(--sunken);
-  --color-stone-light: var(--canvas);
-  --color-stone-surface: var(--surface);
-  --color-stone-border: var(--line);
-  --color-night: var(--ink);
-  --color-night-card: var(--sunken);
-  --color-night-border: var(--line);
-  --color-ash: var(--canvas);
-  --color-pumice: var(--muted);
-  --color-scree: var(--line);
-  --color-card: var(--surface);
-  --color-on-lake: var(--on-fill);
-  --color-hazard: var(--action);
-  --color-on-hazard: var(--on-fill);
-  --color-ember: var(--action);
-
-  /* One sans family for everything; the display face is for titles. */
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: var(--font-fraunces), Georgia, serif;
-  --font-mono: var(--font-sans);
-  --font-display: var(--font-fraunces), Georgia, serif;
-  --font-handwriting: var(--font-caveat), cursive;
-}
-
-.font-handwriting {
-  font-family: var(--font-caveat), cursive;
-}
-
-.font-display {
-  font-family: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-atkinson), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
-  scroll-padding-top: 9rem;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth;
-  }
+  overflow-x: clip;
 }
 
 body {
@@ -220,40 +138,58 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
+  overflow-x: clip;
 }
 
-/* Times and other figures line up. */
+/* Times and prices line up in columns. */
 .tnum,
-time,
-.font-mono {
+time {
   font-variant-numeric: tabular-nums;
 }
 
-/* Older class name: now just bold sans. */
-.wide {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
 :focus-visible {
-  outline: 3px solid var(--now);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* Native dialogs follow the theme. */
 dialog {
   background: var(--surface);
   color: var(--ink);
 }
 dialog::backdrop {
-  background: rgb(0 0 0 / 0.55);
+  background: rgb(0 0 0 / 0.5);
 }
 
-/* Just-applied items: highlighted for a moment, no animation (all motion here stays under 150ms). */
-.flash {
-  background: var(--now-soft);
-  outline: 2px solid var(--now);
-  outline-offset: 2px;
+/* The perforation between the Next ticket and its stub of actions. */
+.perforation {
+  position: relative;
+  border-top: 2px dashed color-mix(in srgb, var(--on-ticket) 35%, transparent);
+}
+.perforation::before,
+.perforation::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--canvas);
+}
+.perforation::before {
+  left: -11px;
+}
+.perforation::after {
+  right: -11px;
+}
+
+/* Something just changed here: a brief tint, so the eye finds it. */
+@keyframes changed {
+  from {
+    background: var(--accent-soft);
+  }
+}
+.just-changed {
+  animation: changed 1.6s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -261,8 +197,15 @@ dialog::backdrop {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Scroll rows without a visible bar (the day chips). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
