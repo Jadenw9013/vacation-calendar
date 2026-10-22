@@ -33,7 +33,20 @@ export function chatFor(tripId: string): Chat<AssistantMessage> {
   if (!chat) {
     chat = new Chat<AssistantMessage>({
       id: `trip-${tripId}`,
-      transport: new DefaultChatTransport({ api: `/api/t/${tripId}/chat`, body: () => ({ context: { ...context } }) }),
+      transport: new DefaultChatTransport({
+        api: `/api/t/${tripId}/chat`,
+        // Screenshots go once, with the message they came with: earlier ones aren't resent every turn.
+        prepareSendMessagesRequest: ({ id, messages }) => {
+          const last = messages.findLastIndex((m) => m.role === "user");
+          return {
+            body: {
+              id,
+              context: { ...context },
+              messages: messages.map((m, i) => (i === last ? m : { ...m, parts: m.parts.filter((p) => p.type !== "file") })),
+            },
+          };
+        },
+      }),
       sendAutomaticallyWhen: answeredQuestion,
     });
     chats.set(tripId, chat);

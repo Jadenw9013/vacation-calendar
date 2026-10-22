@@ -251,3 +251,15 @@ describe("posts", () => {
     expect(url).toContain("Cerro de la Cruz, Guatemala");
   });
 });
+
+describe("booked items", () => {
+  it("lets a missing time be filled in without asking, but asks before moving the day or changing a time", () => {
+    // The hike's return is known only by day (Nov 30): adding 2:00 PM isn't a move.
+    const fill = prepareChange(state(), [{ op: "item.update", id: "hike-acatenango", set: { end: { date: "2026-11-30", time: "14:00" } } }], { author: "Sam" });
+    expect(fill.ok).toBe(true);
+    const moveDay = prepareChange(state(), [{ op: "item.update", id: "hike-acatenango", set: { end: { date: "2026-12-01" } } }], { author: "Sam" });
+    expect(moveDay.ok).toBe(false);
+    const retime = prepareChange(state(), [{ op: "item.update", id: "lodging-atitlan", set: { start: { date: "2026-11-25", time: "16:00" } } }], { author: "Sam" });
+    expect(retime.ok).toBe(false);
+  });
+});

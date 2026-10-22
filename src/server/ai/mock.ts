@@ -10,6 +10,7 @@ import { MockLanguageModelV4 } from "ai/test";
  * - "plan"   → add_items: three suggested steps on the day on screen
  * - "remove" or "delete" → remove_items for cliff jumping (a confirm card)
  * - "add dinner" with no day → ask_user: which day?
+ * - a screenshot → add_items: a made-up booked stay with a confirmation number
  * - anything else → a short text answer
  * - after a tool result → one line
  */
@@ -53,9 +54,30 @@ function script(prompt: Prompt): Chunk[] {
     if (out.includes("ask_user")) return call("add_items", { items: [{ title: "Group dinner", kind: "food", date: "2026-11-28", time: "19:30", booking: "todo", maybe: true }] });
     if (out.includes("needsConfirmation")) return text("That needs a tap from you to confirm.");
     if (out.includes("shown")) return text("Tap Add on any of these to put it on the day. (These are made-up places from the test assistant.)");
+    if (out.includes("Test Posada")) return text("Recorded a made-up test booking from the screenshot.");
     return text("Done. You can undo it from the message below.");
   }
   const said = lastUser(prompt);
+  const user = [...prompt].reverse().find((p) => p.role === "user");
+  const pictures = ((user?.content as { type: string }[]) ?? []).filter((c) => c.type === "file").length;
+  if (pictures) {
+    const n = /screenshot (\d+)/.exec(said)?.[1] ?? "1";
+    return call("add_items", {
+      items: [
+        {
+          title: `Test Posada ${n}`,
+          kind: "stay",
+          date: "2026-11-30",
+          time: "15:00",
+          endDate: "2026-12-01",
+          endTime: "11:00",
+          booking: "booked",
+          confirmation: `TEST-${n}00`,
+          address: "3a Calle Oriente 28, Antigua",
+        },
+      ],
+    });
+  }
   if (/\b(eat|restaurant|dinner near|food)\b/.test(said)) {
     return call("show_options", {
       heading: "Places to eat near your stay",
@@ -81,10 +103,21 @@ function script(prompt: Prompt): Chunk[] {
   return text("(Test assistant) Try asking where to eat, to plan a day, or to remove something.");
 }
 
+/** The same script as one response, for calls that don't stream (reading screenshots). */
+function generated(prompt: Prompt) {
+  const chunks = script(prompt);
+  const content: Chunk[] = chunks.flatMap((c): Chunk[] =>
+    c.type === "text-delta" ? [{ type: "text", text: c.delta }] : c.type === "tool-call" ? [{ type: "tool-call", toolCallId: c.toolCallId, toolName: c.toolName, input: c.input }] : [],
+  );
+  const finish = chunks.find((c) => c.type === "finish") as { finishReason: unknown };
+  return { content, finishReason: finish.finishReason, usage, warnings: [] };
+}
+
 export function mockModel(): LanguageModel {
   return new MockLanguageModelV4({
     doStream: async ({ prompt }) => ({
       stream: simulateReadableStream({ chunks: script(prompt as unknown as Prompt) as never, chunkDelayInMs: 30 }),
     }),
+    doGenerate: async ({ prompt }) => generated(prompt as unknown as Prompt) as never,
   });
 }

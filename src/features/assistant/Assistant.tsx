@@ -14,6 +14,7 @@ import { KindChip } from "@/ui/badges";
 import { Icon, KIND_ICON } from "@/ui/Icon";
 import { btn, field } from "@/ui/kit";
 import { chatFor, newConversation, setAssistantContext, type AssistantMessage } from "./chat";
+import { shrink } from "./images";
 
 /**
  * The assistant: answers with real places and sources, changes the trip
@@ -59,7 +60,7 @@ export function Assistant({ first, itemId, day }: { first: string; itemId: strin
 
   async function attach(files: FileList | null) {
     const list = Array.from(files ?? []).slice(0, 4 - images.length);
-    const urls = await Promise.all(list.map(shrink));
+    const urls = await Promise.all(list.map((f) => shrink(f)));
     setImages((cur) => [...cur, ...urls.filter((u): u is string => !!u)].slice(0, 4));
   }
 
@@ -216,21 +217,6 @@ function friendly(message: string): string {
     // Plain text.
   }
   return message || "The assistant didn't answer. Try again.";
-}
-
-/** Shrinks a photo to at most 1600px on its long side, as JPEG: plenty to read a confirmation, small to send. */
-async function shrink(file: File): Promise<string | null> {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.82);
-  } catch {
-    return null;
-  }
 }
 
 function Message({ m, onAnswer }: { m: AssistantMessage; onAnswer: (toolCallId: string, output: string) => void }) {
@@ -398,7 +384,7 @@ function Question({ part, onAnswer }: { part: Extract<AssistantMessage["parts"][
 const VERBS: Record<string, string> = { removed: "Remove", changed: "Change", moved: "Move", updated: "Update", added: "Add", marked: "Mark", renamed: "Rename", edited: "Edit", cleared: "Clear", put: "Put" };
 
 /** "removed “X”" → "Remove “X”": a change that hasn't happened yet. */
-const asProposal = (s: string) => s.replace(/^(\w+)/, (v) => VERBS[v] ?? v.charAt(0).toUpperCase() + v.slice(1));
+export const asProposal = (s: string) => s.replace(/^(\w+)/, (v) => VERBS[v] ?? v.charAt(0).toUpperCase() + v.slice(1));
 
 function ChangeCard({ result }: { result: ChangeResult }) {
   const { undo, tripId, trip } = useTrip();
@@ -441,7 +427,7 @@ function ChangeCard({ result }: { result: ChangeResult }) {
 }
 
 /** A change only a person can make: removing something, or moving something booked. */
-function ConfirmCard({ pending }: { pending: { message: string; ops: Op[]; summary: string[] } }) {
+export function ConfirmCard({ pending }: { pending: { message: string; ops: Op[]; summary: string[] } }) {
   const { apply } = useTrip();
   const [state, setState] = useState<"idle" | "confirmed" | "dismissed">("idle");
   if (state === "confirmed") return <p className="text-base font-semibold text-accent">Done.</p>;

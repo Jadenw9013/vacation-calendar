@@ -55,4 +55,4 @@ Today's **Next** card is a ticket stub: marigold, a big tabular time, the title,
 
 ## Words
 
-Sentence case, plain verbs, and names from the traveler's point of view: "To book", not "needs-booking"; "Ideas", not "unscheduled items". A button says what happens ("Mark booked"), and the toast that follows says the same thing ("Marked Zip lining booked", with Undo). Errors say what happened and what to do, and never apologize.
+Sentence case, plain verbs, and names from the traveler's point of view: "To book", not "needs-booking"; "Ideas", not "unscheduled items". A button says what happens ("Mark as booked"), and the toast that follows says the same thing ("Marked Zip lining booked", with Undo). A status is never worded like a button and a button is never worded like a status: on the To-do list each row shows its status pill (To book) and, separately, the action (Mark as booked). Errors say what happened and what to do, and never apologize.

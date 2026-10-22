@@ -17,6 +17,7 @@ import { Sheet } from "@/ui/Sheet";
 import { Assistant } from "../assistant/Assistant";
 import { unfurl, type Preview } from "../links/unfurl";
 import { InstagramThumb, postThumbSrc } from "../posts/Posts";
+import { ImportProgress, ImportProvider, MAX_SCREENSHOTS, ScreenshotButton, useImport } from "./ScreenshotImport";
 
 /*
  * The one box. Type a plan and it's added; paste a link and it's saved; ask
@@ -52,10 +53,13 @@ export function ComposerProvider({ children, serverNow }: { children: ReactNode;
   }, []);
   return (
     <Ctx.Provider value={{ compose }}>
-      {children}
-      <Sheet open={!!req} onClose={() => setReq(null)} title={req?.ask || req?.itemId ? "Ask" : "Add or ask"} wide>
-        {req && <ComposerBody key={session} req={req} serverNow={serverNow} onDone={() => setReq(null)} />}
-      </Sheet>
+      {/* Screenshot reading lives out here, so it carries on when the sheet is closed. */}
+      <ImportProvider>
+        {children}
+        <Sheet open={!!req} onClose={() => setReq(null)} title={req?.ask || req?.itemId ? "Ask" : "Add or ask"} wide>
+          {req && <ComposerBody key={session} req={req} serverNow={serverNow} onDone={() => setReq(null)} />}
+        </Sheet>
+      </ImportProvider>
     </Ctx.Provider>
   );
 }
@@ -63,20 +67,49 @@ export function ComposerProvider({ children, serverNow }: { children: ReactNode;
 const KIND_WORD: Record<ItemKind, string> = { stay: "Place to stay", flight: "Flight", transport: "Getting around", activity: "Activity", food: "Food and drink", other: "Other" };
 
 function ComposerBody({ req, serverNow, onDone }: { req: ComposeRequest; serverNow: number; onDone: () => void }) {
-  const { trip } = useTrip();
+  const { trip, notify } = useTrip();
+  const { start } = useImport();
   const nowMs = useClock(serverNow);
   const [text, setText] = useState(req.text ?? "");
+  const [dragging, setDragging] = useState(false);
+  const takeScreenshots = (files: File[]) => {
+    const left = start(files);
+    if (left > 0) notify(`Reading the first ${MAX_SCREENSHOTS}. Add the other ${left} after.`);
+  };
   const [asking, setAsking] = useState<string | null>(req.ask || req.itemId ? (req.text ?? "") : null);
   const parsed = useMemo(() => parseLine(text, { trip, nowMs, day: req.day }), [text, trip, nowMs, req.day]);
 
   if (asking !== null) return <Assistant first={asking} itemId={req.itemId ?? null} day={req.day ?? null} />;
 
   return (
-    <div className="flex flex-col gap-4 pt-1">
+    <div
+      className={`flex flex-col gap-4 rounded-2xl pt-1 ${dragging ? "outline-2 outline-offset-4 outline-accent outline-dashed" : ""}`}
+      onDragOver={(e) => {
+        if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        const files = [...e.dataTransfer.files];
+        if (!files.length) return;
+        e.preventDefault();
+        setDragging(false);
+        takeScreenshots(files);
+      }}
+    >
+      <ImportProgress />
       <textarea
         data-autofocus
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onPaste={(e) => {
+          // Pasted screenshots are read as bookings; pasted text stays text.
+          const files = [...e.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+          if (!files.length) return;
+          e.preventDefault();
+          takeScreenshots(files);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
             e.preventDefault();
@@ -91,6 +124,12 @@ function ComposerBody({ req, serverNow, onDone }: { req: ComposeRequest; serverN
         aria-label="Add or ask"
         className={`${field} resize-none text-lg`}
       />
+      {parsed.type === "empty" && (
+        <div className="flex flex-col gap-1">
+          <ScreenshotButton className="self-start" />
+          <p className="text-sm text-muted">Up to {MAX_SCREENSHOTS} at once: confirmation emails, Airbnb, airline and tour bookings. Each one becomes a booking with its dates, confirmation number and address.</p>
+        </div>
+      )}
 
       {parsed.type === "empty" && <Hints day={req.day ?? null} onPick={setText} onAsk={(t) => setAsking(t)} />}
       {parsed.type === "ask" && (
