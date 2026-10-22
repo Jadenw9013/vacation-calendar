@@ -3,18 +3,20 @@
 import { useState, type ReactNode } from "react";
 import { tripDays } from "@/domain/derive";
 import { newId } from "@/domain/ids";
-import { classifyLink, directionsUrl, extractUrls, hasContact, instagramUrl, mailUrl, mapsLink, telUrl, whatsappUrl } from "@/domain/links";
+import { classifyLink, directionsUrl, extractUrls, hasContact, instagramUrl, isPost, mailUrl, mapsLink, telUrl, whatsappUrl } from "@/domain/links";
 import type { Op } from "@/domain/ops";
 import type { ItemPatchT } from "@/domain/schema";
 import { formatDay, zoneName } from "@/domain/time";
 import type { Booking, Contact, Item, ItemKind, Link, Place, When } from "@/domain/types";
 import type { View } from "@/client/router";
 import { useTrip } from "@/client/store";
-import { Icon, KIND_ICON, LINK_ICON, type IconName } from "@/ui/Icon";
+import { Avatar, KindChip } from "@/ui/badges";
+import { Icon, LINK_ICON, type IconName } from "@/ui/Icon";
 import { ActionChip, btn, field, label, useCopy } from "@/ui/kit";
 import { Sheet, SheetAction } from "@/ui/Sheet";
 import { useCompose } from "../composer/Composer";
 import { unfurl } from "../links/unfurl";
+import { PostGrid, thumbSrc } from "../posts/Posts";
 import { Marks, timeLabel, whenLabel } from "../shared";
 
 type EditKind = "title" | "when" | "where" | "booking" | "contact" | "menu" | "delete" | null;
@@ -43,7 +45,8 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
   const c = item.contact;
   const b = item.booking;
   const dir = directionsUrl(item.place, trip);
-  const cover = item.links?.find((l) => l.image)?.image;
+  const posts = (item.links ?? []).filter((l) => isPost(l.kind)).map((link) => ({ link, item }));
+  const coverLink = posts.length ? undefined : item.links?.find((l) => l.image);
 
   return (
     <article className="flex flex-col pb-6">
@@ -57,22 +60,22 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
         </button>
       </div>
 
-      {cover && (
+      {coverLink && (
         <div className="cover-photo mx-4 mb-3 h-44 overflow-hidden rounded-3xl bg-sunken">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a remote preview from any site; not worth an image-optimizer allowlist */}
-          <img src={cover} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- through our own route; not worth the image optimizer */}
+          <img src={thumbSrc(trip.id, item.id, coverLink.id)} alt="" className="size-full object-cover" />
         </div>
       )}
 
       <header className="flex flex-col gap-2 px-4">
         <button type="button" onClick={() => setEdit("title")} className="group flex items-start gap-3 text-left">
-          <Icon name={KIND_ICON[item.kind]} className="mt-1.5 size-6" />
-          <h1 className="text-2xl leading-tight font-bold">
+          <KindChip kind={item.kind} size="lg" />
+          <h1 className="pt-1 text-2xl leading-tight font-bold">
             {item.title}
             <Icon name="pencil" className="ml-2 inline size-4 align-baseline text-muted opacity-60 group-hover:opacity-100" />
           </h1>
         </button>
-        <div className="pl-9">
+        <div className="pl-14">
           <Marks item={item} />
         </div>
       </header>
@@ -112,6 +115,15 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
           Ask about this
         </ActionChip>
       </div>
+
+      {posts.length > 0 && (
+        <section aria-label="Saved posts" className="mt-4 px-4">
+          <h2 className="mb-2 text-sm font-bold text-muted">
+            Posts <span className="tnum">{posts.length}</span>
+          </h2>
+          <PostGrid entries={posts} go={go} />
+        </section>
+      )}
 
       <div className="mt-4 flex flex-col divide-y divide-line px-4">
         <Section title="When" onEdit={() => setEdit("when")}>
@@ -203,7 +215,7 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
           {hasContact(c) ? <ContactList contact={c} /> : <Empty onClick={() => setEdit("contact")}>Add a phone, WhatsApp or email</Empty>}
         </Section>
 
-        <Section title="Links and posts">
+        <Section title={posts.length ? "Links" : "Links and posts"}>
           <Links item={item} />
         </Section>
 
@@ -338,6 +350,7 @@ function ContactList({ contact: c }: { contact: Contact }) {
 
 function Links({ item }: { item: Item }) {
   const { apply, trip, me, online } = useTrip();
+  const links = (item.links ?? []).filter((l) => !isPost(l.kind));
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -373,14 +386,14 @@ function Links({ item }: { item: Item }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {item.links && item.links.length > 0 && (
+      {links.length > 0 && (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {item.links.map((l) => (
+          {links.map((l) => (
             <li key={l.id} className="flex items-stretch gap-0 overflow-hidden rounded-2xl border border-line bg-surface">
               <a href={l.url} target="_blank" rel="noreferrer" className="flex min-w-0 flex-1 items-center gap-3 p-2 hover:bg-sunken">
                 {l.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- remote preview thumbnail
-                  <img src={l.image} alt="" referrerPolicy="no-referrer" className="size-16 shrink-0 rounded-xl bg-sunken object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element -- through our own route
+                  <img src={thumbSrc(trip.id, item.id, l.id)} alt="" className="size-16 shrink-0 rounded-xl bg-sunken object-cover" />
                 ) : (
                   <span className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-sunken">
                     <Icon name={LINK_ICON[l.kind]} className="size-6" />
@@ -516,8 +529,9 @@ function Who({ item }: { item: Item }) {
           type="button"
           aria-pressed={item.who === p}
           onClick={() => void apply([{ op: "item.update", id: item.id, set: { who: item.who === p ? null : p } }])}
-          className={`min-h-10 rounded-full px-4 text-base font-semibold ${item.who === p ? "bg-ink text-canvas" : "border border-line text-ink hover:bg-sunken"}`}
+          className={`inline-flex min-h-10 items-center gap-2 rounded-full py-1 pr-4 pl-1 text-base font-semibold ${item.who === p ? "bg-ink text-canvas" : "border border-line text-ink hover:bg-sunken"}`}
         >
+          <Avatar name={p} />
           {p === me ? `${p} (you)` : p}
         </button>
       ))}

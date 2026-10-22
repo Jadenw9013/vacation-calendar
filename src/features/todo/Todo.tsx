@@ -7,6 +7,7 @@ import { addDays, formatDay } from "@/domain/time";
 import type { Item, Todo as TodoT } from "@/domain/types";
 import type { View } from "@/client/router";
 import { useTrip } from "@/client/store";
+import { KindChip } from "@/ui/badges";
 import { Icon } from "@/ui/Icon";
 import { btn, field, SectionTitle } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
@@ -74,6 +75,7 @@ export function Todo({ go }: { go: (v: View) => void }) {
           <ul className="divide-y divide-line">
             {book.map((i) => (
               <li key={i.id} className="flex items-center gap-3 py-3">
+                <KindChip kind={i.kind} />
                 <button type="button" onClick={() => go({ tab: "item", itemId: i.id })} className="min-w-0 flex-1 text-left">
                   <span className="block text-base leading-snug font-semibold">{i.title}</span>
                   <span className="block text-sm text-muted">

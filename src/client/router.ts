@@ -10,15 +10,19 @@ import { useCallback } from "react";
  *
  *   /t/{id}                 Today
  *   /t/{id}/day/{date}      Today, on that day
- *   /t/{id}/plan            Plan
+ *   /t/{id}/plan            Plan (days)
+ *   /t/{id}/plan/ideas      Plan, ideas with no day
+ *   /t/{id}/plan/posts      Plan, every saved post as a grid
  *   /t/{id}/todo            To-do
  *   /t/{id}/trip            Trip settings and people
  *   /t/{id}/item/{itemId}   An item's page
  */
 
+export type PlanSection = "days" | "ideas" | "posts";
+
 export type View =
   | { tab: "today"; day?: string }
-  | { tab: "plan" }
+  | { tab: "plan"; section?: PlanSection }
   | { tab: "todo" }
   | { tab: "trip" }
   | { tab: "item"; itemId: string };
@@ -27,7 +31,7 @@ export function parseView(pathname: string): View {
   const parts = pathname.split("/").filter(Boolean).slice(2);
   const [a, b] = parts;
   if (a === "day" && b && /^\d{4}-\d{2}-\d{2}$/.test(b)) return { tab: "today", day: b };
-  if (a === "plan") return { tab: "plan" };
+  if (a === "plan") return { tab: "plan", section: b === "ideas" || b === "posts" ? b : "days" };
   if (a === "todo") return { tab: "todo" };
   if (a === "trip") return { tab: "trip" };
   if (a === "item" && b) return { tab: "item", itemId: decodeURIComponent(b) };
@@ -41,6 +45,8 @@ export function viewPath(tripId: string, v: View): string {
       return v.day ? `${base}/day/${v.day}` : base;
     case "item":
       return `${base}/item/${encodeURIComponent(v.itemId)}`;
+    case "plan":
+      return v.section && v.section !== "days" ? `${base}/plan/${v.section}` : `${base}/plan`;
     default:
       return `${base}/${v.tab}`;
   }

@@ -225,3 +225,29 @@ describe("links", () => {
     expect(extractUrls("a https://x.com/a. b (https://y.com/b)")).toEqual(["https://x.com/a", "https://y.com/b"]);
   });
 });
+
+describe("posts", () => {
+  it("recognises TikToks, Reels and YouTube videos, with their players", async () => {
+    const { postInfo } = await import("./links");
+    expect(postInfo("https://www.tiktok.com/@scout2015/video/6718335390845095173?lang=en")).toMatchObject({ platform: "tiktok", id: "6718335390845095173", tall: true });
+    expect(postInfo("https://www.instagram.com/reel/C9xYz12AbCd/")).toMatchObject({ platform: "instagram", id: "C9xYz12AbCd", tall: true, label: "Instagram Reel" });
+    expect(postInfo("https://www.instagram.com/p/BsOGulcndj-/")).toMatchObject({ platform: "instagram", tall: false, embedUrl: "https://www.instagram.com/p/BsOGulcndj-/embed/captioned/" });
+    expect(postInfo("https://youtu.be/dQw4w9WgXcQ")).toMatchObject({ platform: "youtube", id: "dQw4w9WgXcQ", tall: false });
+    expect(postInfo("https://www.youtube.com/shorts/abcDEF12345")).toMatchObject({ platform: "youtube", tall: true, label: "YouTube Short" });
+    // A short link has no id until it's expanded; an article isn't a post.
+    expect(postInfo("https://vm.tiktok.com/ZMabc123/")).toBeNull();
+    expect(postInfo("https://someblog.com/post")).toBeNull();
+  });
+
+  it("leaves vague places like 'airport hotel or Antigua' out of a day's route", async () => {
+    const { routeUrl } = await import("./links");
+    const items: Item[] = [
+      { id: "a", kind: "activity", title: "A", place: { name: "Airport hotel or Antigua" } },
+      { id: "b", kind: "food", title: "B", place: { address: "5a Avenida Norte 10, Antigua" } },
+      { id: "c", kind: "activity", title: "C", place: { name: "Cerro de la Cruz" } },
+    ];
+    const url = decodeURIComponent(routeUrl(items, seed)!);
+    expect(url).not.toContain("Airport hotel or Antigua");
+    expect(url).toContain("Cerro de la Cruz, Guatemala");
+  });
+});

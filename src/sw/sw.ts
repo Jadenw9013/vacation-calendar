@@ -11,7 +11,8 @@ import { CacheFirst, ExpirationPlugin, NetworkFirst, NetworkOnly, Serwist, Stale
  * - Every screen of a trip is the same page (screens switch on the phone),
  *   so any /t/{id}/... address falls back to the cached /t/{id}, and opening
  *   the app from the home screen with no signal lands on the last trip seen.
- * - The API is never cached: the trip itself is kept in localStorage.
+ * - The API is never cached (the trip itself is kept in localStorage),
+ *   except post and link pictures, kept so the grid still shows offline.
  */
 
 declare global {
@@ -46,6 +47,7 @@ const tripFallback = {
 
 const isPage = ({ request, sameOrigin }: RouteMatchCallbackOptions) => sameOrigin && request.mode === "navigate";
 const isApi = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && url.pathname.startsWith("/api/");
+const isThumb = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && /^\/api\/t\/[^/]+\/thumb$/.test(url.pathname);
 const isRsc = ({ request, sameOrigin }: RouteMatchCallbackOptions) => sameOrigin && request.headers.get("RSC") === "1";
 
 const serwist = new Serwist({
@@ -55,6 +57,10 @@ const serwist = new Serwist({
   navigationPreload: false,
   disableDevLogs: true,
   runtimeCaching: [
+    {
+      matcher: isThumb,
+      handler: new CacheFirst({ cacheName: "thumbs", plugins: [{ cacheWillUpdate: async ({ response }) => (response.ok ? response : null) }, new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 })] }),
+    },
     { matcher: isApi, handler: new NetworkOnly() },
     { matcher: isRsc, handler: new NetworkOnly() },
     {

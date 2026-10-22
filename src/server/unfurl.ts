@@ -66,9 +66,13 @@ async function assertPublic(raw: string): Promise<URL> {
   return u;
 }
 
-/** GET with manual redirects, each hop checked. Returns the final URL and up to MAX_BYTES of body. */
-async function safeGet(raw: string, accept = "text/html,application/json"): Promise<{ url: string; body: string; type: string } | null> {
+/** A browser's user agent: TikTok and others serve the real page (with its data) only to browsers. */
+const BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+
+/** GET with manual redirects, each hop checked. Returns the final URL and up to `maxBytes` of body. */
+export async function safeFetch(raw: string, opts: { accept: string; maxBytes?: number; browser?: boolean }): Promise<{ url: string; bytes: Uint8Array; type: string; ok: boolean } | null> {
   let url = raw;
+  const maxBytes = opts.maxBytes ?? MAX_BYTES;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -77,7 +81,7 @@ async function safeGet(raw: string, accept = "text/html,application/json"): Prom
       const res = await fetch(url, {
         redirect: "manual",
         signal: ctrl.signal,
-        headers: { accept, "user-agent": "Mozilla/5.0 (compatible; TripLinkPreview/1.0)", "accept-language": "en" },
+        headers: { accept: opts.accept, "user-agent": opts.browser ? BROWSER_UA : "Mozilla/5.0 (compatible; TripLinkPreview/1.0)", "accept-language": "en" },
       });
       if (res.status >= 300 && res.status < 400) {
         const next = res.headers.get("location");
@@ -85,18 +89,18 @@ async function safeGet(raw: string, accept = "text/html,application/json"): Prom
         url = new URL(next, url).toString();
         continue;
       }
-      if (!res.ok || !res.body) return { url, body: "", type: "" };
+      if (!res.ok || !res.body) return { url, bytes: new Uint8Array(), type: "", ok: false };
       const reader = res.body.getReader();
       const chunks: Uint8Array[] = [];
       let size = 0;
-      while (size < MAX_BYTES) {
+      while (size < maxBytes) {
         const { done, value } = await reader.read();
         if (done) break;
         chunks.push(value);
         size += value.length;
       }
       void reader.cancel().catch(() => {});
-      return { url, body: new TextDecoder().decode(Buffer.concat(chunks.map((c) => Buffer.from(c)))), type: res.headers.get("content-type") ?? "" };
+      return { url, bytes: new Uint8Array(Buffer.concat(chunks.map((c) => Buffer.from(c)))), type: res.headers.get("content-type") ?? "", ok: true };
     }
     return null;
   } catch {
@@ -104,6 +108,38 @@ async function safeGet(raw: string, accept = "text/html,application/json"): Prom
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function safeGet(raw: string, accept = "text/html,application/json", browser = false): Promise<{ url: string; body: string; type: string } | null> {
+  const r = await safeFetch(raw, { accept, browser });
+  return r && { url: r.url, body: new TextDecoder().decode(r.bytes), type: r.type };
+}
+
+/** A JSON string value from a page's embedded data: "cover":"https://…". */
+function jsonField(html: string, key: string): string | undefined {
+  const m = new RegExp(`"${key}":"((?:[^"\\\\]|\\\\.)*)"`).exec(html);
+  if (!m) return undefined;
+  try {
+    return JSON.parse(`"${m[1]}"`);
+  } catch {
+    return undefined;
+  }
+}
+
+/** The caption, author and cover image from a TikTok video page's embedded data. */
+export function readTikTok(html: string): { caption?: string; author?: string; cover?: string } {
+  return {
+    caption: jsonField(html, "desc"),
+    author: jsonField(html, "uniqueId"),
+    cover: jsonField(html, "cover") ?? jsonField(html, "originCover"),
+  };
+}
+
+/** A TikTok video page, read for its caption, author and cover. Also expands vm.tiktok.com short links. */
+export async function tiktokPage(url: string): Promise<{ url: string; caption?: string; author?: string; cover?: string } | null> {
+  const page = await safeGet(url, "text/html", true);
+  if (!page?.body) return null;
+  return { url: page.url, ...readTikTok(page.body) };
 }
 
 const decode = (s: string) =>
@@ -168,20 +204,29 @@ export async function unfurl(raw: string): Promise<Preview | null> {
   const base = classifyLink(key);
   let preview: Preview = { url: key, ...base };
 
-  if (base.kind === "tiktok" || base.kind === "youtube") {
-    const endpoint =
-      base.kind === "tiktok"
-        ? `https://www.tiktok.com/oembed?url=${encodeURIComponent(key)}`
-        : `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(key)}`;
-    const o = await oembed(endpoint);
+  if (base.kind === "tiktok") {
+    const t = await tiktokPage(key);
+    if (t) {
+      preview = {
+        ...preview,
+        url: t.url.split("?")[0],
+        ...(t.caption ? { title: t.caption.slice(0, 300) } : {}),
+        ...(t.author ? { description: `@${t.author}`, site: `@${t.author}` } : {}),
+        ...(httpsImage(t.cover, key) ? { image: httpsImage(t.cover, key) } : {}),
+      };
+    }
+  } else if (base.kind === "youtube") {
+    const o = await oembed(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(key)}`);
     if (o) {
       preview = {
         ...preview,
         ...(o.title ? { title: o.title.slice(0, 300) } : {}),
         ...(httpsImage(o.thumbnail_url, key) ? { image: httpsImage(o.thumbnail_url, key) } : {}),
-        ...(o.author_name ? { description: `By ${o.author_name}` } : {}),
+        ...(o.author_name ? { description: o.author_name } : {}),
       };
     }
+  } else if (base.kind === "instagram") {
+    // Instagram shows servers a login wall; the app shows its official embed instead.
   } else {
     const page = await safeGet(key);
     if (page) {

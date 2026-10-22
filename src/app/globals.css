@@ -1,70 +1,63 @@
 @import "tailwindcss";
 
 /*
- * Tokens. Light by default, dark when the phone is dark, Sunlight for
- * reading outdoors. Components use only these names, never raw colors.
+ * Tokens. Each is written once as light-dark(light, dark): the phone's theme
+ * decides unless Trip, Display forces one. Sunlight replaces them all with
+ * black on white. Components use only these names, never raw colors. Every
+ * text color passes WCAG AA (4.5:1) on its soft fill, the surface and the page.
  *
  *   canvas / surface / sunken   page, raised rows and sheets, wells
  *   ink / muted / line          text, secondary text, rules
  *   accent                      links and primary actions (lagoon teal)
  *   ticket / on-ticket          the "Next" stub on Today: the one loud thing
- *   todo                        "needs booking" marks: quiet, never a banner
+ *   ok / todo / maybe           status: booked, to book, maybe (always with an icon and a word)
+ *   k-*                         one color per kind of item (always with its icon)
  *   danger                      delete
  */
 :root {
-  color-scheme: light;
-  --canvas: #f1f3f2;
-  --surface: #ffffff;
-  --sunken: #e6eae9;
-  --ink: #15191d;
-  --muted: #535d64;
-  --line: #d3d9dc;
-  --accent: #0b6476;
-  --accent-soft: #dceff2;
-  --on-accent: #ffffff;
+  color-scheme: light dark;
+  --canvas: light-dark(#f1f3f2, #0f1214);
+  --surface: light-dark(#ffffff, #171b1f);
+  --sunken: light-dark(#e6eae9, #21272c);
+  --ink: light-dark(#15191d, #ecf0f2);
+  --muted: light-dark(#535d64, #a3aeb5);
+  --line: light-dark(#d3d9dc, #2d353b);
+  --accent: light-dark(#0b6476, #5cc6d8);
+  --accent-soft: light-dark(#dceff2, #123a42);
+  --on-accent: light-dark(#ffffff, #0f1214);
   --ticket: #ffc21a;
   --on-ticket: #15191d;
-  --todo: #8a4b00;
-  --todo-soft: #fbecd6;
-  --danger: #b3261e;
-  --shadow: 0 1px 2px rgb(21 25 29 / 0.06), 0 8px 24px rgb(21 25 29 / 0.08);
-}
+  --danger: light-dark(#b3261e, #ff8a80);
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --canvas: #0f1214;
-    --surface: #171b1f;
-    --sunken: #21272c;
-    --ink: #ecf0f2;
-    --muted: #a3aeb5;
-    --line: #2d353b;
-    --accent: #5cc6d8;
-    --accent-soft: #123a42;
-    --on-accent: #0f1214;
-    --ticket: #ffc21a;
-    --on-ticket: #15191d;
-    --todo: #ffb95c;
-    --todo-soft: #3a2a12;
-    --danger: #ff8a80;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
-  }
+  --ok: light-dark(#11693c, #6fd69a);
+  --ok-soft: light-dark(#dcf2e3, #133524);
+  --todo: light-dark(#8a4b00, #ffb95c);
+  --todo-soft: light-dark(#fbecd6, #3a2a12);
+  --maybe: light-dark(#5b3ea8, #c2b0ff);
+  --maybe-soft: light-dark(#ebe5fb, #2a2146);
+
+  --k-stay: light-dark(#4338ca, #aca7ff);
+  --k-stay-soft: light-dark(#e5e4fb, #25234a);
+  --k-flight: light-dark(#0a5f96, #7cc4f2);
+  --k-flight-soft: light-dark(#dcecf8, #132f47);
+  --k-transport: light-dark(#0b6476, #5cc6d8);
+  --k-transport-soft: light-dark(#d9eef1, #123a42);
+  --k-activity: light-dark(#2e6e1f, #8fd47a);
+  --k-activity-soft: light-dark(#e2f1dc, #1b3417);
+  --k-food: light-dark(#a33a12, #ff9e78);
+  --k-food-soft: light-dark(#fbe4da, #3d2117);
+  --k-other: light-dark(#535d64, #a3aeb5);
+  --k-other-soft: light-dark(#e6eae9, #21272c);
+
+  /* light-dark() takes colors only, so the shadow's color switches, not the shadow. */
+  --shadow-color: light-dark(rgb(21 25 29 / 0.08), rgb(0 0 0 / 0.4));
+  --shadow: 0 1px 2px var(--shadow-color), 0 8px 24px var(--shadow-color);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0f1214;
-  --surface: #171b1f;
-  --sunken: #21272c;
-  --ink: #ecf0f2;
-  --muted: #a3aeb5;
-  --line: #2d353b;
-  --accent: #5cc6d8;
-  --accent-soft: #123a42;
-  --on-accent: #0f1214;
-  --todo: #ffb95c;
-  --todo-soft: #3a2a12;
-  --danger: #ff8a80;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
 }
 
 /* Sunlight: black on white, heavier type and rules, nothing translucent. Wins over light and dark. */
@@ -81,9 +74,25 @@
   --on-accent: #ffffff;
   --ticket: #ffd23f;
   --on-ticket: #000000;
+  --danger: #8c0000;
+  --ok: #00401f;
+  --ok-soft: #ffffff;
   --todo: #5c2f00;
   --todo-soft: #ffffff;
-  --danger: #8c0000;
+  --maybe: #34186e;
+  --maybe-soft: #ffffff;
+  --k-stay: #000000;
+  --k-stay-soft: #ffffff;
+  --k-flight: #000000;
+  --k-flight-soft: #ffffff;
+  --k-transport: #000000;
+  --k-transport-soft: #ffffff;
+  --k-activity: #000000;
+  --k-activity-soft: #ffffff;
+  --k-food: #000000;
+  --k-food-soft: #ffffff;
+  --k-other: #000000;
+  --k-other-soft: #ffffff;
   --shadow: none;
 }
 :root[data-sunlight] body {
@@ -100,6 +109,10 @@
 }
 :root[data-sunlight] .cover-photo {
   display: none;
+}
+:root[data-sunlight] .chip {
+  outline: 2px solid #000;
+  outline-offset: -2px;
 }
 
 /* Large text: everything is in rem, so this (and browser zoom) scales it all. */
@@ -119,45 +132,67 @@
   --color-on-accent: var(--on-accent);
   --color-ticket: var(--ticket);
   --color-on-ticket: var(--on-ticket);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
   --color-todo: var(--todo);
   --color-todo-soft: var(--todo-soft);
-  --color-danger: var(--danger);
+  --color-maybe: var(--maybe);
+  --color-maybe-soft: var(--maybe-soft);
+  --color-k-stay: var(--k-stay);
+  --color-k-stay-soft: var(--k-stay-soft);
+  --color-k-flight: var(--k-flight);
+  --color-k-flight-soft: var(--k-flight-soft);
+  --color-k-transport: var(--k-transport);
+  --color-k-transport-soft: var(--k-transport-soft);
+  --color-k-activity: var(--k-activity);
+  --color-k-activity-soft: var(--k-activity-soft);
+  --color-k-food: var(--k-food);
+  --color-k-food-soft: var(--k-food-soft);
+  --color-k-other: var(--k-other);
+  --color-k-other-soft: var(--k-other-soft);
   --shadow-lift: var(--shadow);
 
   --font-sans: var(--font-atkinson), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  overflow-x: clip;
+/* Element defaults live in the base layer, so any utility class (bg-black on the post viewer) can override them. */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-x: clip;
+  }
+
+  /* Times and prices line up in columns. */
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  dialog {
+    background: var(--surface);
+    color: var(--ink);
+  }
+  dialog::backdrop {
+    background: rgb(0 0 0 / 0.5);
+  }
 }
 
-body {
-  background: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  line-height: 1.5;
-  overflow-x: clip;
-}
-
-/* Times and prices line up in columns. */
-.tnum,
-time {
+.tnum {
   font-variant-numeric: tabular-nums;
-}
-
-:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-
-dialog {
-  background: var(--surface);
-  color: var(--ink);
-}
-dialog::backdrop {
-  background: rgb(0 0 0 / 0.5);
 }
 
 /* The perforation between the Next ticket and its stub of actions. */

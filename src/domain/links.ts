@@ -80,7 +80,7 @@ export function directionsUrl(place: Place | undefined, trip?: Pick<Trip, "desti
 export function routeUrl(items: Item[], trip?: Pick<Trip, "destination">): string | null {
   const stops = items
     .filter((i) => i.kind !== "flight")
-    .map((i) => i.place?.address || (i.place?.name && !/or/i.test(i.place.name) ? [i.place.name, trip?.destination].filter(Boolean).join(", ") : null))
+    .map((i) => i.place?.address || (i.place?.name && !/\bor\b/i.test(i.place.name) ? [i.place.name, trip?.destination].filter(Boolean).join(", ") : null))
     .filter((s): s is string => !!s)
     .filter((s, i, a) => a.indexOf(s) === i);
   if (stops.length < 2) return null;
@@ -96,6 +96,53 @@ export const mailUrl = (email: string) => `mailto:${email.trim()}`;
 export const whatsappUrl = (number: string) => `https://wa.me/${digits(number).replace(/^\+/, "")}`;
 export const instagramUrl = (handle: string) =>
   /^https?:\/\//.test(handle) ? handle : `https://www.instagram.com/${handle.replace(/^@/, "")}/`;
+
+// ---------------------------------------------------------------------------
+// Social posts: TikToks, Reels and YouTube videos, shown as pictures.
+
+export type Platform = "tiktok" | "instagram" | "youtube";
+
+export interface PostInfo {
+  platform: Platform;
+  /** The platform's id for the post. */
+  id: string;
+  /** The platform's own embeddable player for it. */
+  embedUrl: string;
+  /** Portrait video (TikTok, Reels, Shorts) rather than a landscape one. */
+  tall: boolean;
+  /** "TikTok", "Instagram Reel", "YouTube Short". */
+  label: string;
+}
+
+export const isPost = (kind: LinkKind) => kind === "tiktok" || kind === "instagram" || kind === "youtube";
+
+/** What a post link points at, or null for anything that isn't a post (or a short link not yet expanded). */
+export function postInfo(url: string): PostInfo | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^(www\.|m\.)/, "");
+  if (/(^|\.)tiktok\.com$/.test(host)) {
+    const id = /\/(?:video|photo)\/(\d{6,25})/.exec(u.pathname)?.[1];
+    return id ? { platform: "tiktok", id, embedUrl: `https://www.tiktok.com/player/v1/${id}?description=1&rel=0`, tall: true, label: "TikTok" } : null;
+  }
+  if (/(^|\.)instagram\.com$/.test(host)) {
+    const m = /\/(p|reel|reels|tv)\/([A-Za-z0-9_-]{5,40})/.exec(u.pathname);
+    if (!m) return null;
+    const type = m[1] === "p" ? "p" : "reel";
+    return { platform: "instagram", id: m[2], embedUrl: `https://www.instagram.com/${type}/${m[2]}/embed/captioned/`, tall: type === "reel", label: type === "p" ? "Instagram post" : "Instagram Reel" };
+  }
+  if (host === "youtu.be" || /(^|\.)youtube\.com$/.test(host)) {
+    const short = /^\/shorts\/([\w-]{6,20})/.exec(u.pathname)?.[1];
+    const id = short ?? (host === "youtu.be" ? u.pathname.slice(1).split("/")[0] : (u.searchParams.get("v") ?? /^\/(?:embed|live)\/([\w-]{6,20})/.exec(u.pathname)?.[1]));
+    if (!id || !/^[\w-]{6,20}$/.test(id)) return null;
+    return { platform: "youtube", id, embedUrl: `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0`, tall: !!short, label: short ? "YouTube Short" : "YouTube" };
+  }
+  return null;
+}
 
 /** True when an item has anything worth showing in a "Contact" section. */
 export function hasContact(c: Contact | undefined): c is Contact {

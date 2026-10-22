@@ -10,6 +10,7 @@ import type { Item } from "@/domain/types";
 import { useView } from "@/client/router";
 import { useTrip } from "@/client/store";
 import type { ChangeResult, Option } from "@/server/ai/tools";
+import { KindChip } from "@/ui/badges";
 import { Icon, KIND_ICON } from "@/ui/Icon";
 import { btn, field } from "@/ui/kit";
 import { chatFor, newConversation, setAssistantContext, type AssistantMessage } from "./chat";
@@ -62,9 +63,27 @@ export function Assistant({ first, itemId, day }: { first: string; itemId: strin
     setImages((cur) => [...cur, ...urls.filter((u): u is string => !!u)].slice(0, 4));
   }
 
+  // Typed while an answer is still coming in: kept, and sent the moment it's done.
+  const [queued, setQueued] = useState<{ text: string; images: string[] } | null>(null);
+  useEffect(() => {
+    if (busy || !queued) return;
+    const q = queued;
+    // The answer just finished streaming (outside React): send what was waiting.
+    queueMicrotask(() => {
+      setQueued(null);
+      void sendMessage({ text: q.text || "Here's a screenshot.", files: q.images.map((url, i) => ({ type: "file" as const, mediaType: "image/jpeg", url, filename: `screenshot-${i + 1}.jpg` })) });
+    });
+  }, [busy, queued, sendMessage]);
+
   function send() {
     const text = input.trim();
-    if ((!text && !images.length) || busy) return;
+    if (!text && !images.length) return;
+    if (busy) {
+      setQueued({ text, images });
+      setInput("");
+      setImages([]);
+      return;
+    }
     const waiting = messages.at(-1)?.parts.find((p) => p.type === "tool-ask_user" && p.state === "input-available");
     if (waiting && waiting.type === "tool-ask_user" && !images.length) {
       void addToolOutput({ tool: "ask_user", toolCallId: waiting.toolCallId, output: text });
@@ -94,6 +113,12 @@ export function Assistant({ first, itemId, day }: { first: string; itemId: strin
           <Message key={m.id} m={m} onAnswer={(toolCallId, output) => void addToolOutput({ tool: "ask_user", toolCallId, output })} />
         ))}
         {status === "submitted" && <p className="text-base text-muted">Thinking…</p>}
+        {queued && (
+          <div className="ml-10 flex flex-col items-end gap-1 self-end opacity-70">
+            <p className="rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-base whitespace-pre-wrap text-on-accent">{queued.text}</p>
+            <p className="text-sm text-muted">Sends when this answer finishes</p>
+          </div>
+        )}
         {error && (
           <div role="alert" className="flex flex-col gap-2 rounded-2xl bg-todo-soft p-3">
             <p className="text-base font-semibold text-todo">{online ? friendly(error.message) : "You're offline. The assistant needs a connection; your message is kept."}</p>
@@ -464,7 +489,7 @@ function Options({ heading, options }: { heading?: string; options: Option[] }) 
           return (
             <li key={o.name} className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3">
               <div className="flex items-start gap-3">
-                <Icon name={KIND_ICON[o.kind ?? "activity"]} className="mt-0.5 size-5" />
+                <KindChip kind={o.kind ?? "activity"} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="text-base leading-snug font-bold">{o.name}</p>
                   {o.why && <p className="text-base">{o.why}</p>}
