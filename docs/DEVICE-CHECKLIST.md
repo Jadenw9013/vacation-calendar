@@ -1,27 +1,19 @@
 # Checks on a real phone
 
-Playwright covers layout, contrast, targets, dialogs and offline in Chromium
-(`npm run e2e`), but it can't reproduce the iPhone keyboard, the system Back
-gesture, a real install, or reading a screen outdoors. Run through this on one
-iPhone (Safari) and one Android phone (Chrome) before the trip, on the
-deployed site. Tick each line on both phones.
+`npm run e2e` covers layout, accessibility, adding, the item page and the assistant in Chromium. It can't reproduce the iPhone keyboard, the system Back gesture, a real install, the share sheet, or reading a screen outdoors. Run through this on one iPhone (Safari) and one Android phone (Chrome) before the trip, on the deployed site. Tick each line on both phones.
 
 | # | Check | How | Pass when | iPhone | Android |
 |---|---|---|---|---|---|
-| 1 | Keyboard over the input | Open Ask, tap the message box, type two lines | The box and the send button stay above the keyboard; nothing jumps behind it; the page doesn't zoom in | ☐ | ☐ |
-| 2 | Keyboard with a proposal | Ask "draft a plan for Wednesday", then tap the message box | Apply / Discard on the card stay reachable while the keyboard is up | ☐ | ☐ |
-| 3 | Quick add with the keyboard | Tap Quick add, type "zipline thu 11am" | The preview card is visible while typing; Add can be tapped without closing the keyboard | ☐ | ☐ |
-| 4 | Back gesture / Back button | Open Ask, then swipe back (iPhone: from the left edge; Android: back gesture or button) | The planner closes and you're still on the trip; a second Back leaves as normal | ☐ | ☐ |
-| 5 | Sheets don't stack | From an item's "…" menu choose Ask; from Plan mode's Add choose "Full form…" | Only one sheet is ever open; Close is always visible | ☐ | ☐ |
-| 6 | Add to Home Screen | iPhone: Share → Add to Home Screen. Android: menu → Install app | The icon is the volcano; it opens full screen without the browser bar; the iPhone hint in Settings disappears once installed | ☐ | ☐ |
-| 7 | Airplane mode reload | Open the site once with signal, then turn on airplane mode and reopen it from the home screen | Today's plan appears with "Offline, showing saved copy from …"; Ask and edits say they need a connection; Quick add still previews | ☐ | ☐ |
-| 8 | Weak signal | On a slow connection (one bar, or a throttled hotspot), reload | The saved copy shows within about 4 seconds instead of a blank page | ☐ | ☐ |
-| 9 | Sunlight mode outdoors | In direct sun, at the phone's normal brightness, tap Sunlight on the photo | Times, titles and "Not booked" are readable at arm's length without shading the screen | ☐ | ☐ |
-| 10 | Sunlight mode at night | Phone in dark mode, Sunlight on | White on black, no glare from photos; turning it off restores the photos | ☐ | ☐ |
-| 11 | Large text | Settings → Text size → Large; also try the phone's own larger text setting | Nothing is cut off or overlapping on Today, Trip and Ask; no sideways scrolling | ☐ | ☐ |
-| 12 | Dictation | In the message box and Quick add, use the keyboard's microphone | Dictated text lands in the box and can be sent or added | ☐ | ☐ |
-| 13 | Two people at once | One person changes a time while the other has the site open, then the second locks and unlocks their phone | The second phone shows the change, an Updates count on the Trip tab, and "Updated" on that item | ☐ | ☐ |
-| 14 | Undo | Apply a change, then tap Undo in the bar within 10 seconds; apply another and undo it later from Updates | Both changes come back off | ☐ | ☐ |
-
-Anything that fails: note the phone model, OS version and what you saw, and
-take a screenshot.
+| 1 | Join | Open the trip link, enter your name and the passcode | You land on Today; the passcode isn't asked again next time | ☐ | ☐ |
+| 2 | Keyboard comes up | Tap **+** | The keyboard opens straight away; the box and its preview stay above it | ☐ | ☐ |
+| 3 | Quick add | Type "coffee sat 8" and tap Add | It shows Sat, 8:00 AM in the preview, then on the Plan with an Undo toast | ☐ | ☐ |
+| 4 | Back gesture | Open an item from Plan, then swipe back (iPhone: left edge; Android: back gesture) | You're back on the Plan where you were | ☐ | ☐ |
+| 5 | Install | iPhone: Share → Add to Home Screen. Android: menu → Install app | It opens full screen, without the browser bar | ☐ | ☐ |
+| 6 | Share sheet (Android only) | In TikTok or Instagram, Share → the app | The trip opens with the link in the + box; Save link adds it | — | ☐ |
+| 7 | Paste a link (iPhone) | Copy a TikTok or Reel link, tap +, paste | It offers to save it to an item or as an idea | ☐ | — |
+| 8 | Airplane mode | Open the app once with signal, turn on airplane mode, reopen it from the home screen | Today, the Plan and any item page open; the line at the bottom says you're offline | ☐ | ☐ |
+| 9 | Offline edit | In airplane mode, tick a checklist entry and add a to-do; then turn signal back on | Both show at once with "waiting to sync"; after signal returns they're on another phone too | ☐ | ☐ |
+| 10 | Directions and calls | On an item with an address and a phone, tap Directions, then Call | Maps opens to the place; the dialer opens with the number | ☐ | ☐ |
+| 11 | Copy confirmation | Tap the confirmation number on Today's ticket | "Confirmation copied"; it pastes correctly into another app | ☐ | ☐ |
+| 12 | Sunlight outdoors | In direct sun, Trip → Sunlight mode | Times, titles and "To book" are readable at arm's length | ☐ | ☐ |
+| 13 | Assistant with a screenshot | + → ask, attach a booking confirmation screenshot | It's recorded on the right item, with the confirmation number | ☐ | ☐ |

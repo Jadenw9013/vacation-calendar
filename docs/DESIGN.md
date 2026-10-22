@@ -1,45 +1,36 @@
-# Design plan
+# Design
 
-The week goes from a midnight arrival to a 3,976 m volcano. The palette comes from that ground: volcanic ash, basalt, Lake Atitlán, and a warning-tape yellow for the one thing that must be loud, which is the nights nobody has booked.
-
-## Palette
-
-| Name    | Light     | Dark      | Role |
-| ------- | --------- | --------- | ---- |
-| Ash     | `#F2F3F1` | `#111417` | Page background. A cool grey-white, not cream. |
-| Basalt  | `#15181B` | `#ECEFEF` | Body text, hazard stripes. |
-| Pumice  | `#5E676E` | `#9AA4AA` | Secondary text: locations, notes. |
-| Scree   | `#D5D9DB` | `#2A3035` | Rules and borders. |
-| Lake    | `#0E5A6B` | `#4DB3C6` | Booked. Solid fills and the booked mark. |
-| Hazard  | `#FFD400` | `#FFD400` | Unbooked nights and gaps. Always paired with basalt stripes and the words "No bed". |
-| Ember   | `#C8321E` | `#FF6A4D` | Used once: the summit elevation on the hike. |
-
-Lake is the calm "handled" color. Hazard yellow with diagonal basalt stripes reads as caution tape from across a shuttle aisle, and it survives bright sun. Everything else stays neutral so those two never compete.
-
-## Status without color
-
-Status is never shown by color alone. Each status has its own mark and a word:
-
-- **Booked**: a filled square ■ and the word "Booked", on a solid card.
-- **Needs booking**: a hollow square □ and "Needs booking", on a dashed card.
-- **Undecided**: a dashed circle ◌ and "Undecided", on a dashed card.
-- **Gaps**: the striped hazard pattern and the words "No bed" or "No transport".
+The app is read on a phone in a shuttle, on a boat, in bright sun and with patchy signal, by a few friends who want answers, not a planning tool. So: legible first, one loud thing per screen, everything else quiet.
 
 ## Type
 
-- **Archivo** (variable, with a width axis). Day headers and the page title use it at 125% width and weight 800, which gives the look of map lettering or trail signage without a novelty face. Body text uses it at normal width. It's legible at small sizes on a phone.
-- **IBM Plex Mono**. Times, flight numbers, durations and dates in gap windows. It gives a departure-board precision and tabular digits, so times line up in a column.
+**Atkinson Hyperlegible Next**, one family for everything. It was designed for legibility at small sizes and for low vision, with distinct letterforms (Il1, 0O). That's the job here: reading a time or a confirmation number at a glance on a moving bus. Times use tabular figures so they line up. Sizes are in rem, so the **Large text** setting and browser zoom scale everything.
 
-There are no all-caps eyebrow labels. Section headers are sentence case in expanded Archivo.
+## Color
+
+| Token | Light | Dark | Job |
+|---|---|---|---|
+| canvas | `#f1f3f2` | `#0f1214` | Page background, a cool stone (not cream). |
+| surface | `#ffffff` | `#171b1f` | Raised rows, sheets. |
+| ink / muted | `#15191d` / `#535d64` | `#ecf0f2` / `#a3aeb5` | Text and secondary text. |
+| accent | `#0b6476` | `#5cc6d8` | Lagoon teal: links, primary actions, booked. |
+| ticket | `#ffc21a` | `#ffc21a` | The "Next" ticket on Today. The one loud thing. |
+| todo | `#8a4b00` | `#ffb95c` | "To book" marks and missing nights. Quiet, never a banner. |
+| danger | `#b3261e` | `#ff8a80` | Delete. |
+
+Light follows the phone by default; Trip → Display can force light or dark. **Sunlight** overrides both with black on white, heavier type and thicker rules, and hides photos behind text. Components use only these tokens.
+
+## The one bold element
+
+Today's **Next** card is a ticket stub: marigold, a big tabular time, the title, a perforated edge, and under it the actions you need right then (Directions, Call, WhatsApp, the confirmation to copy). Everything else on every screen is plain lists with hairline dividers. There are no stacks of identical cards, no eyebrow labels, and no decoration.
 
 ## Layout
 
-The page is a single column, at most 40rem wide, and designed for a phone first.
+- A single column up to 42rem, left-aligned. Phones get a bottom bar (Today, Plan, **+**, To-do, Trip) in thumb reach; tablets and laptops get the same tabs along the top.
+- Touch targets are at least 44px.
+- Sheets rise from the bottom on phones and sit centered on wider screens. Only one is open at a time, and its main field is focused when it opens so the keyboard comes up.
+- Status is never shown by color alone: "Booked" has a check and the word, "To book" a ring and the words, "Maybe" a label.
 
-1. **Header.** "Guatemala" plus the dates, with one line of status: days to departure and the number of nights with no bed. The countdown earns its place only because it is paired with that unbooked count, which shows how urgent the open bookings are.
-2. **Night strip.** Seven cells, Tue 24 to Mon 30, one per night. A booked night is a solid lake fill. An unbooked night is striped hazard with "No bed". This answers "where am I sleeping" in one glance. Each cell links to that day.
-3. **Gaps.** Derived, and the first list on the page. Each row shows what is missing, the window in mono, and the duration.
-4. **Timeline.** One section per day, with a sticky day header in expanded Archivo. Events sit in a time rail (mono) and a content column showing the title, location, status mark, owner, notes and to-dos. Every day ends with a "Tonight" slot: either the booked place or a hazard block.
-5. **Still to book.** Unbooked segments, each listing what is waiting on it. Then the open questions with what they block, and the trip-wide to-dos.
+## Words
 
-Dark mode follows the system setting, for reading in a dark shuttle.
+Sentence case, plain verbs, and names from the traveler's point of view: "To book", not "needs-booking"; "Ideas", not "unscheduled items". A button says what happens ("Mark booked"), and the toast that follows says the same thing ("Marked Zip lining booked", with Undo). Errors say what happened and what to do, and never apologize.

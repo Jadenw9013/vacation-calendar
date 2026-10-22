@@ -1,34 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, Caveat } from "next/font/google";
-import { PREFS_BOOT } from "@/components/shell/prefs";
-import { ServiceWorker } from "@/components/shell/ServiceWorker";
+import { Atkinson_Hyperlegible_Next } from "next/font/google";
+import { PREFS_BOOT } from "@/client/prefs";
+import { ServiceWorker } from "@/client/ServiceWorker";
 import "./globals.css";
 
-/** Display face: day titles and hero headings. */
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+/** Designed for legibility: read on a bumpy shuttle, in bright sun, at a glance. */
+const atkinson = Atkinson_Hyperlegible_Next({
+  variable: "--font-atkinson",
+  subsets: ["latin", "latin-ext"],
   display: "swap",
-});
-
-const caveat = Caveat({
-  variable: "--font-caveat",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
+  // Next has no metrics for this face to size a fallback with.
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {
-  title: "Guatemala · Nov 24–30",
-  description: "Our Guatemala trip at a glance: what's on today, and what still needs booking.",
+  title: { default: "Trip", template: "%s · Trip" },
+  description: "Your group's trip: what's next, where you're sleeping, and everything you saved.",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, title: "Guatemala", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Trip", statusBarStyle: "default" },
   icons: {
     icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
@@ -42,19 +31,19 @@ export const viewport: Viewport = {
   // Android: the keyboard resizes the page instead of covering it.
   interactiveWidget: "resizes-content",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f5f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#0d1014" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f3f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1214" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // The boot script may add data-sunlight / data-text before React loads.
-    <html lang="en" className={`${fraunces.variable} ${caveat.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
+    // The boot script may add data-theme, data-sunlight and data-text before React loads.
+    <html lang="en" className={`${atkinson.variable} antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PREFS_BOOT }} />
       </head>
-      <body className="min-h-dvh bg-canvas text-ink font-sans">
+      <body className="min-h-dvh bg-canvas text-ink">
         <ServiceWorker>{children}</ServiceWorker>
       </body>
     </html>
