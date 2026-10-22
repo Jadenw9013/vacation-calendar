@@ -16,4 +16,4 @@
 | 10 | Directions and calls | On an item with an address and a phone, tap Directions, then Call | Maps opens to the place; the dialer opens with the number | ☐ | ☐ |
 | 11 | Copy confirmation | Tap the confirmation number on Today's ticket | "Confirmation copied"; it pastes correctly into another app | ☐ | ☐ |
 | 12 | Sunlight outdoors | In direct sun, Trip → Sunlight mode | Times, titles and "To book" are readable at arm's length | ☐ | ☐ |
-| 13 | Assistant with a screenshot | + → ask, attach a booking confirmation screenshot | It's recorded on the right item, with the confirmation number | ☐ | ☐ |
+| 13 | Bookings from screenshots | + → Add bookings from screenshots, pick several confirmation screenshots from the photo library | Each shows what it recorded; existing bookings are updated, not duplicated; confirmation numbers are on the items | ☐ | ☐ |

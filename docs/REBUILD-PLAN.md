@@ -316,3 +316,10 @@ The v1 app is kept unchanged in `../vacation-calendar-v1-backup`.
   - all checked against WCAG AA in light and dark
 - **Joining no longer locks out a group on shared wifi.** Only wrong passcodes count toward the limit.
 - **A message typed while the assistant is still answering** is queued and sent when it finishes, instead of being ignored.
+- **Bookings from screenshots** (+ box): up to ten at once, read one per request in order. On the trip's real fixtures with Gemini, each takes 5 to 14 seconds:
+  - it matched existing items instead of duplicating them
+  - it skipped a blurry screenshot and said why
+  - it ignored planted instructions
+  - it copied no guest names
+- **Filling in a booked item's unknown time** on the same day no longer asks for confirmation. Changing a day or a known time still does.
+- **The To-do list** shows each item's status (To book) apart from the action (**Mark as booked**). The old button said "Booked", which read as a status.

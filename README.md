@@ -17,6 +17,12 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
   - Type a plan ("dinner fri 7 at Sabe Rico") and it's added. It guesses AM or PM when you don't say, and shows the guess.
   - Paste a link (TikTok, Instagram, YouTube, Airbnb, Booking.com, Google Maps, anything) and it's saved to an item or as a new idea.
   - Ask a question and the assistant answers.
+  - **Add bookings from screenshots:** choose up to 10 at once (confirmation emails, Airbnb, airline and tour bookings), or paste or drop them in. They're read one after another, and each shows what it recorded:
+    - New bookings are added with their dates, confirmation number, address, phone and price.
+    - A booking already on the trip is updated, not duplicated.
+    - If a booked item's day or time would change, you get a card to confirm first.
+    - Blurry or non-booking pictures are skipped, with a note saying why.
+    - Reading carries on if you close the sheet.
 - **Tap anything** to open its page:
   - when and where it is
   - the reservation, with link, confirmation, price and who booked it
@@ -68,6 +74,7 @@ Why Gemini: it's the only provider with Maps grounding, which is the travel-guid
 ```bash
 npm run assistant:eval          # 10 realistic requests (2 with screenshots) against real Gemini, on a copy of the trip
 npm run assistant:eval -- 1 7   # just some
+npm run import:eval             # reads the screenshots in evals/screenshots, as the app does
 ```
 
 To click through the assistant without a key, run `CHAT_MOCK=1 npm run dev`. That uses a scripted stand-in (its places are made up and say so).
@@ -113,6 +120,7 @@ All trip routes need the trip's cookie, from joining. POST routes refuse cross-s
 | `POST /api/t/{id}/unfurl` | `{ url }`. A link's title, picture and kind |
 | `GET /api/t/{id}/thumb` | `?item=&link=` a saved link's picture, or `?post=` a post's picture before saving (post links only) |
 | `POST /api/t/{id}/chat` | The assistant (AI SDK UI message stream) |
+| `POST /api/t/{id}/import` | `{ image, index, total }`. Reads one booking screenshot and records what it shows. One per request, so ten screenshots stay well under Vercel's 4.5 MB request limit |
 
 ## Running locally
 

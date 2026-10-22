@@ -132,8 +132,24 @@ test("a saved post shows as a picture in Plan, Posts and opens in its own player
   const tile = page.getByRole("button", { name: /^YouTube.*saved to Zip lining/ });
   await expect(tile).toBeVisible();
   await tile.click();
-  const viewer = page.getByRole("dialog", { name: /YouTube 1 of/ });
+  // Where it sits in the grid depends on what else is saved; any position is fine.
+  const viewer = page.getByRole("dialog", { name: /^YouTube \d+ of \d+$/ });
   await expect(viewer).toBeVisible();
   await expect(viewer.locator('iframe[src*="youtube-nocookie.com/embed/dQw4w9WgXcQ"]')).toBeVisible();
   await expect(viewer.getByRole("link", { name: "Open in YouTube" })).toHaveAttribute("href", /dQw4w9WgXcQ/);
+});
+
+test("reads up to ten booking screenshots at once and records each", async ({ page }) => {
+  await join(page);
+  await page.getByRole("button", { name: "Add or ask" }).click();
+  // Twelve tiny pictures: the first ten are read, and the app says so about the other two.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  const files = Array.from({ length: 12 }, (_, i) => ({ name: `booking-${i + 1}.png`, mimeType: "image/png", buffer: png }));
+  await page.locator('dialog[open] input[type="file"]').setInputFiles(files);
+  await expect(page.getByText("Reading the first 10. Add the other 2 after.")).toBeVisible();
+  const list = page.getByRole("region", { name: "Screenshots" });
+  await expect(list.getByRole("listitem")).toHaveCount(10);
+  await expect(list.getByText("Read 10 screenshots")).toBeVisible({ timeout: 60_000 });
+  await expect(list.getByText(/Added “Test Posada \d+”/)).toHaveCount(10);
+  await expect(list.getByRole("button", { name: "Open Test Posada 1", exact: true })).toBeVisible();
 });

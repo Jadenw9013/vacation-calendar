@@ -223,7 +223,15 @@ export function touchesBooked(trip: Trip, op: Op): Item | null {
   if (item?.booking?.state !== "booked") return null;
   if (op.op === "item.remove") return item;
   const s = op.set;
-  const moved = (k: "start" | "end") => k in s && JSON.stringify(s[k] ?? null) !== JSON.stringify(item[k] ?? null);
+  const moved = (k: "start" | "end") => {
+    if (!(k in s)) return false;
+    const before = item[k] ?? null;
+    const after = s[k] ?? null;
+    if (JSON.stringify(before) === JSON.stringify(after)) return false;
+    // Filling in a time nobody knew yet, on the same day, isn't moving the booking.
+    if (before && after && before.date === after.date && !before.time && after.time) return false;
+    return true;
+  };
   return moved("start") || moved("end") ? item : null;
 }
 
@@ -261,8 +269,10 @@ function describeUpdate(item: Item, set: Patch): string {
     if (k === "who") return v === null ? `cleared who's on ${t}` : `put ${String(v)} on ${t}`;
     if (k === "maybe") return v ? `marked ${t} as maybe` : `confirmed ${t}`;
   }
-  if (keys.includes("start")) return `changed when ${t} is`;
-  return `updated ${t}`;
+  // Several at once (a booking read from a screenshot): say which parts changed.
+  const WORDS: Record<string, string> = { title: "name", kind: "kind", start: "time", end: "time", place: "place", booking: "booking", contact: "contact", notes: "notes", who: "who's on it", maybe: "maybe", sleepsHere: "overnight", peakM: "summit" };
+  const parts = [...new Set(keys.map((k) => WORDS[k] ?? k))];
+  return `updated ${t}: ${parts.join(", ")}`;
 }
 
 /** One plain-language line for an op, from the trip as it was before the op. */
