@@ -7,7 +7,7 @@ import { addDays, formatDay } from "@/domain/time";
 import type { Item, Todo as TodoT } from "@/domain/types";
 import type { View } from "@/client/router";
 import { useTrip } from "@/client/store";
-import { KindChip } from "@/ui/badges";
+import { KindChip, StatusPill } from "@/ui/badges";
 import { Icon } from "@/ui/Icon";
 import { btn, field, SectionTitle } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
@@ -74,24 +74,31 @@ export function Todo({ go }: { go: (v: View) => void }) {
         ) : (
           <ul className="divide-y divide-line">
             {book.map((i) => (
-              <li key={i.id} className="flex items-center gap-3 py-3">
+              <li key={i.id} className="flex items-start gap-3 py-3">
                 <KindChip kind={i.kind} />
-                <button type="button" onClick={() => go({ tab: "item", itemId: i.id })} className="min-w-0 flex-1 text-left">
-                  <span className="block text-base leading-snug font-semibold">{i.title}</span>
-                  <span className="block text-sm text-muted">
-                    {i.start ? formatDay(i.start.date) : "No day yet"}
-                    {i.booking?.by ? `. ${i.booking.by} is on it` : ""}
-                  </span>
-                </button>
-                {i.booking?.url && (
-                  <a href={i.booking.url} target="_blank" rel="noreferrer" className={btn.secondary}>
-                    Book
-                  </a>
-                )}
-                <button type="button" onClick={() => setMarking(i)} className={btn.secondary}>
-                  <Icon name="check" className="size-4" />
-                  Booked
-                </button>
+                <div className="min-w-0 flex-1">
+                  <button type="button" onClick={() => go({ tab: "item", itemId: i.id })} className="block w-full text-left">
+                    <span className="block text-base leading-snug font-semibold">{i.title}</span>
+                    <span className="block text-sm text-muted">
+                      {i.start ? formatDay(i.start.date) : "No day yet"}
+                      {i.booking?.by ? `. ${i.booking.by} is on it` : ""}
+                    </span>
+                  </button>
+                  {/* The status, then what you can do about it: a status pill never doubles as a button. */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <StatusPill status="todo" />
+                    {i.booking?.url && (
+                      <a href={i.booking.url} target="_blank" rel="noreferrer" className={`${btn.quiet} min-h-10 text-sm`}>
+                        <Icon name="external" className="size-4" />
+                        Book online
+                      </a>
+                    )}
+                    <button type="button" onClick={() => setMarking(i)} className={`${btn.secondary} min-h-10 text-sm`}>
+                      <Icon name="check" className="size-4" />
+                      Mark as booked
+                    </button>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
@@ -187,7 +194,7 @@ export function MarkBooked({ item, onClose }: { item: Item; onClose: () => void 
   const [conf, setConf] = useState(item.booking?.confirmation ?? "");
   const [error, setError] = useState<string | null>(null);
   return (
-    <Sheet open onClose={onClose} title={`Booked: ${item.title}`}>
+    <Sheet open onClose={onClose} title={`Mark ${item.title} as booked`}>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -207,7 +214,7 @@ export function MarkBooked({ item, onClose }: { item: Item; onClose: () => void 
         {error && <p className="text-base font-semibold text-danger">{error}</p>}
         <button type="submit" className={`${btn.primary} self-start`}>
           <Icon name="check" />
-          Mark booked
+          Mark as booked
         </button>
       </form>
     </Sheet>

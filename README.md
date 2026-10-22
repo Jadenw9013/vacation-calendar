@@ -11,7 +11,7 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
   - **Days:** every day in order, where you sleep each night, and a link that opens the day's route in Google Maps.
   - **Ideas:** things saved without a day yet.
   - **Posts:** every saved TikTok, Reel and YouTube video as a grid of pictures. Tap one to play it full screen in its own player, swipe through the rest, or open it in the app.
-- **To-do**: things still to book (with their booking link and a one-tap **Booked** that asks for the confirmation number), what's missing (a night with no bed, the flight home), and the group's list.
+- **To-do**: things still to book (with their booking link and **Mark as booked**, which asks for the confirmation number), what's missing (a night with no bed, the flight home), and the group's list.
 - **Trip**: details, people, inviting someone, the passcode, trip notes (entry rules, money), costs, everything that's changed with **Undo**, and display settings: light, dark, **Sunlight** (black on white for reading outdoors) and large text.
 - **The + button**: one box for everything.
   - Type a plan ("dinner fri 7 at Sabe Rico") and it's added. It guesses AM or PM when you don't say, and shows the guess.

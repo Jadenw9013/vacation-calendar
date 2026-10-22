@@ -210,7 +210,7 @@ Bottom bar on phones: **Today · Plan · (+) · To-do · Trip**. The **+** opens
   - Delete.
   - Every field is edited in place. There is no big form.
 - **To-do**
-  - **To book:** items marked as needing booking, with their Book link and a one-tap "Booked" that asks for the confirmation number.
+  - **To book:** items marked as needing booking, with their Book link and "Mark as booked", which asks for the confirmation number.
   - **Missing:** nights with no bed and the flight home, each with "Find options" to send it to the assistant.
   - **List:** manual to-dos.
   - Done items are collapsed.

@@ -72,9 +72,13 @@ test("an item page holds the reservation, contact and links", async ({ page }) =
   await join(page);
   await tab(page, "To-do").click();
   const row = page.locator("li", { hasText: "Zip lining" });
-  await row.getByRole("button", { name: "Booked" }).click();
-  await page.getByLabel("Confirmation number (optional)").fill("ZIP-4421");
-  await page.getByRole("button", { name: "Mark booked" }).click();
+  // The row says what it is (To book) and what you can do (Mark as booked): no button reads like a status.
+  await expect(row.getByText("To book")).toBeVisible();
+  await expect(row.getByRole("button", { name: "Booked", exact: true })).toHaveCount(0);
+  await row.getByRole("button", { name: "Mark as booked" }).click();
+  const sheet = page.getByRole("dialog", { name: /Mark Zip lining as booked/ });
+  await sheet.getByLabel("Confirmation number (optional)").fill("ZIP-4421");
+  await sheet.getByRole("button", { name: "Mark as booked" }).click();
   await tab(page, "Plan").click();
   await page.locator("#day-2026-11-26").getByRole("button", { name: /Zip lining/ }).click();
   await expect(page).toHaveURL(/\/item\/activity-zipline$/);
@@ -118,12 +122,13 @@ test("Back from an item page returns to the plan", async ({ page }) => {
 
 test("a saved post shows as a picture in Plan, Posts and opens in its own player", async ({ page }) => {
   await join(page);
-  await page.goto("/t/guatemala/item/activity-zipline");
+  // Embedded players and pictures load from other sites; don't wait on them.
+  await page.goto("/t/guatemala/item/activity-zipline", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Add a link").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Add", exact: true }).first().click();
   await expect(page.getByRole("region", { name: "Saved posts" }).getByRole("button", { name: /^YouTube/ })).toBeVisible({ timeout: 15_000 });
 
-  await page.goto("/t/guatemala/plan/posts");
+  await page.goto("/t/guatemala/plan/posts", { waitUntil: "domcontentloaded" });
   const tile = page.getByRole("button", { name: /^YouTube.*saved to Zip lining/ });
   await expect(tile).toBeVisible();
   await tile.click();
