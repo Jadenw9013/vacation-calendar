@@ -17,6 +17,8 @@ const joinRoute = await import("@/app/api/t/[tripId]/join/route");
 const opsRoute = await import("@/app/api/t/[tripId]/ops/route");
 const undoRoute = await import("@/app/api/t/[tripId]/undo/route");
 const tripsRoute = await import("@/app/api/trips/route");
+const previewRoute = await import("@/app/api/t/[tripId]/preview/route");
+const { previewTrip } = await import("./preview");
 
 const ctx = (tripId = "guatemala") => ({ params: Promise.resolve({ tripId }) });
 const post = (body: unknown, headers: Record<string, string> = {}) =>
@@ -30,6 +32,45 @@ async function join(name = "Sam", passcode = "volcano") {
 beforeEach(() => {
   jar.clear();
   setStoreForTests(new TripStore(new MemoryBackend()));
+});
+
+describe("view-only presentation links", () => {
+  it("requires trip access to create, inspect or revoke a viewing link", async () => {
+    expect((await previewRoute.POST(post({}), ctx())).status).toBe(401);
+    expect((await previewRoute.GET(get(), ctx())).status).toBe(401);
+    expect((await previewRoute.DELETE(new Request("http://localhost/api", { method: "DELETE" }), ctx())).status).toBe(401);
+  });
+
+  it("opens without a session, grants no editing access, and can be revoked and replaced", async () => {
+    await join();
+    expect(await (await previewRoute.GET(get(), ctx())).json()).toEqual({ path: null });
+    const response = await previewRoute.POST(post({}), ctx());
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
+    const { path } = await response.json();
+    const token = path.split("/").at(-1);
+    expect(token).toMatch(/^[a-f0-9]{64}$/);
+    expect(await (await previewRoute.POST(post({}), ctx())).json()).toEqual({ path });
+    const session = [...jar];
+    jar.clear();
+    expect((await previewTrip("guatemala", token))?.trip.id).toBe("guatemala");
+    expect(jar.size).toBe(0);
+    expect((await tripRoute.GET(get(), ctx())).status).toBe(401);
+    expect((await opsRoute.POST(post({ ops: [] }), ctx())).status).toBe(401);
+    expect(await previewTrip("guatemala", "0".repeat(64))).toBeNull();
+    expect(await previewTrip("another-trip", token)).toBeNull();
+    expect(await previewTrip("guatemala", "invalid")).toBeNull();
+    session.forEach(([name, value]) => jar.set(name, value));
+    await previewRoute.DELETE(new Request("http://localhost/api", { method: "DELETE" }), ctx());
+    expect(await previewTrip("guatemala", token)).toBeNull();
+    const replacement = await (await previewRoute.POST(post({}), ctx())).json();
+    expect(replacement.path).not.toBe(path);
+  });
+
+  it("blocks cross-site link creation and revocation", async () => {
+    await join();
+    expect((await previewRoute.POST(post({}, { "sec-fetch-site": "cross-site" }), ctx())).status).toBe(403);
+    expect((await previewRoute.DELETE(new Request("http://localhost/api", { method: "DELETE", headers: { "sec-fetch-site": "cross-site" } }), ctx())).status).toBe(403);
+  });
 });
 
 describe("joining", () => {

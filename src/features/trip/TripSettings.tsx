@@ -13,6 +13,7 @@ import { btn, field, label, SectionTitle } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
 import { money } from "../item/ItemPage";
 import { AccountPanel } from "../account/AccountPanel";
+import { ShareTrip } from "./ShareTrip";
 
 /** Trip: details, people and invites, trip-wide notes, costs, what changed, and display settings. */
 export function TripSettings() {
@@ -77,26 +78,12 @@ export function TripSettings() {
 }
 
 function People() {
-  const { trip, me, apply, setMe, tripId, notify } = useTrip();
+  const { trip, me, apply, setMe } = useTrip();
   const [name, setName] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [passOpen, setPassOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const everyone = [...new Set([me, ...trip.people])];
-  const link = typeof window !== "undefined" ? `${window.location.origin}/t/${tripId}/join` : "";
-
-  async function invite() {
-    const text = `Join our ${trip.name} trip: ${link} (ask me for the passcode)`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: trip.name, text, url: link });
-        return;
-      } catch {
-        // Cancelled: fall through to copying.
-      }
-    }
-    await navigator.clipboard.writeText(link).catch(() => {});
-    notify("Invite link copied. Send the passcode separately.");
-  }
 
   return (
     <section>
@@ -139,7 +126,7 @@ function People() {
         </button>
       </form>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={invite} className={btn.primary}>
+        <button type="button" onClick={() => setSharing(true)} className={btn.primary}>
           <Icon name="share" />
           Invite someone
         </button>
@@ -151,6 +138,7 @@ function People() {
 
       {renaming && <RenameSheet onClose={() => setRenaming(false)} setMe={setMe} me={me} />}
       {passOpen && <PasscodeSheet onClose={() => setPassOpen(false)} />}
+      {sharing && <ShareTrip onClose={() => setSharing(false)} />}
     </section>
   );
 }

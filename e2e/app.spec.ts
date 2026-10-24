@@ -54,7 +54,7 @@ test("create a vacation with separate destination and home settings, then add a 
   const snapshot = await (await page.request.get(`/api${tripPath}`)).json();
   expect(snapshot.trip).toMatchObject({ destination: "Oaxaca, Mexico", homeCurrency: "GBP", currency: "MXN" });
   expect(snapshot.trip.items.find((item: { title: string }) => item.title === "Casa Oaxaca")).toMatchObject({ start: { date: "2027-03-01", time: "15:00" }, end: { date: "2027-03-04", time: "11:00" }, booking: { state: "booked", confirmation: "CASA-123" } });
-  await page.getByRole("link", { name: "Plan a new trip", exact: true }).click();
+  await page.getByRole("link", { name: "New trip", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Let's make a trip happen.", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Birthday getaway/ })).toBeVisible();
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

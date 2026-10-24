@@ -7,6 +7,7 @@ import { formatRange } from "@/domain/time";
 import type { PlannerSnapshot } from "@/domain/planner";
 import type { Account } from "@/server/auth";
 import { Icon } from "@/ui/Icon";
+import { Brand } from "@/ui/Brand";
 import { AccountPanel } from "../account/AccountPanel";
 import { NewTripPlanner } from "./NewTripPlanner";
 
@@ -19,7 +20,7 @@ export function Home({ trips, original, create = false, initialName = "", accoun
   const composer = useRef<HTMLDivElement>(null);
   return <div className="home-workspace">
     <header className="workspace-header">
-      <Link href="/?all=1" className="wordmark" aria-label="Trip home"><span className="brand-mark"><Icon name="plane" className="size-5" /></span>Trip<span className="wordmark-note">A little further.</span></Link>
+      <Brand tagline />
       <nav aria-label="Workspace" className="flex items-center gap-2 sm:gap-6">
         <a href="#your-trips" className="workspace-nav hidden sm:flex">Your trips</a>
         <button type="button" className="workspace-nav" onClick={() => { composer.current?.scrollIntoView({ behavior: "smooth", block: "start" }); composer.current?.querySelector("textarea")?.focus(); }}>New trip</button>

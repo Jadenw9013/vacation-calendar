@@ -47,7 +47,7 @@ const tripFallback = {
 
 // OAuth must use native browser navigation, including its cross-origin redirects.
 // It must not be fetched, replayed or supplied an offline page by the worker.
-const isPage = ({ request, sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && request.mode === "navigate" && !url.pathname.startsWith("/api/");
+const isPage = ({ request, sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && request.mode === "navigate" && !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/p/");
 const isApi = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/auth/");
 const isThumb = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && /^\/api\/t\/[^/]+\/thumb$/.test(url.pathname);
 const isRsc = ({ request, sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && request.headers.get("RSC") === "1" && !url.pathname.startsWith("/api/auth/");

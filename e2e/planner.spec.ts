@@ -33,7 +33,7 @@ test("signed-in planning resumes across devices and saves under the right person
     await resumed.getByRole("button", { name: "Save trip", exact: true }).click();
     await expect(resumed.getByText("Saved to your trips.", { exact: true })).toBeVisible();
     await resumed.getByRole("link", { name: "Open your trip" }).click();
-    await resumed.getByRole("link", { name: "All trips", exact: true }).click();
+    await resumed.getByRole("link", { name: "Trip home", exact: true }).click();
     await expect(resumed.getByRole("link", { name: /Oaxaca escape/ })).toBeVisible();
     const memberships = await (await resumed.request.get("/api/trips")).json();
     expect(memberships.trips).toHaveLength(1);

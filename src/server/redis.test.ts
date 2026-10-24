@@ -24,6 +24,7 @@ function redisWithHashes(hashes: Record<string, string[]>): RedisLike {
   return {
     get: vi.fn().mockResolvedValue(null),
     set: vi.fn().mockResolvedValue("OK"),
+    del: vi.fn().mockResolvedValue(1),
     mget: vi.fn().mockResolvedValue([null, null]),
     lrange: vi.fn().mockResolvedValue([]),
     hgetall: (key) => redis.hgetall<Record<string, string>>(key),

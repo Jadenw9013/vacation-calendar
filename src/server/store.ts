@@ -41,6 +41,9 @@ export interface Backend {
   rememberTrip(accountId: string, tripId: string, name: string): Promise<void>;
   getPlanner(accountId: string): Promise<string | null>;
   setPlanner(accountId: string, snapshot: string): Promise<void>;
+  getPreview(id: string): Promise<string | null>;
+  claimPreview(id: string, token: string): Promise<boolean>;
+  disablePreview(id: string): Promise<void>;
   /** Increments a counter that expires after `ttlSeconds`; returns the new count. */
   hit(key: string, ttlSeconds: number): Promise<number>;
   /** A counter's current value (0 when unset or expired). */
@@ -146,6 +149,9 @@ export class TripStore {
   rememberTrip(accountId: string, tripId: string, name: string) { return this.db.rememberTrip(accountId, tripId, name); }
   getPlanner(accountId: string) { return this.db.getPlanner(accountId); }
   setPlanner(accountId: string, snapshot: string) { return this.db.setPlanner(accountId, snapshot); }
+  getPreview(id: string) { return this.db.getPreview(id); }
+  claimPreview(id: string, token: string) { return this.db.claimPreview(id, token); }
+  disablePreview(id: string) { return this.db.disablePreview(id); }
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +164,7 @@ export class MemoryBackend implements Backend {
   private idx = new Map<string, string>();
   private accounts = new Map<string, Record<string, string>>();
   private planners = new Map<string, string>();
+  private previews = new Map<string, string>();
   private counters = new Map<string, { n: number; until: number }>();
 
   constructor(private legacyTrip: string | null = null) {}
@@ -201,6 +208,13 @@ export class MemoryBackend implements Backend {
   async accountTrips(accountId: string) { return { ...this.accounts.get(accountId) }; }
   async getPlanner(accountId: string) { return this.planners.get(accountId) ?? null; }
   async setPlanner(accountId: string, snapshot: string) { this.planners.set(accountId, snapshot); }
+  async getPreview(id: string) { return this.previews.get(id) ?? null; }
+  async claimPreview(id: string, token: string) {
+    if (this.previews.has(id)) return false;
+    this.previews.set(id, token);
+    return true;
+  }
+  async disablePreview(id: string) { this.previews.delete(id); }
   async rememberTrip(accountId: string, tripId: string, name: string) {
     this.accounts.set(accountId, { ...this.accounts.get(accountId), [tripId]: name });
   }
@@ -224,6 +238,7 @@ export class MemoryBackend implements Backend {
 export interface RedisLike {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, opts?: { nx?: true }): Promise<unknown>;
+  del(key: string): Promise<unknown>;
   mget(...keys: string[]): Promise<(string | null)[]>;
   lrange(key: string, start: number, stop: number): Promise<string[]>;
   hgetall(key: string): Promise<Record<string, string> | string[] | null>;
@@ -306,6 +321,9 @@ export class RedisBackend implements Backend {
   async accountTrips(accountId: string) { return redisHash(await this.redis.hgetall(`account:${accountId}:trips`)); }
   async getPlanner(accountId: string) { return this.redis.get(`account:${accountId}:planner`); }
   async setPlanner(accountId: string, snapshot: string) { await this.redis.set(`account:${accountId}:planner`, snapshot); }
+  async getPreview(id: string) { return this.redis.get(`t:${id}:preview`); }
+  async claimPreview(id: string, token: string) { return (await this.redis.set(`t:${id}:preview`, token, { nx: true })) !== null; }
+  async disablePreview(id: string) { await this.redis.del(`t:${id}:preview`); }
   async rememberTrip(accountId: string, tripId: string, name: string) {
     await this.redis.hset(`account:${accountId}:trips`, { [tripId]: name });
   }

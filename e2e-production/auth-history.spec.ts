@@ -55,3 +55,32 @@ test("restoring a frozen browser-history document reloads safely without losing 
   ]);
   await expect(composer).toHaveValue("My draft should survive a browser-history restore.");
 });
+
+test("the production worker never caches a viewing link, so revocation takes effect", async ({ page, browser }) => {
+  await openControlledPage(page);
+  await page.goto("/t/guatemala/join");
+  await page.getByLabel("Your first name").fill("Ana");
+  await page.getByLabel("Passcode").fill("volcano");
+  await page.getByRole("button", { name: "Join the trip", exact: true }).click();
+  await page.waitForURL(/\/t\/guatemala$/);
+  const created = await page.request.post("/api/t/guatemala/preview");
+  expect(created.status()).toBe(200);
+  const { path } = await created.json();
+  const context = await browser.newContext();
+  try {
+    const viewer = await context.newPage();
+    await openControlledPage(viewer);
+    await viewer.goto(path);
+    await expect(viewer.getByText("View-only itinerary", { exact: true })).toBeVisible();
+    const cachedPreview = await viewer.evaluate(async () => {
+      for (const name of await caches.keys()) for (const request of await (await caches.open(name)).keys()) if (new URL(request.url).pathname.startsWith("/p/")) return true;
+      return false;
+    });
+    expect(cachedPreview).toBe(false);
+    const revoked = await page.request.delete("/api/t/guatemala/preview");
+    expect(revoked.status()).toBe(200);
+    await viewer.reload();
+    await expect(viewer.getByRole("heading", { name: "This viewing link is unavailable." })).toBeVisible();
+    expect((await context.request.get("http://localhost:3300/api/t/guatemala")).status()).toBe(401);
+  } finally { await context.close(); }
+});
