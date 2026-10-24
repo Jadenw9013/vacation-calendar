@@ -1,163 +1,42 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRef } from "react";
 import { formatRange } from "@/domain/time";
+import type { PlannerSnapshot } from "@/domain/planner";
+import type { Account } from "@/server/auth";
 import { Icon } from "@/ui/Icon";
-import { btn, field, label } from "@/ui/kit";
-import { zoneOptions } from "../trip/TripSettings";
 import { AccountPanel } from "../account/AccountPanel";
+import { NewTripPlanner } from "./NewTripPlanner";
 
-interface Summary {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-}
+interface Summary { id: string; name: string; startDate: string; endDate: string; cover?: string }
 
-/** Your trips, and a new one in one short form. */
-export function Home({ trips, original, create = false, initialName = "" }: { trips: Summary[]; original: { id: string; name: string; claimed: boolean } | null; create?: boolean; initialName?: string }) {
-  const [creating, setCreating] = useState(create || trips.length === 0);
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-8 px-5 py-10">
-      <h1 className="text-3xl font-bold">Your trips</h1>
-      <AccountPanel />
-
-      {(trips.length > 0 || original) && (
-        <ul className="flex flex-col gap-2">
-          {trips.map((t) => (
-            <li key={t.id}>
-              <a href={`/t/${t.id}`} className="flex items-center gap-3 rounded-2xl bg-surface p-4 hover:bg-sunken">
-                <Icon name="suitcase" className="size-6 text-accent" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-bold">{t.name}</span>
-                  <span className="block text-base text-muted">{formatRange(t.startDate, t.endDate)}</span>
-                </span>
-                <Icon name="chevronRight" className="size-4 text-muted" />
-              </a>
-            </li>
-          ))}
-          {original && (
-            <li>
-              <a href={`/t/${original.id}/join`} className="flex items-center gap-3 rounded-2xl border border-dashed border-line p-4 hover:bg-sunken">
-                <Icon name="suitcase" className="size-6 text-muted" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-bold">{original.name}</span>
-                  <span className="block text-base text-muted">{original.claimed ? "Join with the group's passcode" : "Join and set the group's passcode"}</span>
-                </span>
-                <Icon name="chevronRight" className="size-4 text-muted" />
-              </a>
-            </li>
-          )}
-        </ul>
-      )}
-
-      {creating ? (
-        <CreateTrip initialName={initialName} />
-      ) : (
-        <button type="button" onClick={() => setCreating(true)} className={`${btn.secondary} self-start`}>
-          <Icon name="plus" />
-          Plan a new trip
-        </button>
-      )}
+export function Home({ trips, original, create = false, initialName = "", account = null, initialSnapshot = null }: {
+  trips: Summary[]; original: { id: string; name: string; claimed: boolean } | null;
+  create?: boolean; initialName?: string; account?: Account | null; initialSnapshot?: PlannerSnapshot | null;
+}) {
+  const composer = useRef<HTMLDivElement>(null);
+  return <div className="home-workspace">
+    <header className="workspace-header">
+      <Link href="/?all=1" className="wordmark" aria-label="Trip home"><span className="brand-mark"><Icon name="plane" className="size-5" /></span>Trip<span className="wordmark-note">A little further.</span></Link>
+      <nav aria-label="Workspace" className="flex items-center gap-2 sm:gap-6">
+        <a href="#your-trips" className="workspace-nav hidden sm:flex">Your trips</a>
+        <button type="button" className="workspace-nav" onClick={() => { composer.current?.scrollIntoView({ behavior: "smooth", block: "start" }); composer.current?.querySelector("textarea")?.focus(); }}>New trip</button>
+        <AccountPanel initialAccount={account} />
+      </nav>
+    </header>
+    <main className="workspace-main">
+      <div ref={composer} className="scroll-mt-8">
+        <div className="workspace-intro"><p className="welcome-line">{account ? `Your travel space, ${initialName || account.name}.` : "Less logistics. More looking forward."}</p><h1>{create ? "Let's make a trip happen." : "Good trips start with a conversation."}</h1><p>Tell us what you have in mind. We’ll work out the details together.</p></div>
+        <NewTripPlanner account={account} initialName={initialName} initialSnapshot={initialSnapshot} />
+      </div>
+      <section id="your-trips" aria-labelledby="your-trips-title" className="your-trips-section">
+        <div className="flex items-end justify-between gap-3"><div><h2 id="your-trips-title">Your trips</h2><p className="text-muted">{account ? "Your plans, together in one place. Pick up where you left off." : "Trips you’ve joined on this browser."}</p></div><span className="trip-count">{trips.length} {trips.length === 1 ? "trip" : "trips"}</span></div>
+        {trips.length ? <ul className="trip-library">{trips.map((trip, index) => <li key={trip.id}><Link href={`/t/${trip.id}/plan`} className="library-trip"><div className="library-trip-image"><Image src={trip.cover || (index % 2 ? "/lake-atitlan-hero.jpg" : "/flight-sunset-wing.jpg")} alt="" fill sizes="(max-width: 640px) 100vw, 350px" unoptimized={!!trip.cover?.startsWith("http")} className="object-cover" /><span className="library-open"><Icon name="chevronRight" /></span></div><div className="library-trip-copy"><h3>{trip.name}</h3><p><Icon name="today" className="size-4" />{formatRange(trip.startDate, trip.endDate)}, {trip.startDate.slice(0, 4)}</p></div></Link></li>)}</ul> : <div className="library-empty"><Icon name="suitcase" className="size-6" /><p>Your next trip belongs here.<span>Start a conversation above and save the plan when it feels right.</span></p></div>}
+        {original && <Link href={`/t/${original.id}/join`} className="existing-invite"><Icon name="users" className="size-4" /><span>Joining the {original.name} trip?</span><span className="font-semibold">Open invitation</span><Icon name="chevronRight" className="size-4" /></Link>}
+      </section>
+      <footer className="workspace-footer"><span>Made for the journey.</span><span>Plan together. Keep everything close.</span></footer>
     </main>
-  );
-}
-
-function CreateTrip({ initialName }: { initialName: string }) {
-  const router = useRouter();
-  const here = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC";
-  const [v, setV] = useState({ name: "", destination: "", startDate: "", endDate: "", tz: here, homeTz: here, currency: "USD", homeCurrency: "USD", me: initialName, passcode: "" });
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const zones = zoneOptions([here]);
-  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.value;
-    setV((prev) => ({ ...prev, [k]: value, ...(k === "startDate" && prev.endDate && prev.endDate < value ? { endDate: value } : {}) }));
-  };
-
-  return (
-    <section className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold">New trip</h2>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (busy) return;
-          setBusy(true);
-          setError(null);
-          try {
-            const res = await fetch("/api/trips", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ ...v, name: v.name.trim() || v.destination.trim() }),
-            });
-            const body = await res.json();
-            if (!res.ok) return setError(body.error);
-            router.push(`/t/${body.id}/plan`);
-          } catch {
-            setError("Creating a trip needs a connection.");
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="flex flex-col gap-3"
-      >
-        <label className={label}>
-          Where are you going?
-          <input value={v.destination} onChange={set("destination")} required maxLength={200} placeholder="Oaxaca, Mexico" className={field} />
-        </label>
-        <label className={label}>
-          Trip name (optional)
-          <input value={v.name} onChange={set("name")} maxLength={200} placeholder="Birthday getaway" className={field} />
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <label className={label}>
-            First day
-            <input type="date" value={v.startDate} onChange={set("startDate")} required className={field} />
-          </label>
-          <label className={label}>
-            Travel home
-            <input type="date" value={v.endDate} onChange={set("endDate")} required min={v.startDate} className={field} />
-          </label>
-        </div>
-        <label className={label}>
-          Time zone there
-          <select value={v.tz} onChange={set("tz")} className={field}>
-            {zones.map((z) => (
-              <option key={z} value={z}>
-                {z.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={label}>
-          Time zone at home
-          <select value={v.homeTz} onChange={set("homeTz")} className={field}>
-            {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
-          </select>
-        </label>
-        <label className={label}>
-          Local currency
-          <input value={v.currency} onChange={set("currency")} minLength={3} maxLength={3} pattern="[A-Za-z]{3}" required className={`${field} uppercase`} />
-        </label>
-        <label className={label}>
-          Currency at home
-          <input value={v.homeCurrency} onChange={set("homeCurrency")} minLength={3} maxLength={3} pattern="[A-Za-z]{3}" required className={`${field} uppercase`} />
-        </label>
-        <label className={label}>
-          Your first name
-          <input value={v.me} onChange={set("me")} required maxLength={30} autoComplete="given-name" className={field} />
-        </label>
-        <label className={label}>
-          A passcode for the group
-          <input type="password" value={v.passcode} onChange={set("passcode")} required minLength={4} maxLength={100} autoComplete="new-password" className={field} />
-        </label>
-        <p className="text-sm text-muted">Choose the destination’s time zone so your plans use local time. Share the trip link and passcode with your group after creating it.</p>
-        {error && <p role="alert" className="font-semibold text-danger">{error}</p>}
-        <button type="submit" disabled={busy} className={`${btn.primary} min-h-12`}>
-          {busy ? "Creating…" : "Create the trip"}
-        </button>
-      </form>
-    </section>
-  );
+  </div>;
 }

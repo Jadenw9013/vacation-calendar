@@ -47,12 +47,12 @@ function Screens({ tripId, serverNow }: { tripId: string; serverNow: number }) {
   }, [compose]);
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-2xl md:pt-16">
+    <div className="trip-app-shell mx-auto min-h-dvh w-full max-w-3xl md:pt-20">
       <TopBar active={active} onPick={(t) => go({ tab: t } as View)} />
       <main id="main" className="pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-16">
-        <div className="flex flex-wrap justify-between gap-2 px-4 pt-2 text-sm font-semibold text-accent">
-          <Link href="/?all=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="suitcase" className="size-4" />All trips</Link>
-          <Link href="/?new=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="plus" className="size-4" />Plan a new trip</Link>
+        <div className="trip-workspace-bar">
+          <Link href="/?all=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="back" className="size-4" />All trips</Link>
+          <Link href="/?new=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="sparkles" className="size-4" />Plan a new trip</Link>
         </div>
         {view.tab === "today" && <Today day={view.day} go={go} serverNow={serverNow} />}
         {view.tab === "plan" && <Plan section={view.section} go={go} />}
@@ -118,7 +118,7 @@ function BottomBar({ active, onPick }: { active: Tab; onPick: (t: Tab) => void }
 function TopBar({ active, onPick }: { active: Tab; onPick: (t: Tab) => void }) {
   return (
     <nav aria-label="Main" className="fixed inset-x-0 top-0 z-40 hidden h-16 border-b border-line bg-surface/95 backdrop-blur md:block">
-      <div className="mx-auto flex h-full max-w-2xl items-center justify-between gap-3 px-4">
+      <div className="mx-auto flex h-full max-w-3xl items-center justify-between gap-3 px-4">
         <ul className="flex gap-1">
           {TABS.map((t) => (
             <li key={t.id}>

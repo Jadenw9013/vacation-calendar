@@ -39,6 +39,8 @@ export interface Backend {
   putIndex(id: string, summary: string): Promise<void>;
   accountTrips(accountId: string): Promise<Record<string, string>>;
   rememberTrip(accountId: string, tripId: string, name: string): Promise<void>;
+  getPlanner(accountId: string): Promise<string | null>;
+  setPlanner(accountId: string, snapshot: string): Promise<void>;
   /** Increments a counter that expires after `ttlSeconds`; returns the new count. */
   hit(key: string, ttlSeconds: number): Promise<number>;
   /** A counter's current value (0 when unset or expired). */
@@ -142,6 +144,8 @@ export class TripStore {
   }
   accountTrips(accountId: string) { return this.db.accountTrips(accountId); }
   rememberTrip(accountId: string, tripId: string, name: string) { return this.db.rememberTrip(accountId, tripId, name); }
+  getPlanner(accountId: string) { return this.db.getPlanner(accountId); }
+  setPlanner(accountId: string, snapshot: string) { return this.db.setPlanner(accountId, snapshot); }
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +157,7 @@ export class MemoryBackend implements Backend {
   private passes = new Map<string, string>();
   private idx = new Map<string, string>();
   private accounts = new Map<string, Record<string, string>>();
+  private planners = new Map<string, string>();
   private counters = new Map<string, { n: number; until: number }>();
 
   constructor(private legacyTrip: string | null = null) {}
@@ -194,6 +199,8 @@ export class MemoryBackend implements Backend {
     this.idx.set(id, summary);
   }
   async accountTrips(accountId: string) { return { ...this.accounts.get(accountId) }; }
+  async getPlanner(accountId: string) { return this.planners.get(accountId) ?? null; }
+  async setPlanner(accountId: string, snapshot: string) { this.planners.set(accountId, snapshot); }
   async rememberTrip(accountId: string, tripId: string, name: string) {
     this.accounts.set(accountId, { ...this.accounts.get(accountId), [tripId]: name });
   }
@@ -287,6 +294,8 @@ export class RedisBackend implements Backend {
     await this.redis.hset("trips", { [id]: summary });
   }
   async accountTrips(accountId: string) { return (await this.redis.hgetall(`account:${accountId}:trips`)) ?? {}; }
+  async getPlanner(accountId: string) { return this.redis.get(`account:${accountId}:planner`); }
+  async setPlanner(accountId: string, snapshot: string) { await this.redis.set(`account:${accountId}:planner`, snapshot); }
   async rememberTrip(accountId: string, tripId: string, name: string) {
     await this.redis.hset(`account:${accountId}:trips`, { [tripId]: name });
   }

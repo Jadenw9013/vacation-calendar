@@ -6,9 +6,17 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
 
 ## Using it
 
-### Start a trip without AI
+### Start a trip through conversation
 
-Choose **Plan a new trip** from any trip screen. Enter the destination, optional trip name, dates, time zones, currencies, your first name and a group passcode. The new trip opens on **Plan**.
+Open the home workspace or choose **Plan a new trip** from a trip. Describe what you have in mind: a destination, a budget, approximate dates, your travel style, or an existing itinerary. The Gemini planner asks follow-ups and builds a trip draft beside the conversation. You can explore options before deciding on exact dates.
+
+Once the destination and dates are settled, review the itinerary and choose **Save trip**. Suggested activities become regular editable trip items; nothing is booked. The app generates an invitation passcode and shows it before you open the trip. Signed-in people are automatically identified and the trip is saved to their account. Guest planners can give their first name conversationally. A stable draft ID makes repeated save requests return the existing trip.
+
+Google sign-in now gives you a personal trip library and a planning conversation saved to your account after every reply. Open the app on another device with the same Google account to resume. Guest conversations stay on the current browser. **Start fresh** clears the active conversation. Messages and model drafts are validated; card numbers are stripped before storage or model calls. The planner needs `GEMINI_API_KEY`; `CHAT_MOCK=1` provides a scripted development-only stand-in. Run `npm run planner:eval` for an evaluation against the real model without creating a trip.
+
+The home workspace stays available even when you only have one trip. The account menu replaces repeated sign-in information panels. The trip’s Plan screen has **Plan with your assistant** for refining an existing itinerary, alongside manual entry and text import.
+
+### Paste an itinerary without AI into an existing trip
 
 Choose **Paste a travel plan**, paste one item per line, and review the result before adding anything. Use `Day 1`, `Day 2`, etc. relative to the trip's first day, or an ISO date such as `2027-03-01` as a heading. Start an undated section with `Ideas`.
 
@@ -25,7 +33,7 @@ Activity: Cooking class
 
 The review lets you change titles, kinds, dates, times, reservation details and notes, or uncheck items. Existing matches and repeated pasted lines start unchecked. Stays default to one night unless an end date is supplied. Other pipe-separated details are retained in notes. Unrecognized lines stay visible as items to correct or deselect. Times default to the trip's destination time zone. Flights can specify `tz: Asia/Tokyo | end tz: America/Los_Angeles`, or use the departure/arrival zone fields in review; arrival order is checked using both zones. Import up to 60 selected items at once. Imports work offline, sync later, and can be undone together.
 
-For individual items, use **Add details manually** in the + sheet. The preview also lets you edit parsed times, add checkout dates, mark existing bookings, or choose **No day (idea)**. No model, API key or AI request is needed for either flow. Screenshot reading and the assistant remain optional AI features.
+For individual items, use **Add details manually** in the + sheet. The preview also lets you edit parsed times, add checkout dates, mark existing bookings, or choose **No day (idea)**. No model, API key or AI request is needed for manual entry or this deterministic import. Screenshot reading, the new-trip conversation and the assistant use AI.
 
 ### Remember trips with Google
 

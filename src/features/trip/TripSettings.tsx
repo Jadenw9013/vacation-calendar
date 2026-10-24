@@ -208,6 +208,7 @@ function PasscodeSheet({ onClose }: { onClose: () => void }) {
         <label className={label}>
           Current passcode
           <input type="password" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" className={field} />
+          <span className="text-xs text-muted">If you’re signed in with Google, you can leave this blank.</span>
         </label>
         <label className={label}>
           New passcode

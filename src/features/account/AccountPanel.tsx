@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { btn } from "@/ui/kit";
+import { Icon } from "@/ui/Icon";
+import type { Account } from "@/server/auth";
 
 interface AccountState { account: { name: string; email: string } | null; googleEnabled: boolean }
 
-export function AccountPanel() {
-  const [state, setState] = useState<AccountState | null>(null);
+export function AccountPanel({ initialAccount = null }: { initialAccount?: Account | null }) {
+  const [state, setState] = useState<AccountState | null>(initialAccount ? { account: initialAccount, googleEnabled: true } : null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -42,16 +44,12 @@ export function AccountPanel() {
 
   if (!state && !error) return null;
   const returnTo = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/?all=1";
-  return <section aria-label="Your account" className="flex flex-col gap-2 rounded-2xl border border-line p-4">
+  return <section aria-label="Your account" className="account-control">
     {state?.account ? <>
-      <p className="font-semibold">Signed in as {state.account.name}</p>
-      <p className="break-words text-sm text-muted">{state.account.email}</p>
-      <p className="text-sm text-muted">Trips you create or join are saved to your account. Sign in with Google on another device to find them again.</p>
-      <button type="button" disabled={busy} onClick={() => void logout()} className={`${btn.secondary} self-start`}>{busy ? "Signing out…" : "Sign out"}</button>
+      <details className="account-menu"><summary aria-label={`Your account, ${state.account.name}`}><span className="account-avatar">{state.account.name.slice(0, 1).toUpperCase()}</span><span className="account-name">{state.account.name}</span><Icon name="chevronDown" className="size-3.5" /></summary><div className="account-popover"><p className="font-semibold">{state.account.name}</p><p className="break-words text-sm text-muted">{state.account.email}</p><p className="my-3 text-sm text-muted">Your trips and planning conversation follow you across devices.</p><button type="button" disabled={busy} onClick={() => void logout()} className={btn.secondary}>{busy ? "Signing out…" : "Sign out"}</button></div></details>
     </> : state?.googleEnabled ? <>
-      <a href={`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`} className={`${btn.secondary} self-start`}>Continue with Google</a>
-      <p className="text-sm text-muted">Remember your trips across devices. Trips already joined on this browser will be saved to your account. You can also continue with a first name and trip passcode.</p>
-    </> : <p className="text-sm text-muted">Your joined trips are remembered on this browser.</p>}
+      <a href={`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`} className="google-sign-in"><svg viewBox="0 0 24 24" className="size-4" aria-hidden="true"><path fill="currentColor" d="M21.8 12.2c0-.7-.1-1.5-.2-2.2H12v4.1h5.5a4.7 4.7 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3-4.4 3-7.6ZM12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6a6.3 6.3 0 0 1-9.3-3.3H2.7v2.7A10.4 10.4 0 0 0 12 22ZM6.2 13.6a6.2 6.2 0 0 1 0-3.2V7.7H2.7a10 10 0 0 0 0 8.6l3.5-2.7ZM12 6c1.6 0 3 .5 4.1 1.6l3.1-3A10 10 0 0 0 12 2a10.4 10.4 0 0 0-9.3 5.7l3.5 2.7A6.2 6.2 0 0 1 12 6Z" /></svg>Continue with Google</a>
+    </> : null}
     {error && <p role="alert" className="text-danger">{error}</p>}
   </section>;
 }

@@ -40,9 +40,8 @@ export function Plan({ section = "days", go }: { section?: PlanSection; go: (v: 
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="itinerary-view flex flex-col gap-5">
       <header className="flex flex-col gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button type="button" onClick={() => setPasting(true)} className={`${btn.primary} self-start`}>Paste a travel plan</button>
         {trip.cover && (
           <div className="cover-photo relative h-36 overflow-hidden rounded-3xl bg-sunken sm:h-48">
             <Image src={trip.cover} alt="" fill priority sizes="(max-width: 768px) 100vw, 42rem" className="object-cover" />
@@ -60,6 +59,10 @@ export function Plan({ section = "days", go }: { section?: PlanSection; go: (v: 
               </span>
             ))}
           </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 py-1">
+          <button type="button" onClick={() => compose({ ask: true, text: "Help me refine this itinerary. What would you adjust, and what still needs arranging?" })} className={btn.primary}><Icon name="sparkles" className="size-4" />Plan with your assistant</button>
+          <button type="button" onClick={() => setPasting(true)} className={btn.secondary}><Icon name="plan" className="size-4" />Paste a travel plan</button>
         </div>
         <dl className="grid grid-cols-3 rounded-2xl bg-surface py-2 text-center">
           {[
@@ -170,8 +173,8 @@ function Day({ date, last, onOpen, onAdd }: { date: string; last: boolean; onOpe
     trip,
   );
   return (
-    <section id={`day-${date}`} aria-labelledby={`day-${date}-title`} className="scroll-mt-4">
-      <div className="flex items-start justify-between gap-3 border-b-2 border-ink pb-2">
+    <section id={`day-${date}`} aria-labelledby={`day-${date}-title`} className="itinerary-day scroll-mt-4">
+      <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
         <div className="min-w-0">
           <h2 id={`day-${date}-title`} className="text-lg leading-tight font-bold">
             {weekday(date, true)}, {monthDay(date)}

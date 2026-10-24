@@ -12,6 +12,7 @@
     "e2e": "playwright test",
     "summary": "tsx --conditions=react-server scripts/trip-summary.ts",
     "assistant:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/assistant-eval.ts",
+    "planner:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/planner-eval.ts",
     "import:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-eval.ts"
   },
   "dependencies": {

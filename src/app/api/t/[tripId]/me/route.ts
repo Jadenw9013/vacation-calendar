@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tri
     }
     const store = getStore();
     const stored = await store.getPass(tripId);
-    if (stored && (typeof passcode !== "string" || !(await checkPasscode(passcode.trim(), stored)))) {
+    if (stored && !auth.session.accountId && (typeof passcode !== "string" || !(await checkPasscode(passcode.trim(), stored)))) {
       return jsonError(403, "The current passcode doesn't match.", { field: "passcode" });
     }
     await store.setPass(tripId, await hashPasscode(newPasscode.trim()));
