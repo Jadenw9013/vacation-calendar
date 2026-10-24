@@ -40,6 +40,17 @@ test("signed-in planning resumes across devices and saves under the right person
     const state = await (await resumed.request.get(`/api/t/${memberships.trips[0].id}`)).json();
     expect(state.trip.people).toEqual(["Ana"]);
     expect(state.trip.items.every((item: { who: string }) => item.who === "Ana")).toBe(true);
+    // A returning member needs only their account cookie, even on the original invite URL.
+    await secondDevice.clearCookies();
+    await secondDevice.addCookies([cookie]);
+    await resumed.goto(`/t/${memberships.trips[0].id}/join`);
+    await expect(resumed).toHaveURL(new RegExp(`/t/${memberships.trips[0].id}$`));
+    await expect(resumed.getByRole("heading", { name: "Oaxaca escape", exact: true })).toBeVisible();
+    await expect(resumed.getByRole("button", { name: "Join the trip", exact: true })).toHaveCount(0);
+    await resumed.reload();
+    await expect(resumed).not.toHaveURL(/\/join$/);
+    const remembered = (await secondDevice.cookies()).find((item) => item.name === "travel_account");
+    expect(remembered?.expires).toBeGreaterThan(Date.now() / 1000 + 170 * 86_400);
   } finally { await secondDevice.close(); await otherPerson.close(); }
 });
 

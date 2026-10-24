@@ -145,6 +145,17 @@ export async function writeAccount(account: Account): Promise<void> {
   (await cookies()).set(ACCOUNT_COOKIE, seal("account", account, MAX_AGE), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: MAX_AGE });
 }
 
+/** Renew active accounts at most once daily. Call only from route handlers,
+ * because Server Components can read cookies but cannot write them. */
+export async function refreshAccountSession(): Promise<Account | null> {
+  const account = await readAccount();
+  if (!account) return null;
+  const value = (await cookies()).get(ACCOUNT_COOKIE)!.value;
+  const { expires } = JSON.parse(Buffer.from(value.split(".")[0], "base64url").toString());
+  if (expires - Date.now() < (MAX_AGE - 24 * 60 * 60) * 1000) await writeAccount(account);
+  return account;
+}
+
 /** A new trip's id: readable start, unguessable end ("peru-k3f9x2q7"). */
 export function newTripId(name: string): string {
   const slug =

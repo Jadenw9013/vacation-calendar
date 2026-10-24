@@ -39,6 +39,8 @@ For individual items, use **Add details manually** in the + sheet. The preview a
 
 When configured, **Continue with Google** appears on the home, join and Trip screens. The browser's existing guest trips are linked once to the verified Google account. Trips subsequently created or joined are also remembered by that account. Signing in on another browser restores those memberships without asking for the trip passcode again. Joining a new private trip still requires its passcode.
 
+Returning members open trips and their original invitation links directly, with no extra passcode or Google prompt while the remembered account session is valid. The persistent session lasts 180 days and renews during active use, at most once per day. Signing out, clearing cookies, switching browsers or letting the session expire requires Google verification again; the account's stored trip memberships remain intact.
+
 Accounts use Google's stable subject ID rather than a first name or email as the identity key. Per-trip names remain editable; manual changes and pasted imports also record the signed-in account ID in the change history. Google access and refresh tokens are not stored. Sign-out clears this browser's trip cookies, local snapshots and cached pages; pending offline edits must sync first.
 
 To enable this:

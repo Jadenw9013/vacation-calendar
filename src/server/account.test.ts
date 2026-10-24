@@ -19,7 +19,7 @@ vi.mock("google-auth-library", () => ({
   },
 }));
 
-import { ACCOUNT_COOKIE, cookieName, decodeSession, encodeSession, joinedTrips, readSession, seal, unseal, writeAccount, writeSession } from "./auth";
+import { ACCOUNT_COOKIE, cookieName, decodeSession, encodeSession, joinedTrips, readAccount, readSession, refreshAccountSession, seal, unseal, writeAccount, writeSession } from "./auth";
 import { GOOGLE_HANDSHAKE_COOKIE, safeReturnTo } from "./google";
 import { setStoreForTests, getStore } from "./db";
 import { MemoryBackend, TripStore } from "./store";
@@ -45,6 +45,32 @@ beforeEach(() => {
 });
 
 describe("Google accounts and trip access", () => {
+  it("renews an active account after a day and keeps its joined trips available", async () => {
+    const clock = vi.spyOn(Date, "now");
+    const now = Date.now();
+    try {
+      clock.mockReturnValue(now);
+      await writeAccount(accountA);
+      await writeSession({ tripId: "remembered-trip", name: "Ana" });
+      const initial = jar.get(ACCOUNT_COOKIE);
+      await refreshAccountSession();
+      expect(jar.get(ACCOUNT_COOKIE)).toBe(initial);
+      clock.mockReturnValue(now + 2 * 86_400_000);
+      await refreshAccountSession();
+      expect(jar.get(ACCOUNT_COOKIE)).not.toBe(initial);
+      jar.delete(cookieName("remembered-trip"));
+      clock.mockReturnValue(now + 181 * 86_400_000);
+      expect(await readSession("remembered-trip")).toMatchObject({ name: "Ana", accountId: accountA.id });
+    } finally { clock.mockRestore(); }
+  });
+
+  it("does not silently renew expired or forged accounts", async () => {
+    jar.set(ACCOUNT_COOKIE, seal("account", accountA, -1));
+    expect(await refreshAccountSession()).toBeNull();
+    expect(await readAccount()).toBeNull();
+    jar.set(ACCOUNT_COOKIE, "forged.cookie");
+    expect(await refreshAccountSession()).toBeNull();
+  });
   it("expires guest sessions server-side and rejects appended data", () => {
     const now = Date.now();
     vi.spyOn(Date, "now").mockReturnValue(now);

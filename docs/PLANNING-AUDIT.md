@@ -29,6 +29,7 @@ The current new-trip experience is conversational: describe a vacation to the Ge
 | Signing in had little visible benefit | Account information occupied space without supporting planning | Added a personal workspace and trip library, a compact account menu, automatic attribution and account-scoped planning recovery across devices |
 | Home disappeared when only one trip existed | Signed-in people could not easily return to their workspace | Keep the personal home available regardless of trip count |
 | Model JSON schemas can exceed Google's complexity limit | New-trip model requests failed with generic invalid-argument errors | Use a simpler provider schema, normalize absent optional values and apply the full domain schema before storage; verified against the real model |
+| Returning members should not repeatedly join a trip | A remembered Google account should open existing trips and invitation links directly | Persistent account memberships bypass rejoining; active account sessions renew daily for another 180 days, with browser coverage for direct invite links and reloads |
 
 ## Limits and follow-up work
 
@@ -42,4 +43,4 @@ The current new-trip experience is conversational: describe a vacation to the Ge
 
 Unit/API coverage includes date validity, separate destination/home settings, full pasted-plan conversion and Undo, date/time errors, duplicate matches, OAuth handshake validation, guest linking, trip recovery without trip cookies, account isolation and logout. Browser coverage exercises creation, manual multi-night booking, unscheduling an idea, and offline text import/sync with no AI requests, plus the existing app regression suite.
 
-Results: 86 unit/API tests and all 21 browser tests pass, including conversational creation, failed-message retry, mobile/desktop accessibility and account-scoped cross-device recovery. ESLint, TypeScript, the production build and the dependency audit pass. `npm run planner:eval` also exercises the real Gemini provider without creating or changing a trip. Google interactive consent remains a user action.
+Results: 88 unit/API tests and all 21 browser tests pass, including conversational creation, failed-message retry, mobile/desktop accessibility, remembered trip access, session renewal and account-scoped cross-device recovery. ESLint, TypeScript, the production build and the dependency audit pass. `npm run planner:eval` also exercises the real Gemini provider without creating or changing a trip. Google interactive consent remains a user action.
