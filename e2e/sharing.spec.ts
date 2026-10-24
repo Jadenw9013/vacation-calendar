@@ -10,11 +10,11 @@ test("home logo and new trip work at phone, tablet and desktop widths", async ({
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/t/guatemala/plan");
-    await expect(page.getByRole("link", { name: "Trip home", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Voyroo home", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Share trip", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     if (width === 390 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`navigation-${width}.png`) });
-    await page.getByRole("link", { name: "Trip home", exact: true }).click();
+    await page.getByRole("link", { name: "Voyroo home", exact: true }).click();
     await expect(page).toHaveURL(/\/\?all=1$/);
     await page.goto("/t/guatemala/plan");
     await page.getByRole("link", { name: "New trip", exact: true }).click();

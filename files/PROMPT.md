@@ -1,5 +1,7 @@
 # Build prompt: Guatemala trip planning site
 
+Historical seed/reference material for Voyroo. Current product and brand guidance is in `README.md` and `docs/BRAND.md`.
+
 Paste this into Claude Code in an empty repo. `TRIP-DATA.md` must be in the repo root alongside it.
 
 ---

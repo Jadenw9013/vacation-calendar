@@ -1,5 +1,5 @@
 {
-  "name": "trip",
+  "name": "voyroo",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,6 +12,7 @@
     "e2e": "playwright test",
     "e2e:production": "npm run build && playwright test --config playwright.production.config.ts",
     "summary": "tsx --conditions=react-server scripts/trip-summary.ts",
+    "brand:assets": "node scripts/brand-assets.mjs",
     "assistant:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/assistant-eval.ts",
     "planner:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/planner-eval.ts",
     "import:eval": "tsx --conditions=react-server --env-file-if-exists=.env.local scripts/import-eval.ts"
@@ -44,6 +45,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "sharp": "0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

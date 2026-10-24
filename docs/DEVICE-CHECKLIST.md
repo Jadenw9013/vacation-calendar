@@ -1,4 +1,4 @@
-# Checks on a real phone
+# Voyroo checks on a real phone
 
 `npm run e2e` covers layout, accessibility, adding, the item page and the assistant in Chromium. It can't reproduce the iPhone keyboard, the system Back gesture, a real install, the share sheet, or reading a screen outdoors. Run through this on one iPhone (Safari) and one Android phone (Chrome) before the trip, on the deployed site. Tick each line on both phones.
 

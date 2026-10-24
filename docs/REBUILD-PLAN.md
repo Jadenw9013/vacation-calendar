@@ -1,4 +1,4 @@
-# Rebuild plan
+# Voyroo rebuild plan
 
 October 2026. The goal: a trip app a group actually uses, both while planning and on the road. It should feel as easy as a shared notes app, and know more than one.
 

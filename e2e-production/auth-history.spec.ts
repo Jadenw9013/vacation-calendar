@@ -24,7 +24,7 @@ test("Back from Google loads the planner and keeps unsent input with the product
   await expect(page.getByRole("heading", { name: "External sign-in fixture" })).toBeVisible();
   await page.goBack();
   await expect(composer).toHaveValue("A week in Japan with friends. Keep this unfinished plan.");
-  await expect(page.getByRole("heading", { name: "Your travel planner", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your Voyroo planner", exact: true })).toBeVisible();
   expect(workerAuthRequests).toEqual([]);
   const cachedAuth = await page.evaluate(async () => {
     for (const name of await caches.keys()) for (const request of await (await caches.open(name)).keys()) if (new URL(request.url).pathname.startsWith("/api/auth/")) return true;

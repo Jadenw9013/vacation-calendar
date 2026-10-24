@@ -1,5 +1,7 @@
 # Guatemala trip, Nov 24 to Nov 30, 2026
 
+Historical seed/reference material for Voyroo. Current product and brand guidance is in `README.md` and `docs/BRAND.md`.
+
 Ground truth for the planning site. Confirmed items are from booking confirmations. Everything under "Gaps" is unbooked. Anything marked TODO is unknown and must stay unknown in the UI rather than being guessed.
 
 Party size: TODO (confirm before building, affects lodging and shuttle bookings).

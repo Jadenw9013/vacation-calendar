@@ -33,7 +33,7 @@ test("signed-in planning resumes across devices and saves under the right person
     await resumed.getByRole("button", { name: "Save trip", exact: true }).click();
     await expect(resumed.getByText("Saved to your trips.", { exact: true })).toBeVisible();
     await resumed.getByRole("link", { name: "Open your trip" }).click();
-    await resumed.getByRole("link", { name: "Trip home", exact: true }).click();
+    await resumed.getByRole("link", { name: "Voyroo home", exact: true }).click();
     await expect(resumed.getByRole("link", { name: /Oaxaca escape/ })).toBeVisible();
     const memberships = await (await resumed.request.get("/api/trips")).json();
     expect(memberships.trips).toHaveLength(1);
@@ -49,8 +49,7 @@ test("signed-in planning resumes across devices and saves under the right person
     await expect(resumed.getByRole("button", { name: "Join the trip", exact: true })).toHaveCount(0);
     await resumed.reload();
     await expect(resumed).not.toHaveURL(/\/join$/);
-    const remembered = (await secondDevice.cookies()).find((item) => item.name === "travel_account");
-    expect(remembered?.expires).toBeGreaterThan(Date.now() / 1000 + 170 * 86_400);
+    await expect.poll(async () => (await secondDevice.cookies()).find((item) => item.name === "travel_account")?.expires ?? -1).toBeGreaterThan(Date.now() / 1000 + 170 * 86_400);
   } finally { await secondDevice.close(); await otherPerson.close(); }
 });
 
@@ -58,6 +57,8 @@ for (const scheme of ["light", "dark"] as const) {
   test(`planning workspace is accessible and fits phone and desktop (${scheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto("/?new=1");
+    await expect(page).toHaveTitle("Voyroo");
+    await expect(page.getByRole("link", { name: "Voyroo home", exact: true })).toBeVisible();
     for (const width of [360, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);

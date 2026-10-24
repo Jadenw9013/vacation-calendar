@@ -6,6 +6,7 @@ import { dayRange, formatDay, formatTime } from "@/domain/time";
 import type { Item } from "@/domain/types";
 import { Icon, KIND_ICON } from "@/ui/Icon";
 import { PrintTrip } from "@/features/trip/PrintTrip";
+import { Brand } from "@/ui/Brand";
 
 export const metadata: Metadata = { title: "Trip itinerary", robots: { index: false, follow: false }, referrer: "no-referrer" };
 
@@ -18,7 +19,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ tripId
   const days = [...new Set([...dayRange(trip.startDate, trip.endDate), ...trip.items.flatMap((item) => item.start ? [item.start.date] : [])])].sort();
   const ideas = trip.items.filter((item) => !item.start);
   return <div className="trip-presentation">
-    <header className="presentation-toolbar"><span className="wordmark"><span className="brand-mark"><Icon name="plane" /></span>Trip</span><div className="flex flex-wrap items-center justify-end gap-3"><span className="text-sm text-muted">View-only itinerary</span><PrintTrip /></div></header>
+    <header className="presentation-toolbar"><Brand linked={false} /><div className="flex flex-wrap items-center justify-end gap-3"><span className="text-sm text-muted">View-only itinerary</span><PrintTrip /></div></header>
     <main id="main" className="presentation-main">
       <div className="presentation-hero"><div><p className="presentation-destination"><Icon name="pin" />{trip.destination}</p><h1>{trip.name}</h1><p className="presentation-dates">{formatDay(trip.startDate)}, {trip.startDate.slice(0, 4)} — {formatDay(trip.endDate)}, {trip.endDate.slice(0, 4)}</p><p className="mt-4 text-sm text-muted">The group’s current plan. Times are local to {trip.tz} unless shown otherwise.</p></div><div className="presentation-cover" style={{ backgroundImage: `url(${JSON.stringify(trip.cover || "/flight-sunset-wing.jpg")})` }} /></div>
       <nav aria-label="Itinerary days" className="presentation-days">{days.map((day) => <a key={day} href={`#day-${day}`}>{formatDay(day)}</a>)}{ideas.length > 0 && <a href="#ideas">Ideas</a>}</nav>
@@ -28,7 +29,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ tripId
         return <section id={`day-${day}`} key={day} className="presentation-day"><header><p>{day.slice(0, 4)}</p><h2>{formatDay(day)}</h2></header><div className="presentation-events">{stays.map((stay) => <p key={stay.id} className="presentation-stay"><Icon name="bed" className="size-4" />Staying at {stay.title}</p>)}{items.length ? items.map((item) => <PreviewItem key={item.id} item={item} tz={trip.tz} />) : <p className="py-5 text-muted">Room to explore. No activities planned yet.</p>}</div></section>;
       })}
       {ideas.length > 0 && <section id="ideas" className="presentation-day"><header><h2>Ideas</h2></header><div className="presentation-events">{ideas.map((item) => <PreviewItem key={item.id} item={item} tz={trip.tz} />)}</div></section>}
-      <footer className="presentation-footer">Shared for viewing. Plans may change as the group makes updates.</footer>
+      <footer className="presentation-footer">Shared with Voyroo. Plans may change as the group makes updates.</footer>
     </main>
   </div>;
 }

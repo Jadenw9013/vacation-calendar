@@ -1,6 +1,6 @@
-# New vacation planning audit
+# Voyroo planning audit
 
-Scope: starting another vacation, adding an existing itinerary without a model, and remembering the person and their joined trips. Audited against the active `vacation-calendar` app, not the v1 backup.
+Scope: starting another vacation, adding an existing itinerary without a model, and remembering the person and their joined trips. Audited against the active Voyroo app (original checkout directory: `vacation-calendar`), not the v1 backup.
 
 The current new-trip experience is conversational: describe a vacation to the Gemini planner, refine a preview, and explicitly save it. The creation form has been removed. Google accounts now provide a personal trip library and cross-device planning-conversation recovery. Existing trips still support deterministic paste import and manual entry without AI.
 
@@ -10,7 +10,7 @@ The current new-trip experience is conversational: describe a vacation to the Ge
 | Manual entry hidden behind text parsing | Users had to learn parser phrasing or use the assistant | Added a manual entry button and editable item titles, times, ends and booking details |
 | Clearing a parsed day fell back to its original date | An intended idea was silently scheduled | Clearing the day now omits both start and end |
 | No checkout entry in the add preview | A multi-night stay required editing after creation | Added checkout date/time and a one-night default |
-| New-trip action buried in Trip settings | Repeat planning was difficult to discover | Added All trips / Plan a new trip to every trip screen; direct `/?new=1` entry |
+| New-trip action buried in Trip settings | Repeat planning was difficult to discover | Added the Voyroo home logo and New trip to the navigation on every trip screen; direct `/?new=1` entry |
 | Seed trip prevented the creation form opening for new users | An unrelated existing vacation dominated onboarding | New visitors see the creation form even when the original trip is available |
 | Destination forced to equal trip name; home currency forced to USD | Descriptive names polluted destination searches; home settings were inaccurate | Separate optional name/destination and explicit destination/home currencies and zones |
 | Newly created trips landed on Today with no planning guidance | The app led with missing bookings rather than useful next actions | New trips open Plan, with paste, stay, flight and idea actions |

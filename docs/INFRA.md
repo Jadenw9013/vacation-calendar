@@ -1,18 +1,24 @@
-# Infrastructure: regions and Fluid compute
+# Voyroo infrastructure: regions and Fluid compute
 
-Written for the phase 3 speed work. Two items couldn't be read from here and
-need a minute in the Vercel dashboard; the steps are below.
+Updated during the Voyroo rename in October 2026. The Vercel project is
+`voyroo`, linked to GitHub repository `Jadenw9013/voyroo` (repository ID
+`1396936798`). The project ID stays `prj_ZLxbK1uOHBb49fxLNpo4MAZnqeGZ`.
+
+The production domain is still `calendar-omega-weld.vercel.app`. It remains
+assigned to the renamed project so existing viewing links, accounts and the
+authorised Google OAuth callback keep working. A future domain change needs
+matching Google origins/callbacks and metadata updates.
 
 ## Function region and database region
 
 | | Setting | Status |
 |---|---|---|
-| Vercel function region | No `vercel.json`/`vercel.ts` in the repo, so the project default applies: **iad1 (Washington, D.C.)** unless it was changed in the dashboard | Not confirmed: the Vercel API returned 403 for this project's team from here, and the Vercel CLI isn't installed |
+| Vercel function region | Project default: **iad1 (Washington, D.C.)** | Confirmed through the authenticated Vercel project API during the rename |
 | Upstash database region | Chosen when the database was created; not visible in the code or the REST URL | Not confirmed (no access from here) |
 
 **How to check (2 minutes):**
 
-1. Vercel → the `calendar` project → Settings → Functions → **Function Region**. Note it (e.g. `iad1`).
+1. Vercel → the `voyroo` project → Settings → Functions → **Function Region**. Note it (e.g. `iad1`).
 2. Vercel → Storage → the Upstash database (or console.upstash.com → the database) → **Region** (e.g. `us-east-1`).
 3. They should be the same place. iad1 is AWS `us-east-1`, so an Upstash database in `us-east-1` is already co-located.
 
@@ -30,9 +36,8 @@ Redeploy after changing it. Don't move or recreate the database.
 
 ## Fluid compute
 
-Not confirmed from here (same 403). To check: Vercel → project → Settings →
-Functions → **Fluid Compute** should be on (it is the default for projects
-created since 2025). Or, with the CLI logged in to the right team:
-`vercel project inspect calendar`. With Fluid compute, warm instances are
+**Enabled**, confirmed through the authenticated Vercel project API during
+the rename. To inspect later, use Vercel → project → Settings → Functions,
+or `vercel project inspect voyroo`. With Fluid compute, warm instances are
 reused across requests, so the chat route's module setup (zod schemas, the
 Gemini client) is paid once per instance, not per message.

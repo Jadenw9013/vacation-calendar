@@ -1,4 +1,6 @@
-# Design
+# Voyroo design
+
+The product identity and logo masters are documented in [Voyroo brand](BRAND.md). The route-shaped V, sunrise dot and outlined wordmark are used across navigation, sign-in, the planner, public presentations and app icons.
 
 The app is read on a phone in a shuttle, on a boat, in bright sun and with patchy signal, by a few friends who want answers, not a planning tool. So: legible first, one loud thing per screen, everything else quiet.
 
@@ -12,10 +14,10 @@ Each token is written once as `light-dark(light, dark)`. The phone's theme decid
 
 | Token | Light | Dark | Job |
 |---|---|---|---|
-| canvas | `#f1f3f2` | `#0f1214` | Page background, a cool stone (not cream). |
-| surface | `#ffffff` | `#171b1f` | Raised rows, sheets. |
-| ink / muted | `#15191d` / `#535d64` | `#ecf0f2` / `#a3aeb5` | Text and secondary text. |
-| accent | `#0b6476` | `#5cc6d8` | Lagoon teal: links, primary actions, the active tab. |
+| canvas | `#f4f6fa` | `#101b2b` | Page background, a pale blue in daylight. |
+| surface | `#ffffff` | `#18263a` | Raised rows, sheets. |
+| ink / muted | `#192f4d` / `#596a7e` | `#ecf2fa` / `#afbed0` | Text and secondary text. |
+| accent | `#176b59` | `#7ad9bd` | Forest green: links, primary actions, the active tab. |
 | ticket | `#ffc21a` | `#ffc21a` | The "Next" ticket on Today. |
 | ok | `#11693c` | `#6fd69a` | Booked. |
 | todo | `#8a4b00` | `#ffb95c` | To book, and nights with nowhere to stay. |

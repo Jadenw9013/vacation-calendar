@@ -1,6 +1,10 @@
-# Trip
+# Voyroo
 
-A shared trip app for a small group: what's next and how to get there, where you sleep tonight, every booking with its link, contact and confirmation number, the posts and links you saved, and an assistant that knows the place. It works on a phone with no signal.
+![Voyroo](public/brand/voyroo-logo.svg)
+
+**A little further, together.**
+
+Voyroo is a shared travel planner for a small group: what's next and how to get there, where you sleep tonight, every booking with its link, contact and confirmation number, the posts and links you saved, and an assistant that knows the place. It works on a phone with no signal.
 
 It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its first trip. Any group can start another.
 
@@ -8,13 +12,24 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
 
 ### Start a trip through conversation
 
-Open the home workspace or choose **Plan a new trip** from a trip. Describe what you have in mind: a destination, a budget, approximate dates, your travel style, or an existing itinerary. The Gemini planner asks follow-ups and builds a trip draft beside the conversation. You can explore options before deciding on exact dates.
+Open the home workspace or choose **New trip** from the navigation. Describe what you have in mind: a destination, a budget, approximate dates, your travel style, or an existing itinerary. The Gemini planner asks follow-ups and builds a trip draft beside the conversation. You can explore options before deciding on exact dates.
 
 Once the destination and dates are settled, review the itinerary and choose **Save trip**. Suggested activities become regular editable trip items; nothing is booked. The app generates an invitation passcode and shows it before you open the trip. Signed-in people are automatically identified and the trip is saved to their account. Guest planners can give their first name conversationally. A stable draft ID makes repeated save requests return the existing trip.
 
 Google sign-in now gives you a personal trip library and a planning conversation saved to your account after every reply. Open the app on another device with the same Google account to resume. Guest conversations stay on the current browser. **Start fresh** clears the active conversation. Messages and model drafts are validated; card numbers are stripped before storage or model calls. The planner needs `GEMINI_API_KEY`; `CHAT_MOCK=1` provides a scripted development-only stand-in. Run `npm run planner:eval` for an evaluation against the real model without creating a trip.
 
 The home workspace stays available even when you only have one trip. The account menu replaces repeated sign-in information panels. The trip’s Plan screen has **Plan with your assistant** for refining an existing itinerary, alongside manual entry and text import.
+
+### Navigate and share
+
+Choose the **Voyroo logo** to return to your personal workspace. **New trip** opens the conversational planner. Both are available from every trip screen, on phone and desktop.
+
+Open **Share trip** in the navigation:
+
+- **Create viewing link** creates a presentation that opens immediately without sign-up or a passcode. It shows the current itinerary, places, times and booking status, and supports printing. It does not grant editing access. Private notes, contacts and reservation confirmations are excluded.
+- **Copy viewing link** copies the existing link. **Turn off viewing link** revokes it; creating another link afterward produces a new token. Viewing pages are not cached for offline use, so disabled links cannot be replayed from the offline page cache.
+- **Share invite / Copy invite** sends the group-editing invitation. New collaborators use the trip passcode; returning members use their remembered account.
+- **Copy itinerary** makes a readable text version for a group chat or email.
 
 ### Paste an itinerary without AI into an existing trip
 
@@ -95,7 +110,7 @@ Pictures are kept on the phone by the service worker, so the grid still shows of
 
 ## Privacy
 
-Each trip has its own link and a passcode the group shares. Joining asks for your first name and the passcode, and sets a cookie for that trip only. The link alone doesn't open the trip.
+Each trip has its own link and a passcode the group shares. Joining asks for your first name and the passcode, and sets a cookie for that trip only. An editing invite alone doesn't open the trip. An explicitly enabled viewing link does open a limited itinerary for anyone who has it; it can be revoked in **Share trip**.
 
 - The original trip (`/t/guatemala`) takes its passcode from `TRIP_PASSCODE`, or from the first person to join.
 - Change the passcode under **Trip** → **Change passcode**. People already in stay in.
@@ -154,12 +169,15 @@ src/data/       the original v1 seed (migrated on read)
 
 ### API
 
-All trip routes need the trip's cookie, from joining. POST routes refuse cross-site requests.
+Private trip routes require a remembered account membership or a trip cookie from joining. Mutating routes refuse cross-site requests. The public presentation page validates its own viewing token and never creates a session.
 
 | Route | Does |
 |---|---|
 | `GET /api/trips` / `POST /api/trips` | Trips this browser has joined / create a trip and join it |
 | `GET` / `POST /api/t/{id}/join` | Trip name and whether it has a passcode / join with `{ name, passcode }` |
+| `GET /api/t/{id}/preview` | Get the current viewing-link path, or null |
+| `POST /api/t/{id}/preview` / `DELETE /api/t/{id}/preview` | Enable/reuse a viewing link / revoke it; requires trip membership |
+| `GET /p/{id}/{token}` | View-only presentation; no sign-up; invalid or disabled tokens return 404 |
 | `POST /api/t/{id}/me` | Change your name, or the trip's passcode |
 | `GET /api/t/{id}` | `{ trip, version, me }` |
 | `POST /api/t/{id}/ops` | `{ ops, key?, confirmed? }`. 200 applied; 422 rejected; 428 needs a person to confirm (a booked item) |
@@ -169,6 +187,14 @@ All trip routes need the trip's cookie, from joining. POST routes refuse cross-s
 | `GET /api/t/{id}/thumb` | `?item=&link=` a saved link's picture, or `?post=` a post's picture before saving (post links only) |
 | `POST /api/t/{id}/chat` | The assistant (AI SDK UI message stream) |
 | `POST /api/t/{id}/import` | `{ image, index, total }`. Reads one booking screenshot and records what it shows. One per request, so ten screenshots stay well under Vercel's 4.5 MB request limit |
+
+## Product and branding
+
+The product is **Voyroo**, and the npm package is `voyroo`. Identity constants live in `src/brand.ts`, the shared UI in `src/ui/Brand.tsx`, and the original vector artwork and exports in `public/brand/`. See [Brand guidelines](docs/BRAND.md) for colors, logo files and regeneration instructions.
+
+Repository: [Jadenw9013/voyroo](https://github.com/Jadenw9013/voyroo). Vercel project: `voyroo`. The existing production address, `https://calendar-omega-weld.vercel.app`, remains the login origin so existing Google callbacks and saved links continue working. Update the Google Cloud OAuth consent-screen display name to **Voyroo** in Google Auth Platform → Branding; this is separate from the app and repository name.
+
+Existing Redis keys, cookie names, local drafts and service-worker cache identifiers retain their original storage names to preserve trips and sign-ins. `Trip` remains the domain model and the label of the trip-settings tab. The historical v1 backup and original trip data remain historical records.
 
 ## Running locally
 

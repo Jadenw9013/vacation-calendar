@@ -8,6 +8,7 @@ import { stripCards } from "@/domain/change";
 import { daysBetween, formatDay, formatRange } from "@/domain/time";
 import type { Account } from "@/server/auth";
 import { Icon, KIND_ICON } from "@/ui/Icon";
+import { LogoMark } from "@/ui/Brand";
 
 function emptySnapshot(): PlannerSnapshot { return { id: crypto.randomUUID(), messages: [], draft: null, suggestions: [] }; }
 
@@ -110,7 +111,7 @@ export function NewTripPlanner({ account, initialName, initialSnapshot }: { acco
 
   return <div className="planner-layout">
     <section aria-label="Plan a new trip" className="planner-conversation">
-      <div className="planner-heading"><span className="planner-avatar"><Icon name="sparkles" className="size-5" /></span><div><h2>Your travel planner</h2><p>{busy ? "Working on your trip" : "A place to turn ‘what if’ into a plan"}</p></div>{messages.length > 0 && <button type="button" disabled={busy || saving} onClick={() => void startOver()} className="planner-reset">Start fresh</button>}</div>
+      <div className="planner-heading"><span className="planner-avatar"><LogoMark /></span><div><h2>Your Voyroo planner</h2><p>{busy ? "Working on your trip" : "A place to turn ‘what if’ into a plan"}</p></div>{messages.length > 0 && <button type="button" disabled={busy || saving} onClick={() => void startOver()} className="planner-reset">Start fresh</button>}</div>
       <div ref={transcript} role="log" aria-label="Planning conversation" aria-live="polite" className={`planner-messages ${messages.length ? "has-messages" : ""}`}>
         {!messages.length && <div className="planner-opening"><span className="opening-wave" aria-hidden="true">✳</span><h3>Where are we dreaming of?</h3><p>A place you’ve been thinking about. A few days off. A whole itinerary you’ve already written. Start anywhere.</p></div>}
         {messages.map((message, index) => <div key={index} className={`planning-message ${message.role}`}><span className="message-speaker">{message.role === "assistant" ? "Trip planner" : initialName || "You"}</span><p>{message.content}</p></div>)}

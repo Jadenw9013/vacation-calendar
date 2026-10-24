@@ -37,9 +37,9 @@ export function ShareTrip({ onClose }: { onClose: () => void }) {
     if (item.end) lines.push(`  Until ${item.end.date}${item.end.time ? ` ${formatTime(item.end.time)}` : ""}${item.end.tz ? ` (${item.end.tz})` : ""}`);
   }
   if (!items.length) lines.push("", "We’re still putting the itinerary together.");
-  lines.push("", `Join our trip: ${invite}`, "Ask me for the trip passcode.");
+  lines.push("", `Plan with us on Voyroo: ${invite}`, "Ask me for the trip passcode.");
   const itinerary = lines.join("\n");
-  const invitation = `Join our ${trip.name} trip:\n${invite}\nAsk me for the trip passcode.`;
+  const invitation = `Join our ${trip.name} trip on Voyroo:\n${invite}\nAsk me for the trip passcode.`;
 
   async function copy(text: string, message: string) {
     setStatus(""); setManual("");
