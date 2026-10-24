@@ -37,6 +37,8 @@ export interface Backend {
   setPass(id: string, hash: string): Promise<void>;
   index(): Promise<Record<string, string>>;
   putIndex(id: string, summary: string): Promise<void>;
+  accountTrips(accountId: string): Promise<Record<string, string>>;
+  rememberTrip(accountId: string, tripId: string, name: string): Promise<void>;
   /** Increments a counter that expires after `ttlSeconds`; returns the new count. */
   hit(key: string, ttlSeconds: number): Promise<number>;
   /** A counter's current value (0 when unset or expired). */
@@ -138,6 +140,8 @@ export class TripStore {
   count(key: string) {
     return this.db.count(key);
   }
+  accountTrips(accountId: string) { return this.db.accountTrips(accountId); }
+  rememberTrip(accountId: string, tripId: string, name: string) { return this.db.rememberTrip(accountId, tripId, name); }
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +152,7 @@ export class MemoryBackend implements Backend {
   private logs = new Map<string, string[]>();
   private passes = new Map<string, string>();
   private idx = new Map<string, string>();
+  private accounts = new Map<string, Record<string, string>>();
   private counters = new Map<string, { n: number; until: number }>();
 
   constructor(private legacyTrip: string | null = null) {}
@@ -187,6 +192,10 @@ export class MemoryBackend implements Backend {
   }
   async putIndex(id: string, summary: string) {
     this.idx.set(id, summary);
+  }
+  async accountTrips(accountId: string) { return { ...this.accounts.get(accountId) }; }
+  async rememberTrip(accountId: string, tripId: string, name: string) {
+    this.accounts.set(accountId, { ...this.accounts.get(accountId), [tripId]: name });
   }
   async hit(key: string, ttlSeconds: number) {
     const now = Date.now();
@@ -276,6 +285,10 @@ export class RedisBackend implements Backend {
   }
   async putIndex(id: string, summary: string) {
     await this.redis.hset("trips", { [id]: summary });
+  }
+  async accountTrips(accountId: string) { return (await this.redis.hgetall(`account:${accountId}:trips`)) ?? {}; }
+  async rememberTrip(accountId: string, tripId: string, name: string) {
+    await this.redis.hset(`account:${accountId}:trips`, { [tripId]: name });
   }
   async hit(key: string, ttlSeconds: number) {
     return Number(await this.redis.eval(HIT, [`rl:${key}`], [String(ttlSeconds)]));

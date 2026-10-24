@@ -4,6 +4,8 @@ import { instantOf } from "./time";
 import type { Trip, TripState } from "./types";
 
 export interface ChangeEntry {
+  /** Stable signed-in identity; display names can change. */
+  accountId?: string;
   id: string;
   /** The version this change produced. */
   version: number;
@@ -30,6 +32,7 @@ export interface OpIssue {
 }
 
 export interface ChangeMeta {
+  accountId?: string;
   author: string;
   /** A person confirmed changes to booked items. */
   confirmed?: boolean;
@@ -167,6 +170,7 @@ export function prepareChange(state: TripState, raw: unknown, meta: ChangeMeta):
       version: state.version + 1,
       at: meta.now ?? Date.now(),
       author: meta.author,
+      ...(meta.accountId ? { accountId: meta.accountId } : {}),
       summary,
       ops,
       inverse,

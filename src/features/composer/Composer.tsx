@@ -6,7 +6,7 @@ import { newId } from "@/domain/ids";
 import { classifyLink, postInfo } from "@/domain/links";
 import type { Op } from "@/domain/ops";
 import { parseLine, type Draft } from "@/domain/parse";
-import { formatDay, formatTime } from "@/domain/time";
+import { addDays, formatDay, formatTime } from "@/domain/time";
 import type { Item, ItemKind, Link } from "@/domain/types";
 import { useClock } from "@/client/hooks";
 import { useTrip } from "@/client/store";
@@ -71,6 +71,7 @@ function ComposerBody({ req, serverNow, onDone }: { req: ComposeRequest; serverN
   const { start } = useImport();
   const nowMs = useClock(serverNow);
   const [text, setText] = useState(req.text ?? "");
+  const [manual, setManual] = useState(!!req.kind);
   const [dragging, setDragging] = useState(false);
   const takeScreenshots = (files: File[]) => {
     const left = start(files);
@@ -80,6 +81,12 @@ function ComposerBody({ req, serverNow, onDone }: { req: ComposeRequest; serverN
   const parsed = useMemo(() => parseLine(text, { trip, nowMs, day: req.day }), [text, trip, nowMs, req.day]);
 
   if (asking !== null) return <Assistant first={asking} itemId={req.itemId ?? null} day={req.day ?? null} />;
+  if (manual) return (
+    <div className="flex flex-col gap-3 pt-1">
+      <button type="button" onClick={() => setManual(false)} className={`${btn.quiet} self-start`}>Use quick add instead</button>
+      <ItemPreview draft={parsed.type === "item" ? parsed.draft : { title: text.trim(), kind: req.kind ?? "activity", ...(req.day ? { start: { date: req.day } } : {}), dayFrom: req.day ? "selected" : null, guessedTime: false, outsideTrip: false }} kindHint={req.kind} onDone={onDone} onAsk={() => setAsking(text.trim())} />
+    </div>
+  );
 
   return (
     <div
@@ -131,6 +138,9 @@ function ComposerBody({ req, serverNow, onDone }: { req: ComposeRequest; serverN
         </div>
       )}
 
+      {parsed.type !== "item" && parsed.type !== "links" && (
+        <button type="button" onClick={() => setManual(true)} className={`${btn.secondary} self-start`}>Add details manually</button>
+      )}
       {parsed.type === "empty" && <Hints day={req.day ?? null} onPick={setText} onAsk={(t) => setAsking(t)} />}
       {parsed.type === "ask" && (
         <div className="flex flex-col gap-2">
@@ -175,14 +185,26 @@ function Hints({ day, onPick, onAsk }: { day: string | null; onPick: (t: string)
 
 function ItemPreview({ draft, kindHint, onDone, onAsk }: { draft: Draft; kindHint?: ItemKind; onDone: () => void; onAsk: () => void }) {
   const { trip, apply } = useTrip();
-  const [kind, setKind] = useState<ItemKind>(kindHint ?? draft.kind);
-  const [needsBooking, setNeedsBooking] = useState(false);
-  const [day, setDay] = useState(draft.start?.date ?? "");
+  const [kindEdit, setKind] = useState<ItemKind>();
+  const kind = kindEdit ?? kindHint ?? draft.kind;
+  const [booking, setBooking] = useState<"none" | "todo" | "booked">("none");
+  const [confirmation, setConfirmation] = useState("");
+  const [titleEdit, setTitle] = useState<string>();
+  const [dayEdit, setDay] = useState<string>();
+  const [timeEdit, setTime] = useState<string>();
+  const [endDayEdit, setEndDay] = useState<string>();
+  const [endTimeEdit, setEndTime] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const start = draft.start ? { ...draft.start, date: day || draft.start.date } : day ? { date: day } : null;
-  const canAdd = !!draft.title && !busy;
+  const title = titleEdit ?? draft.title;
+  const day = dayEdit ?? draft.start?.date ?? "";
+  const time = timeEdit ?? draft.start?.time ?? "";
+  const endDay = endDayEdit ?? draft.end?.date ?? (kind === "stay" && day ? addDays(day, 1) : "");
+  const endTime = endTimeEdit ?? draft.end?.time ?? "";
+  const start = day ? { date: day, ...(time ? { time } : {}), ...(draft.start?.tz ? { tz: draft.start.tz } : {}) } : null;
+  const outsideTrip = !!day && (day < trip.startDate || day > trip.endDate || !!endDay && endDay > trip.endDate);
+  const canAdd = !!title.trim() && !busy;
 
   async function add() {
     if (!canAdd) return;
@@ -190,11 +212,11 @@ function ItemPreview({ draft, kindHint, onDone, onAsk }: { draft: Draft; kindHin
     const item: Item = {
       id: newId("i"),
       kind,
-      title: draft.title,
+      title: title.trim(),
       ...(start ? { start } : {}),
-      ...(draft.end && start ? { end: draft.end } : {}),
+      ...(endDay && start ? { end: { date: endDay, ...(endTime ? { time: endTime } : {}), ...(draft.end?.tz ? { tz: draft.end.tz } : {}) } } : {}),
       ...(draft.placeName ? { place: { name: draft.placeName } } : {}),
-      ...(needsBooking ? { booking: { state: "todo" as const } } : {}),
+      ...(booking !== "none" ? { booking: { state: booking, ...(booking === "booked" && confirmation.trim() ? { confirmation: confirmation.trim() } : {}) } } : {}),
     };
     const r = await apply([{ op: "item.add", item }]);
     setBusy(false);
@@ -207,14 +229,17 @@ function ItemPreview({ draft, kindHint, onDone, onAsk }: { draft: Draft; kindHin
       <div className="flex items-start gap-3">
         <KindChip kind={kind} />
         <div className="min-w-0 flex-1">
-          <p className="text-lg leading-snug font-bold">{draft.title || <span className="text-muted">What is it?</span>}</p>
+          <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+            Title
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="What are you planning?" className={field} />
+          </label>
           <p className="text-base text-muted">
             {start ? formatDay(start.date) : "No day yet: saved to ideas"}
             {start && "time" in start && start.time ? `, ${formatTime(start.time)}` : ""}
-            {draft.guessedTime && <span> (guessed; add am or pm to change it)</span>}
+            {draft.guessedTime && timeEdit === undefined && <span> (guessed; change the time below)</span>}
             {draft.placeName && <span>. At {draft.placeName}</span>}
           </p>
-          {draft.outsideTrip && <p className="mt-1 text-sm font-semibold text-todo">That day is outside the trip.</p>}
+          {outsideTrip && <p className="mt-1 text-sm font-semibold text-todo">These dates extend outside the trip. Adjust the trip dates to see all of this plan.</p>}
         </div>
       </div>
 
@@ -237,12 +262,36 @@ function ItemPreview({ draft, kindHint, onDone, onAsk }: { draft: Draft; kindHin
         </select>
       </div>
 
-      <label className="flex min-h-11 items-center gap-3 text-base">
-        <input type="checkbox" checked={needsBooking} onChange={(e) => setNeedsBooking(e.target.checked)} className="size-5 accent-[var(--accent)]" />
-        Needs booking
+      {start && (
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+            {kind === "stay" ? "Check-in time" : "Start time"}
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={field} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+            {kind === "stay" ? "Check-out date" : "End date"}
+            <input type="date" value={endDay} min={day} onChange={(e) => setEndDay(e.target.value)} className={field} />
+          </label>
+          {endDay && <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+            {kind === "stay" ? "Check-out time" : "End time"}
+            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={field} />
+          </label>}
+        </div>
+      )}
+      <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+        Reservation
+        <select aria-label="Reservation" value={booking} onChange={(e) => setBooking(e.target.value as typeof booking)} className={field}>
+          <option value="none">No reservation needed</option>
+          <option value="todo">Needs booking</option>
+          <option value="booked">Already booked</option>
+        </select>
       </label>
+      {booking === "booked" && <label className="flex flex-col gap-1 text-sm font-semibold text-muted">
+        Confirmation number (optional)
+        <input value={confirmation} onChange={(e) => setConfirmation(e.target.value)} maxLength={100} className={field} />
+      </label>}
 
-      {error && <p className="text-base font-semibold text-danger">{error}</p>}
+      {error && <p role="alert" className="text-base font-semibold text-danger">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button id="composer-primary" type="button" onClick={add} disabled={!canAdd} className={btn.primary}>
           <Icon name="plus" />

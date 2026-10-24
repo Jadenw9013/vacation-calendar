@@ -6,6 +6,42 @@ It started as the Guatemala trip (Nov 24 – Dec 1, 2026), which is still its fi
 
 ## Using it
 
+### Start a trip without AI
+
+Choose **Plan a new trip** from any trip screen. Enter the destination, optional trip name, dates, time zones, currencies, your first name and a group passcode. The new trip opens on **Plan**.
+
+Choose **Paste a travel plan**, paste one item per line, and review the result before adding anything. Use `Day 1`, `Day 2`, etc. relative to the trip's first day, or an ISO date such as `2027-03-01` as a heading. Start an undated section with `Ideas`.
+
+```text
+Day 1
+09:00 Food: Breakfast at the market
+15:00 Stay: Casa Oaxaca | end: day 4 11:00 | booked | confirmation: CASA-123
+Day 2
+10:00 Activity: Explore the old town
+7pm Food: Dinner with friends | notes: Bring cash
+Ideas
+Activity: Cooking class
+```
+
+The review lets you change titles, kinds, dates, times, reservation details and notes, or uncheck items. Existing matches and repeated pasted lines start unchecked. Stays default to one night unless an end date is supplied. Other pipe-separated details are retained in notes. Unrecognized lines stay visible as items to correct or deselect. Times default to the trip's destination time zone. Flights can specify `tz: Asia/Tokyo | end tz: America/Los_Angeles`, or use the departure/arrival zone fields in review; arrival order is checked using both zones. Import up to 60 selected items at once. Imports work offline, sync later, and can be undone together.
+
+For individual items, use **Add details manually** in the + sheet. The preview also lets you edit parsed times, add checkout dates, mark existing bookings, or choose **No day (idea)**. No model, API key or AI request is needed for either flow. Screenshot reading and the assistant remain optional AI features.
+
+### Remember trips with Google
+
+When configured, **Continue with Google** appears on the home, join and Trip screens. The browser's existing guest trips are linked once to the verified Google account. Trips subsequently created or joined are also remembered by that account. Signing in on another browser restores those memberships without asking for the trip passcode again. Joining a new private trip still requires its passcode.
+
+Accounts use Google's stable subject ID rather than a first name or email as the identity key. Per-trip names remain editable; manual changes and pasted imports also record the signed-in account ID in the change history. Google access and refresh tokens are not stored. Sign-out clears this browser's trip cookies, local snapshots and cached pages; pending offline edits must sync first.
+
+To enable this:
+
+1. Create a **Web application** OAuth client in [Google Auth Platform](https://console.cloud.google.com/auth/clients), configure its consent screen, and add test users if the app is in testing.
+2. Add an authorized redirect URI of `https://YOUR-HOST/api/auth/google/callback` (locally, `http://localhost:3000/api/auth/google/callback`). It must exactly match the configured URI.
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and a stable random `SESSION_SECRET` on the server. Never expose them as `NEXT_PUBLIC_` variables. Keep the same session secret across deployments.
+4. Use the existing Redis configuration for persistent trip memberships in production, then restart/redeploy. Without Redis, local development memberships disappear when the server restarts.
+
+Sign-in uses the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs) to exchange authorization codes with PKCE and verify ID tokens, including audience and a per-attempt nonce. The short handshake also checks state and expiration. Live Google consent requires real credentials; automated tests mock Google's exchange and verification.
+
 - **Today**: the next thing on the day, as a big ticket, with one tap to get directions, call, message on WhatsApp or copy the confirmation. Below it, where you sleep tonight, then the rest of the day. Before the trip, a countdown and what's left to book.
 - **Plan**: laid out like a profile, with the trip's photo, the people and its numbers, then three tabs:
   - **Days:** every day in order, where you sleep each night, and a link that opens the day's route in Google Maps.

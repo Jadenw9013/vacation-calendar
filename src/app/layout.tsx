@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible_Next } from "next/font/google";
+import localFont from "next/font/local";
 import { PREFS_BOOT } from "@/client/prefs";
 import { ServiceWorker } from "@/client/ServiceWorker";
 import "./globals.css";
 
 /** Designed for legibility: read on a bumpy shuttle, in bright sun, at a glance. */
-const atkinson = Atkinson_Hyperlegible_Next({
+const atkinson = localFont({
+  src: "./fonts/AtkinsonHyperlegibleNext.ttf",
   variable: "--font-atkinson",
-  subsets: ["latin", "latin-ext"],
+  weight: "200 800",
+  style: "normal",
   display: "swap",
-  // Next has no metrics for this face to size a fallback with.
   adjustFontFallback: false,
 });
 

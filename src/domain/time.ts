@@ -9,7 +9,11 @@ import type { When } from "./types";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export const isDate = (s: unknown): s is string => typeof s === "string" && DATE_RE.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
+export const isDate = (s: unknown): s is string => {
+  if (typeof s !== "string" || !DATE_RE.test(s)) return false;
+  const date = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === s;
+};
 export const isTime = (s: unknown): s is string => typeof s === "string" && TIME_RE.test(s);
 
 export function isZone(tz: string): boolean {

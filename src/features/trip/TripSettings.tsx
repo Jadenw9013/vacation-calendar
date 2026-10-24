@@ -12,6 +12,7 @@ import { Icon } from "@/ui/Icon";
 import { btn, field, label, SectionTitle } from "@/ui/kit";
 import { Sheet } from "@/ui/Sheet";
 import { money } from "../item/ItemPage";
+import { AccountPanel } from "../account/AccountPanel";
 
 /** Trip: details, people and invites, trip-wide notes, costs, what changed, and display settings. */
 export function TripSettings() {
@@ -33,6 +34,7 @@ export function TripSettings() {
       </header>
 
       <People />
+      <AccountPanel />
 
       <section>
         <SectionTitle>Trip notes</SectionTitle>
@@ -334,7 +336,7 @@ const COMMON_ZONES = [
   "Europe/Athens",
   "Asia/Tokyo",
   "Asia/Bangkok",
-  "Asia/Bali",
+  "Asia/Makassar",
   "Australia/Sydney",
 ];
 

@@ -122,6 +122,23 @@ describe("editing", () => {
 });
 
 describe("creating a trip", () => {
+  it("keeps the trip name, destination and home settings separate", async () => {
+    const res = await tripsRoute.POST(post({ name: "Birthday getaway", destination: "Oaxaca, Mexico", startDate: "2027-03-01", endDate: "2027-03-04", tz: "America/Mexico_City", homeTz: "Europe/London", currency: "mxn", homeCurrency: "gbp", passcode: "abcd", me: "Ana" }));
+    expect(res.status).toBe(200);
+    const { id } = await res.json();
+    const { trip } = await (await tripRoute.GET(get(), ctx(id))).json();
+    expect(trip).toMatchObject({ name: "Birthday getaway", destination: "Oaxaca, Mexico", homeTz: "Europe/London", currency: "MXN", homeCurrency: "GBP", items: [] });
+  });
+
+  it.each([
+    ["2027-02-30", "2027-03-04"],
+    ["2027-03-04", "2027-03-01"],
+  ])("rejects invalid trip dates %s to %s without creating a trip", async (startDate, endDate) => {
+    const res = await tripsRoute.POST(post({ name: "Oaxaca", startDate, endDate, tz: "America/Mexico_City", passcode: "abcd", me: "Ana" }));
+    expect(res.status).toBe(400);
+    expect((await (await tripsRoute.GET()).json()).trips).toEqual([]);
+  });
+
   it("creates, joins and lists it", async () => {
     const res = await tripsRoute.POST(
       post({ name: "Peru", startDate: "2027-03-01", endDate: "2027-03-10", tz: "America/Lima", currency: "pen", passcode: "llama", me: "Ana" }),
