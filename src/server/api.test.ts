@@ -18,6 +18,7 @@ const opsRoute = await import("@/app/api/t/[tripId]/ops/route");
 const undoRoute = await import("@/app/api/t/[tripId]/undo/route");
 const tripsRoute = await import("@/app/api/trips/route");
 const previewRoute = await import("@/app/api/t/[tripId]/preview/route");
+const publicRoute = await import("@/app/api/p/[tripId]/[token]/route");
 const { previewTrip } = await import("./preview");
 
 const ctx = (tripId = "guatemala") => ({ params: Promise.resolve({ tripId }) });
@@ -35,6 +36,28 @@ beforeEach(() => {
 });
 
 describe("view-only presentation links", () => {
+  it("returns only the current version, checks access before 304, and rejects revoked links", async () => {
+    await join();
+    const { path } = await (await previewRoute.POST(post({}), ctx())).json();
+    const context = { params: Promise.resolve({ tripId: "guatemala", token: path.split("/").at(-1) }) };
+    const first = await publicRoute.GET(get(), context);
+    expect(first.headers.get("cache-control")).toContain("no-store");
+    const original = await first.json();
+    const changed = await opsRoute.POST(post({ ops: [{ op: "trip.update", set: { name: "Updated public trip", notes: "PRIVATE-REFRESH-NOTE" } }] }), ctx());
+    expect(changed.status).toBe(200);
+    jar.clear();
+    const next = await publicRoute.GET(new Request("http://localhost/api", { headers: { "If-None-Match": first.headers.get("etag")! } }), context);
+    const body = await next.json();
+    expect(Object.keys(body)).toEqual(["version"]);
+    expect(body.version).toBeGreaterThan(original.version);
+    expect(JSON.stringify(body)).not.toContain("PRIVATE-REFRESH-NOTE");
+    const unchangedRequest = new Request("http://localhost/api", { headers: { "If-None-Match": next.headers.get("etag")! } });
+    expect((await publicRoute.GET(unchangedRequest, context)).status).toBe(304);
+    const { getStore } = await import("./db");
+    await getStore().disablePreview("guatemala");
+    expect((await publicRoute.GET(unchangedRequest, context)).status).toBe(404);
+    expect((await publicRoute.GET(get(), { params: Promise.resolve({ tripId: "guatemala", token: "0".repeat(64) }) })).status).toBe(404);
+  });
   it("requires trip access to create, inspect or revoke a viewing link", async () => {
     expect((await previewRoute.POST(post({}), ctx())).status).toBe(401);
     expect((await previewRoute.GET(get(), ctx())).status).toBe(401);

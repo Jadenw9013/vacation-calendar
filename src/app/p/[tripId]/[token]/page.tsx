@@ -7,6 +7,7 @@ import type { Item } from "@/domain/types";
 import { Icon, KIND_ICON } from "@/ui/Icon";
 import { PrintTrip } from "@/features/trip/PrintTrip";
 import { Brand } from "@/ui/Brand";
+import { PreviewUpdates } from "@/features/trip/PreviewUpdates";
 
 export const metadata: Metadata = { title: "Trip itinerary", robots: { index: false, follow: false }, referrer: "no-referrer" };
 
@@ -19,6 +20,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ tripId
   const days = [...new Set([...dayRange(trip.startDate, trip.endDate), ...trip.items.flatMap((item) => item.start ? [item.start.date] : [])])].sort();
   const ideas = trip.items.filter((item) => !item.start);
   return <div className="trip-presentation">
+    <PreviewUpdates key={`${tripId}:${token}`} version={state.version} />
     <header className="presentation-toolbar"><Brand linked={false} /><div className="flex flex-wrap items-center justify-end gap-3"><span className="text-sm text-muted">View-only itinerary</span><PrintTrip /></div></header>
     <main id="main" className="presentation-main">
       <div className="presentation-hero"><div><p className="presentation-destination"><Icon name="pin" />{trip.destination}</p><h1>{trip.name}</h1><p className="presentation-dates">{formatDay(trip.startDate)}, {trip.startDate.slice(0, 4)} — {formatDay(trip.endDate)}, {trip.endDate.slice(0, 4)}</p><p className="mt-4 text-sm text-muted">The group’s current plan. Times are local to {trip.tz} unless shown otherwise.</p></div><div className="presentation-cover" style={{ backgroundImage: `url(${JSON.stringify(trip.cover || "/flight-sunset-wing.jpg")})` }} /></div>

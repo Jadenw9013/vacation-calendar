@@ -61,6 +61,14 @@ test("share a view-only itinerary without sign-up, then revoke it", async ({ pag
     await expect(viewer.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(viewer.getByRole("button", { name: "Print itinerary", exact: true })).toBeVisible();
     await viewer.screenshot({ path: testInfo.outputPath("presentation-mobile.png") });
+    const changed = await page.request.post("/api/t/guatemala/ops", { data: { confirmed: true, ops: [
+      { op: "trip.update", set: { name: "Updated shared journey" } },
+      { op: "item.update", id: trip.items[0].id, set: { title: "Updated public booking" } },
+    ] } });
+    expect(changed.ok()).toBe(true);
+    // The existing preview updates through the real timer, without a page reload.
+    await expect(viewer.getByRole("heading", { name: "Updated shared journey", exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(viewer.getByRole("heading", { name: "Updated public booking", exact: true })).toBeVisible();
     await expect(viewer.getByRole("textbox")).toHaveCount(0);
     await expect(viewer.getByText("PRIVATE-NOTE-NOT-FOR-PRESENTATION")).toHaveCount(0);
     expect((await guest.request.get("http://localhost:3200/api/t/guatemala")).status()).toBe(401);
@@ -74,8 +82,7 @@ test("share a view-only itinerary without sign-up, then revoke it", async ({ pag
     await viewer.screenshot({ path: testInfo.outputPath("presentation-desktop.png") });
     await sheet.getByRole("button", { name: "Turn off viewing link", exact: true }).click();
     await expect(sheet.getByRole("button", { name: "Create viewing link", exact: true })).toBeEnabled();
-    await viewer.reload();
-    await expect(viewer.getByRole("heading", { name: "This viewing link is unavailable." })).toBeVisible();
+    await expect(viewer.getByRole("heading", { name: "This viewing link is unavailable." })).toBeVisible({ timeout: 20_000 });
   } finally { await guest.close(); }
   await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new Error("blocked"); } } }));
   await sheet.getByRole("button", { name: "Copy invite", exact: true }).click();

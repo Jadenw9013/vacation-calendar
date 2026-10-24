@@ -27,6 +27,7 @@ Choose the **Voyroo logo** to return to your personal workspace. **New trip** op
 Open **Share trip** in the navigation:
 
 - **Create viewing link** creates a presentation that opens immediately without sign-up or a passcode. It shows the current itinerary, places, times and booking status, and supports printing. It does not grant editing access. Private notes, contacts and reservation confirmations are excluded.
+- An open preview checks for saved changes every 15 seconds while visible, and again when the viewer returns to the tab or reconnects. The existing page refreshes automatically without changing its layout or resetting scroll. Disabling a link also closes the itinerary in an open preview. A version-only endpoint checks the token on every request and never sends private trip data.
 - **Copy viewing link** copies the existing link. **Turn off viewing link** revokes it; creating another link afterward produces a new token. Viewing pages are not cached for offline use, so disabled links cannot be replayed from the offline page cache.
 - **Share invite / Copy invite** sends the group-editing invitation. New collaborators use the trip passcode; returning members use their remembered account.
 - **Copy itinerary** makes a readable text version for a group chat or email.
@@ -178,6 +179,7 @@ Private trip routes require a remembered account membership or a trip cookie fro
 | `GET /api/t/{id}/preview` | Get the current viewing-link path, or null |
 | `POST /api/t/{id}/preview` / `DELETE /api/t/{id}/preview` | Enable/reuse a viewing link / revoke it; requires trip membership |
 | `GET /p/{id}/{token}` | View-only presentation; no sign-up; invalid or disabled tokens return 404 |
+| `GET /api/p/{id}/{token}` | Version-only check for live preview updates; validates the token even for unchanged/304 responses; disabled links return 404 |
 | `POST /api/t/{id}/me` | Change your name, or the trip's passcode |
 | `GET /api/t/{id}` | `{ trip, version, me }` |
 | `POST /api/t/{id}/ops` | `{ ops, key?, confirmed? }`. 200 applied; 422 rejected; 428 needs a person to confirm (a booked item) |

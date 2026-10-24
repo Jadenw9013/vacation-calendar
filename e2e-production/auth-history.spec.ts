@@ -73,14 +73,13 @@ test("the production worker never caches a viewing link, so revocation takes eff
     await viewer.goto(path);
     await expect(viewer.getByText("View-only itinerary", { exact: true })).toBeVisible();
     const cachedPreview = await viewer.evaluate(async () => {
-      for (const name of await caches.keys()) for (const request of await (await caches.open(name)).keys()) if (new URL(request.url).pathname.startsWith("/p/")) return true;
+      for (const name of await caches.keys()) for (const request of await (await caches.open(name)).keys()) if (/^\/(api\/)?p\//.test(new URL(request.url).pathname)) return true;
       return false;
     });
     expect(cachedPreview).toBe(false);
     const revoked = await page.request.delete("/api/t/guatemala/preview");
     expect(revoked.status()).toBe(200);
-    await viewer.reload();
-    await expect(viewer.getByRole("heading", { name: "This viewing link is unavailable." })).toBeVisible();
+    await expect(viewer.getByRole("heading", { name: "This viewing link is unavailable." })).toBeVisible({ timeout: 20_000 });
     expect((await context.request.get("http://localhost:3300/api/t/guatemala")).status()).toBe(401);
   } finally { await context.close(); }
 });
