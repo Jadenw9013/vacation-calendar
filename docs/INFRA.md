@@ -4,10 +4,16 @@ Updated during the Voyroo rename in October 2026. The Vercel project is
 `voyroo`, linked to GitHub repository `Jadenw9013/voyroo` (repository ID
 `1396936798`). The project ID stays `prj_ZLxbK1uOHBb49fxLNpo4MAZnqeGZ`.
 
-The production domain is still `calendar-omega-weld.vercel.app`. It remains
-assigned to the renamed project so existing viewing links, accounts and the
-authorised Google OAuth callback keep working. A future domain change needs
-matching Google origins/callbacks and metadata updates.
+The primary production address is `https://www.voyroo.com`, with
+`https://voyroo.com` redirecting to it. Both domains are verified in Vercel
+and HTTPS is working. Metadata uses the `www` address. The original
+`calendar-omega-weld.vercel.app` domain remains assigned for existing links.
+
+Google OAuth must use the same host where sign-in starts: register
+`https://www.voyroo.com/api/auth/google/callback` in Google Cloud, then set
+the Production `GOOGLE_REDIRECT_URI` to that exact URL and redeploy. Keep
+localhost's callback in `.env.local`. Account cookies are host-specific,
+so people sign in once on the new domain to restore existing memberships.
 
 ## Function region and database region
 

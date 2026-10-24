@@ -16,7 +16,7 @@ const atkinson = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://calendar-omega-weld.vercel.app"),
+  metadataBase: new URL("https://www.voyroo.com"),
   title: { default: PRODUCT_NAME, template: `%s · ${PRODUCT_NAME}` },
   applicationName: PRODUCT_NAME,
   description: PRODUCT_DESCRIPTION,

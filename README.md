@@ -192,7 +192,7 @@ Private trip routes require a remembered account membership or a trip cookie fro
 
 The product is **Voyroo**, and the npm package is `voyroo`. Identity constants live in `src/brand.ts`, the shared UI in `src/ui/Brand.tsx`, and the original vector artwork and exports in `public/brand/`. See [Brand guidelines](docs/BRAND.md) for colors, logo files and regeneration instructions.
 
-Repository: [Jadenw9013/voyroo](https://github.com/Jadenw9013/voyroo). Vercel project: `voyroo`. The existing production address, `https://calendar-omega-weld.vercel.app`, remains the login origin so existing Google callbacks and saved links continue working. Update the Google Cloud OAuth consent-screen display name to **Voyroo** in Google Auth Platform → Branding; this is separate from the app and repository name.
+Repository: [Jadenw9013/voyroo](https://github.com/Jadenw9013/voyroo). Vercel project: `voyroo`. Production: **https://www.voyroo.com**; `voyroo.com` redirects to `www`. The original Vercel address remains available for existing links. Google OAuth's Production callback must match the main host: `https://www.voyroo.com/api/auth/google/callback`. Register it in Google Cloud before updating the Production environment variable and redeploying. Keep the local callback unchanged. Update the Google Cloud OAuth consent-screen display name to **Voyroo** in Google Auth Platform → Branding; this is separate from the app and repository name.
 
 Existing Redis keys, cookie names, local drafts and service-worker cache identifiers retain their original storage names to preserve trips and sign-ins. `Trip` remains the domain model and the label of the trip-settings tab. The historical v1 backup and original trip data remain historical records.
 
