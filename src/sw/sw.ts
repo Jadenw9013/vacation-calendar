@@ -45,10 +45,12 @@ const tripFallback = {
   },
 };
 
-const isPage = ({ request, sameOrigin }: RouteMatchCallbackOptions) => sameOrigin && request.mode === "navigate";
-const isApi = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && url.pathname.startsWith("/api/");
+// OAuth must use native browser navigation, including its cross-origin redirects.
+// It must not be fetched, replayed or supplied an offline page by the worker.
+const isPage = ({ request, sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && request.mode === "navigate" && !url.pathname.startsWith("/api/");
+const isApi = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/auth/");
 const isThumb = ({ sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && /^\/api\/t\/[^/]+\/thumb$/.test(url.pathname);
-const isRsc = ({ request, sameOrigin }: RouteMatchCallbackOptions) => sameOrigin && request.headers.get("RSC") === "1";
+const isRsc = ({ request, sameOrigin, url }: RouteMatchCallbackOptions) => sameOrigin && request.headers.get("RSC") === "1" && !url.pathname.startsWith("/api/auth/");
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -72,11 +74,11 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: /\/_next\/static\/.+\.(?:js|css|woff2?)$/i,
+      matcher: ({ url }) => /\/_next\/static\/.+\.(?:js|css|woff2?)$/i.test(url.pathname),
       handler: new CacheFirst({ cacheName: "next-static", plugins: [new ExpirationPlugin({ maxEntries: 160 })] }),
     },
     {
-      matcher: /\/_next\/image\?url=.+$|\.(?:png|jpg|jpeg|svg|webp|ico)$/i,
+      matcher: ({ url }) => !url.pathname.startsWith("/api/auth/") && (url.pathname === "/_next/image" || /\.(?:png|jpg|jpeg|svg|webp|ico)$/i.test(url.pathname)),
       handler: new StaleWhileRevalidate({ cacheName: "images", plugins: [new ExpirationPlugin({ maxEntries: 64 })] }),
     },
   ],

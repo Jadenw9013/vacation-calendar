@@ -15,10 +15,10 @@ export function AccountPanel({ initialAccount = null }: { initialAccount?: Accou
     let live = true;
     void fetch("/api/account").then((res) => res.ok ? res.json() : null).then((body) => { if (live) setState(body); }).catch(() => {});
     const status = new URLSearchParams(window.location.search).get("auth");
-    if (status === "failed" || status === "unavailable") {
+    if (status === "failed" || status === "unavailable" || status === "cancelled") {
       // Read once on arrival from the sign-in redirect.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setError(status === "failed" ? "Google sign-in did not finish. Please try again." : "Google sign-in is not available yet.");
+      setError(status === "cancelled" ? "Sign-in cancelled. You can keep planning here." : status === "failed" ? "Google sign-in did not finish. Please try again." : "Google sign-in is not available yet.");
     }
     return () => { live = false; };
   }, []);

@@ -26,16 +26,41 @@ export function NewTripPlanner({ account, initialName, initialSnapshot }: { acco
   const transcript = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const storageKey = `trip:planner:${account?.id || "guest"}`;
+  const inputKey = `${storageKey}:input`;
 
   useEffect(() => {
     let cached = initialSnapshot;
-    if (!cached) try { const raw = localStorage.getItem(storageKey) || (account ? localStorage.getItem("trip:planner:guest") : null); if (raw) cached = PlannerSnapshotSchema.parse(JSON.parse(raw)); } catch { /* Continue with a new draft. */ }
+    let pendingText = "";
+    try {
+      const raw = localStorage.getItem(storageKey) || (!cached && account ? localStorage.getItem("trip:planner:guest") : null);
+      if (raw) {
+        const local = PlannerSnapshotSchema.parse(JSON.parse(raw));
+        if (!cached || local.id === cached.id && local.messages.length > cached.messages.length && local.messages.at(-1)?.role === "user") cached = local;
+      }
+      pendingText = localStorage.getItem(inputKey) || (account ? localStorage.getItem("trip:planner:guest:input") : "") || "";
+    } catch { /* Continue with a new draft. */ }
     // Hydrate browser-only drafts once; cloud drafts are scoped to the signed-in account.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSnapshot(cached || emptySnapshot());
+    setText(pendingText);
     setRestored(true);
-  }, [account, initialSnapshot, storageKey]);
+  }, [account, initialSnapshot, storageKey, inputKey]);
   useEffect(() => { if (snapshot && restored && !created) try { localStorage.setItem(storageKey, JSON.stringify(snapshot)); } catch { /* Continue in memory. */ } }, [snapshot, restored, storageKey, created]);
+  useEffect(() => {
+    if (!restored) return;
+    try { if (text) localStorage.setItem(inputKey, stripCards(text)); else localStorage.removeItem(inputKey); } catch { /* Continue in memory. */ }
+  }, [text, restored, inputKey]);
+  useEffect(() => {
+    const leaving = () => {
+      if (restored && !created) try {
+        if (snapshot) localStorage.setItem(storageKey, JSON.stringify(snapshot));
+        if (text) localStorage.setItem(inputKey, stripCards(text)); else localStorage.removeItem(inputKey);
+      } catch { /* Storage may be unavailable. */ }
+      controller.current?.abort();
+    };
+    window.addEventListener("pagehide", leaving);
+    return () => window.removeEventListener("pagehide", leaving);
+  }, [snapshot, text, restored, created, storageKey, inputKey]);
   useEffect(() => { transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "smooth" }); }, [snapshot?.messages.length, busy]);
   useEffect(() => () => controller.current?.abort(), []);
 
@@ -52,7 +77,7 @@ export function NewTripPlanner({ account, initialName, initialSnapshot }: { acco
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Your message could not be sent. Try again.");
       setSnapshot(PlannerSnapshotSchema.parse(body.snapshot)); setCloudSaved(body.savedToAccount);
-      if (account) localStorage.removeItem("trip:planner:guest");
+      if (account) { localStorage.removeItem("trip:planner:guest"); localStorage.removeItem("trip:planner:guest:input"); }
     } catch (failure) { setError(abort.signal.aborted ? "Paused. Your conversation is still here." : failure instanceof TypeError ? "You’re offline. Your draft is kept on this device; reconnect to continue." : failure instanceof SyntaxError ? "The planner could not reply. Your message is still here; try again." : failure instanceof Error ? failure.message : "The planner could not reply. Try again."); }
     finally { setBusy(false); inFlight.current = false; controller.current = null; input.current?.focus(); }
   }
@@ -92,6 +117,7 @@ export function NewTripPlanner({ account, initialName, initialSnapshot }: { acco
         {busy && <div className="planner-thinking" role="status"><span className="thinking-dots" aria-hidden="true"><i /><i /><i /></span>Thinking through your trip…<button type="button" onClick={() => controller.current?.abort()}>Pause</button></div>}
       </div>
       {!created && <div className="planner-input-area">
+        {!busy && !error && messages.at(-1)?.role === "user" && <button type="button" className="planner-reset" onClick={() => void send(messages.at(-1)!.content)}>Continue planning</button>}
         {draft && <a href="#trip-preview" className="planner-mobile-preview-link"><Icon name="plan" className="size-4" />View your trip draft<Icon name="chevronDown" className="size-3.5" /></a>}
         {suggestions.length > 0 && !busy && <div className="planner-suggestions">{suggestions.map((suggestion) => <button key={suggestion} type="button" disabled={!restored} onClick={() => { if (suggestion === "I have an itinerary to paste") { setText("Here’s my existing itinerary:\n"); input.current?.focus(); } else void send(suggestion); }}>{suggestion}</button>)}</div>}
         <form className="planner-composer" onSubmit={(event) => { event.preventDefault(); void send(text); }}>

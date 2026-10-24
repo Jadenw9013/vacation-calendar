@@ -83,6 +83,7 @@ describe("Google accounts and trip access", () => {
   });
   it("uses PKCE, random state, a nonce and a local return path", async () => {
     const response = await start(new Request("http://localhost:3000/api/auth/google?returnTo=https://evil.example"));
+    expect(response.headers.get("cache-control")).toContain("no-store");
     const redirect = new URL(response.headers.get("location")!);
     expect(redirect.searchParams.get("code_challenge_method")).toBe("S256");
     const handshake = unseal<{ state: string; nonce: string; returnTo: string }>("google-handshake", jar.get(GOOGLE_HANDSHAKE_COOKIE))!;
@@ -98,6 +99,17 @@ describe("Google accounts and trip access", () => {
     expect(oauth.getToken).not.toHaveBeenCalled();
     jar.set(GOOGLE_HANDSHAKE_COOKIE, seal("google-handshake", { state: "state" }, -1));
     await callback(request());
+    expect(oauth.getToken).not.toHaveBeenCalled();
+  });
+
+  it("returns a cancelled sign-in to its original page without caching or exchanging a code", async () => {
+    jar.set(GOOGLE_HANDSHAKE_COOKIE, seal("google-handshake", { state: "state", nonce: "nonce", verifier: "verifier", returnTo: "/t/guatemala/join?from=invite" }, 600));
+    const response = await callback(request("state=state&error=access_denied"));
+    const target = new URL(response.headers.get("location")!);
+    expect(target.pathname).toBe("/t/guatemala/join");
+    expect(target.searchParams.get("from")).toBe("invite");
+    expect(target.searchParams.get("auth")).toBe("cancelled");
+    expect(response.headers.get("cache-control")).toContain("no-store");
     expect(oauth.getToken).not.toHaveBeenCalled();
   });
 

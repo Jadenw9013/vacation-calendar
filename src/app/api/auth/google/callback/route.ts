@@ -11,7 +11,13 @@ export async function GET(request: Request) {
   jar.set(GOOGLE_HANDSHAKE_COOKIE, "", { path: "/api/auth/google", maxAge: 0 });
   const url = new URL(request.url);
   const origin = googleConfigured() ? new URL(process.env.GOOGLE_REDIRECT_URI!).origin : url.origin;
-  const failed = () => NextResponse.redirect(new URL("/?all=1&auth=failed", origin));
+  const redirect = (target: URL) => NextResponse.redirect(target, { headers: { "Cache-Control": "no-store, max-age=0", Pragma: "no-cache" } });
+  const failed = (status = "failed") => {
+    const target = new URL(safeReturnTo(handshake?.returnTo || null), origin);
+    target.searchParams.set("auth", status);
+    return redirect(target);
+  };
+  if (handshake && url.searchParams.get("state") === handshake.state && url.searchParams.get("error") === "access_denied") return failed("cancelled");
   if (!googleConfigured() || !handshake || !url.searchParams.get("code") || url.searchParams.get("state") !== handshake.state || url.searchParams.has("error")) return failed();
   try {
     const client = googleClient();
@@ -32,6 +38,6 @@ export async function GET(request: Request) {
       }
     }
     await writeAccount(account);
-    return NextResponse.redirect(new URL(safeReturnTo(handshake.returnTo), origin));
+    return redirect(new URL(safeReturnTo(handshake.returnTo), origin));
   } catch { return failed(); }
 }

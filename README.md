@@ -41,6 +41,8 @@ When configured, **Continue with Google** appears on the home, join and Trip scr
 
 Returning members open trips and their original invitation links directly, with no extra passcode or Google prompt while the remembered account session is valid. The persistent session lasts 180 days and renews during active use, at most once per day. Signing out, clearing cookies, switching browsers or letting the session expire requires Google verification again; the account's stored trip memberships remain intact.
 
+Browser Back from sign-in preserves both the conversation and text not yet sent. Frozen browser-history pages reload with current account state when online. OAuth requests bypass the offline service worker, redirects are explicitly uncached, and cancelling Google consent returns to the originating app page. The trip passcode screen also has **Back to your trips**. Run `npm run e2e:production` to check these flows against a real production build and registered service worker, using an isolated sign-in-provider fixture without real credentials.
+
 Accounts use Google's stable subject ID rather than a first name or email as the identity key. Per-trip names remain editable; manual changes and pasted imports also record the signed-in account ID in the change history. Google access and refresh tokens are not stored. Sign-out clears this browser's trip cookies, local snapshots and cached pages; pending offline edits must sync first.
 
 To enable this:

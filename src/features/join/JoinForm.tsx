@@ -105,6 +105,7 @@ export function JoinForm({ tripId, tripName, hasPasscode, people, initialName = 
         </button>
       </form>
       <AccountPanel />
+      <button type="button" className={`${btn.quiet} self-start`} onClick={() => window.location.assign(new URL("/?all=1", window.location.origin).href)}><Icon name="back" className="size-4" />Back to your trips</button>
     </main>
   );
 }
