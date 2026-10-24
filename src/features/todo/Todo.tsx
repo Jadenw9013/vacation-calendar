@@ -25,107 +25,119 @@ export function Todo({ go }: { go: (v: View) => void }) {
   const [marking, setMarking] = useState<Item | null>(null);
 
   return (
-    <div className="flex flex-col gap-7 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <h1 className="text-2xl font-bold">To-do</h1>
+    <div className="flex flex-col gap-6 px-3 pt-3 sm:px-4 md:px-0">
+      <header className="flex items-center justify-between gap-3 rounded-3xl border border-line bg-surface p-5 shadow-lift">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Bookings & To-do</h1>
+          <p className="text-sm text-muted">Reservations to confirm, missing logistics, and your group checklist.</p>
+        </div>
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-k-activity-soft text-k-activity">
+          <Icon name="ticket" className="size-6" />
+        </span>
+      </header>
 
-      {gaps.length > 0 && (
-        <section aria-labelledby="missing">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-6">
+          {gaps.length > 0 && (
+            <section aria-labelledby="missing" className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+              <SectionTitle>
+                <span id="missing">Missing</span>
+              </SectionTitle>
+              <ul className="flex flex-col gap-2.5">
+                {gaps.map((g) => {
+                  const label =
+                    g.kind === "flight-home"
+                      ? "No flight home yet"
+                      : g.count === 1
+                        ? `Nowhere to stay the night of ${formatDay(g.from)}`
+                        : `Nowhere to stay ${formatDay(g.from)} to ${formatDay(addDays(g.to, 1))} (${g.count} nights)`;
+                  const ask = g.kind === "flight-home" ? "Help us pick a flight home" : `Find us a place to stay the night of ${formatDay(g.from)}`;
+                  return (
+                    <li key={label} className="flex flex-col gap-2.5 rounded-2xl border border-dashed border-todo bg-todo-soft p-4">
+                      <p className="flex items-center gap-2 text-base font-bold text-todo">
+                        <Icon name={g.kind === "flight-home" ? "plane" : "bed"} />
+                        {label}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => compose({ ask: true, text: ask, day: g.kind === "nights" ? g.from : null })} className={btn.secondary}>
+                          <Icon name="sparkles" />
+                          Find options
+                        </button>
+                        <button type="button" onClick={() => compose({ day: g.kind === "nights" ? g.from : trip.endDate, kind: g.kind === "nights" ? "stay" : "flight" })} className={btn.quiet}>
+                          <Icon name="plus" />
+                          Add it
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          <section aria-labelledby="to-book" className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <SectionTitle>
+              <span id="to-book">To book</span>
+            </SectionTitle>
+            {book.length === 0 ? (
+              <p className="text-base text-muted">Nothing waiting to be booked.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {book.map((i) => (
+                  <li key={i.id} className="flex items-start gap-3 py-3.5">
+                    <KindChip kind={i.kind} />
+                    <div className="min-w-0 flex-1">
+                      <button type="button" onClick={() => go({ tab: "item", itemId: i.id })} className="block w-full text-left">
+                        <span className="block text-base leading-snug font-bold">{i.title}</span>
+                        <span className="block text-sm text-muted">
+                          {i.start ? formatDay(i.start.date) : "No day yet"}
+                          {i.booking?.by ? `. ${i.booking.by} is on it` : ""}
+                        </span>
+                      </button>
+                      {/* The status, then what you can do about it: a status pill never doubles as a button. */}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <StatusPill status="todo" />
+                        {i.booking?.url && (
+                          <a href={i.booking.url} target="_blank" rel="noreferrer" className={`${btn.quiet} min-h-10 text-sm`}>
+                            <Icon name="external" className="size-4" />
+                            Book online
+                          </a>
+                        )}
+                        <button type="button" onClick={() => setMarking(i)} className={`${btn.secondary} min-h-10 text-sm`}>
+                          <Icon name="check" className="size-4" />
+                          Mark as booked
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <section aria-labelledby="list" className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
           <SectionTitle>
-            <span id="missing">Missing</span>
+            <span id="list">List</span>
           </SectionTitle>
-          <ul className="flex flex-col gap-2">
-            {gaps.map((g) => {
-              const label =
-                g.kind === "flight-home"
-                  ? "No flight home yet"
-                  : g.count === 1
-                    ? `Nowhere to stay the night of ${formatDay(g.from)}`
-                    : `Nowhere to stay ${formatDay(g.from)} to ${formatDay(addDays(g.to, 1))} (${g.count} nights)`;
-              const ask = g.kind === "flight-home" ? "Help us pick a flight home" : `Find us a place to stay the night of ${formatDay(g.from)}`;
-              return (
-                <li key={label} className="flex flex-col gap-2 rounded-2xl border border-dashed border-todo bg-todo-soft p-4">
-                  <p className="flex items-center gap-2 text-base font-bold text-todo">
-                    <Icon name={g.kind === "flight-home" ? "plane" : "bed"} />
-                    {label}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => compose({ ask: true, text: ask, day: g.kind === "nights" ? g.from : null })} className={btn.secondary}>
-                      <Icon name="sparkles" />
-                      Find options
-                    </button>
-                    <button type="button" onClick={() => compose({ day: g.kind === "nights" ? g.from : trip.endDate, kind: g.kind === "nights" ? "stay" : "flight" })} className={btn.quiet}>
-                      <Icon name="plus" />
-                      Add it
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      <section aria-labelledby="to-book">
-        <SectionTitle>
-          <span id="to-book">To book</span>
-        </SectionTitle>
-        {book.length === 0 ? (
-          <p className="text-base text-muted">Nothing waiting to be booked.</p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {book.map((i) => (
-              <li key={i.id} className="flex items-start gap-3 py-3">
-                <KindChip kind={i.kind} />
-                <div className="min-w-0 flex-1">
-                  <button type="button" onClick={() => go({ tab: "item", itemId: i.id })} className="block w-full text-left">
-                    <span className="block text-base leading-snug font-semibold">{i.title}</span>
-                    <span className="block text-sm text-muted">
-                      {i.start ? formatDay(i.start.date) : "No day yet"}
-                      {i.booking?.by ? `. ${i.booking.by} is on it` : ""}
-                    </span>
-                  </button>
-                  {/* The status, then what you can do about it: a status pill never doubles as a button. */}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <StatusPill status="todo" />
-                    {i.booking?.url && (
-                      <a href={i.booking.url} target="_blank" rel="noreferrer" className={`${btn.quiet} min-h-10 text-sm`}>
-                        <Icon name="external" className="size-4" />
-                        Book online
-                      </a>
-                    )}
-                    <button type="button" onClick={() => setMarking(i)} className={`${btn.secondary} min-h-10 text-sm`}>
-                      <Icon name="check" className="size-4" />
-                      Mark as booked
-                    </button>
-                  </div>
-                </div>
-              </li>
+          <ul className="flex flex-col divide-y divide-line">
+            {open.map((t) => (
+              <TodoRow key={t.id} todo={t} onItem={(id) => go({ tab: "item", itemId: id })} />
             ))}
           </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="list">
-        <SectionTitle>
-          <span id="list">List</span>
-        </SectionTitle>
-        <ul className="flex flex-col">
-          {open.map((t) => (
-            <TodoRow key={t.id} todo={t} onItem={(id) => go({ tab: "item", itemId: id })} />
-          ))}
-        </ul>
-        <AddTodo />
-        {done.length > 0 && (
-          <details className="mt-3">
-            <summary className="min-h-11 cursor-pointer py-2 text-base font-semibold text-muted">Done ({done.length})</summary>
-            <ul className="flex flex-col">
-              {done.map((t) => (
-                <TodoRow key={t.id} todo={t} onItem={(id) => go({ tab: "item", itemId: id })} />
-              ))}
-            </ul>
-          </details>
-        )}
-      </section>
+          <AddTodo />
+          {done.length > 0 && (
+            <details className="mt-3">
+              <summary className="min-h-11 cursor-pointer py-2 text-base font-semibold text-muted">Done ({done.length})</summary>
+              <ul className="flex flex-col divide-y divide-line">
+                {done.map((t) => (
+                  <TodoRow key={t.id} todo={t} onItem={(id) => go({ tab: "item", itemId: id })} />
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
+      </div>
 
       <SyncLine />
       {marking && <MarkBooked item={marking} onClose={() => setMarking(null)} />}

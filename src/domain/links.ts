@@ -56,6 +56,10 @@ export function extractUrls(text: string): string[] {
 
 export const mapsSearchUrl = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
+/** Embeddable Google Maps iframe URL for a search query or coordinates (no API key required). */
+export const mapsEmbedUrl = (query: string, zoom = 11) =>
+  `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=m&z=${zoom}&ie=UTF8&iwloc=near&output=embed`;
+
 /** What to search Maps for: the exact link if we have one, else the address, else the name plus where the trip is. */
 export function mapsLink(place: Place | undefined, trip?: Pick<Trip, "destination">): string | null {
   if (!place) return null;
@@ -64,6 +68,14 @@ export function mapsLink(place: Place | undefined, trip?: Pick<Trip, "destinatio
   const q = place.address || place.name;
   if (!q) return null;
   return mapsSearchUrl(place.address ? q : [q, trip?.destination].filter(Boolean).join(", "));
+}
+
+/** Embeddable Google Maps iframe URL for a specific place on a trip. */
+export function placeEmbedUrl(place: Place | undefined, trip?: Pick<Trip, "destination">, zoom = 14): string | null {
+  if (!place) return null;
+  if (place.lat !== undefined && place.lng !== undefined) return mapsEmbedUrl(`${place.lat},${place.lng}`, zoom);
+  const q = place.address || (place.name ? [place.name, trip?.destination].filter(Boolean).join(", ") : null);
+  return q ? mapsEmbedUrl(q, zoom) : null;
 }
 
 /** Turn-by-turn directions to a place from wherever the phone is. */

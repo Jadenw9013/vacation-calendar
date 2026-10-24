@@ -54,59 +54,64 @@ export function JoinForm({ tripId, tripName, hasPasscode, people, initialName = 
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-5 py-10">
-      <Brand />
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">{tripName}</h1>
-        <p className="text-base text-muted">
-          {hasPasscode
-            ? "Enter your first name and the passcode the group shared with you."
-            : "You're the first one here. Choose a passcode for the group: anyone with the link will need it to see the trip."}
-        </p>
-      </div>
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <label className={label}>
-          Your first name
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="given-name"
-            maxLength={30}
-            required
-            list="trip-people"
-            aria-invalid={error?.field === "name"}
-            className={`${field} text-lg`}
-          />
-          <datalist id="trip-people">
-            {people.map((p) => (
-              <option key={p} value={p} />
-            ))}
-          </datalist>
-        </label>
-        <label className={label}>
-          {hasPasscode ? "Passcode" : "New passcode for the trip"}
-          <input
-            type="password"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
-            autoComplete={hasPasscode ? "current-password" : "new-password"}
-            minLength={4}
-            required
-            aria-invalid={error?.field === "passcode"}
-            className={`${field} text-lg`}
-          />
-        </label>
-        {error && (
-          <p role="alert" className="text-base font-semibold text-danger">
-            {error.message}
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-10">
+      <div className="flex flex-col gap-6 rounded-3xl border border-line bg-surface p-6 shadow-lift sm:p-8">
+        <Brand />
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight">{tripName}</h1>
+          <p className="text-base text-muted">
+            {hasPasscode
+              ? "Enter your first name and the passcode the group shared with you."
+              : "You're the first one here. Choose a passcode for the group: anyone with the link will need it to see the trip."}
           </p>
-        )}
-        <button type="submit" disabled={busy} className={`${btn.primary} min-h-12 text-lg`}>
-          {busy ? "Joining…" : hasPasscode ? "Join the trip" : "Set passcode and join"}
+        </div>
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <label className={label}>
+            Your first name
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="given-name"
+              maxLength={30}
+              required
+              list="trip-people"
+              aria-invalid={error?.field === "name"}
+              className={`${field} text-lg`}
+            />
+            <datalist id="trip-people">
+              {people.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+          </label>
+          <label className={label}>
+            {hasPasscode ? "Passcode" : "New passcode for the trip"}
+            <input
+              type="password"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              autoComplete={hasPasscode ? "current-password" : "new-password"}
+              minLength={4}
+              required
+              aria-invalid={error?.field === "passcode"}
+              className={`${field} text-lg`}
+            />
+          </label>
+          {error && (
+            <p role="alert" className="text-base font-semibold text-danger">
+              {error.message}
+            </p>
+          )}
+          <button type="submit" disabled={busy} className={`${btn.primary} min-h-12 text-lg`}>
+            {busy ? "Joining…" : hasPasscode ? "Join the trip" : "Set passcode and join"}
+          </button>
+        </form>
+        <AccountPanel />
+        <button type="button" className={`${btn.quiet} self-start`} onClick={() => window.location.assign(new URL("/?all=1", window.location.origin).href)}>
+          <Icon name="back" className="size-4" />
+          Back to your trips
         </button>
-      </form>
-      <AccountPanel />
-      <button type="button" className={`${btn.quiet} self-start`} onClick={() => window.location.assign(new URL("/?all=1", window.location.origin).href)}><Icon name="back" className="size-4" />Back to your trips</button>
+      </div>
     </main>
   );
 }

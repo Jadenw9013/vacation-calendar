@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { tripDays } from "@/domain/derive";
 import { newId } from "@/domain/ids";
-import { classifyLink, directionsUrl, extractUrls, hasContact, instagramUrl, isPost, mailUrl, mapsLink, telUrl, whatsappUrl } from "@/domain/links";
+import { classifyLink, directionsUrl, extractUrls, hasContact, instagramUrl, isPost, mailUrl, mapsLink, placeEmbedUrl, telUrl, whatsappUrl } from "@/domain/links";
 import type { Op } from "@/domain/ops";
 import type { ItemPatchT } from "@/domain/schema";
 import { formatDay, zoneName } from "@/domain/time";
@@ -49,83 +49,85 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
   const coverLink = posts.length ? undefined : item.links?.find((l) => l.image);
 
   return (
-    <article className="flex flex-col pb-6">
-      <div className="sticky top-0 z-20 flex items-center justify-between bg-canvas/95 px-2 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <button type="button" onClick={back} className="flex min-h-11 items-center gap-1 rounded-xl px-2 text-base font-semibold text-accent hover:bg-sunken">
+    <article className="flex flex-col gap-4 px-3 pt-2 pb-6 sm:px-4 md:px-0">
+      <div className="sticky top-16 z-20 flex items-center justify-between rounded-2xl border border-line bg-surface/90 px-3 py-1.5 backdrop-blur-xl">
+        <button type="button" onClick={back} className="flex min-h-10 items-center gap-1 rounded-xl px-2.5 text-base font-semibold text-accent hover:bg-sunken">
           <Icon name="back" />
           Back
         </button>
-        <button type="button" onClick={() => setEdit("menu")} aria-label="More actions" className="flex size-11 items-center justify-center rounded-xl hover:bg-sunken">
+        <button type="button" onClick={() => setEdit("menu")} aria-label="More actions" className="flex size-10 items-center justify-center rounded-xl hover:bg-sunken">
           <Icon name="more" />
         </button>
       </div>
 
-      {coverLink && (
-        <div className="cover-photo mx-4 mb-3 h-44 overflow-hidden rounded-3xl bg-sunken">
-          {/* eslint-disable-next-line @next/next/no-img-element -- through our own route; not worth the image optimizer */}
-          <img src={thumbSrc(trip.id, item.id, coverLink.id)} alt="" className="size-full object-cover" />
-        </div>
-      )}
+      <div className="overflow-hidden rounded-3xl border border-line bg-surface p-5 shadow-lift">
+        {coverLink && (
+          <div className="cover-photo -mx-5 -mt-5 mb-4 h-48 overflow-hidden bg-sunken">
+            {/* eslint-disable-next-line @next/next/no-img-element -- through our own route; not worth the image optimizer */}
+            <img src={thumbSrc(trip.id, item.id, coverLink.id)} alt="" className="size-full object-cover" />
+          </div>
+        )}
 
-      <header className="flex flex-col gap-2 px-4">
-        <button type="button" onClick={() => setEdit("title")} className="group flex items-start gap-3 text-left">
-          <KindChip kind={item.kind} size="lg" />
-          <h1 className="pt-1 text-2xl leading-tight font-bold">
-            {item.title}
-            <Icon name="pencil" className="ml-2 inline size-4 align-baseline text-muted opacity-60 group-hover:opacity-100" />
-          </h1>
-        </button>
-        <div className="pl-14">
-          <Marks item={item} />
-        </div>
-      </header>
+        <header className="flex flex-col gap-2">
+          <button type="button" onClick={() => setEdit("title")} className="group flex items-start gap-3 text-left">
+            <KindChip kind={item.kind} size="lg" />
+            <h1 className="pt-1 text-2xl leading-tight font-extrabold tracking-tight">
+              {item.title}
+              <Icon name="pencil" className="ml-2 inline size-4 align-baseline text-muted opacity-60 group-hover:opacity-100" />
+            </h1>
+          </button>
+          <div className="pl-14">
+            <Marks item={item} />
+          </div>
+        </header>
 
-      <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {dir && (
-          <ActionChip icon="directions" href={dir}>
-            Directions
+        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
+          {dir && (
+            <ActionChip icon="directions" href={dir}>
+              Directions
+            </ActionChip>
+          )}
+          {c?.phone && (
+            <ActionChip icon="phone" href={telUrl(c.phone)}>
+              Call
+            </ActionChip>
+          )}
+          {c?.whatsapp && (
+            <ActionChip icon="whatsapp" href={whatsappUrl(c.whatsapp)}>
+              WhatsApp
+            </ActionChip>
+          )}
+          {b?.url && (
+            <ActionChip icon="ticket" href={b.url}>
+              {b.state === "booked" ? "Booking" : "Book"}
+            </ActionChip>
+          )}
+          {b?.confirmation && (
+            <ActionChip icon="copy" onClick={() => copy(b.confirmation!, "Confirmation")}>
+              {b.confirmation}
+            </ActionChip>
+          )}
+          {c?.website && (
+            <ActionChip icon="globe" href={c.website}>
+              Website
+            </ActionChip>
+          )}
+          <ActionChip icon="sparkles" onClick={() => compose({ ask: true, itemId: item.id, text: "" })}>
+            Ask about this
           </ActionChip>
-        )}
-        {c?.phone && (
-          <ActionChip icon="phone" href={telUrl(c.phone)}>
-            Call
-          </ActionChip>
-        )}
-        {c?.whatsapp && (
-          <ActionChip icon="whatsapp" href={whatsappUrl(c.whatsapp)}>
-            WhatsApp
-          </ActionChip>
-        )}
-        {b?.url && (
-          <ActionChip icon="ticket" href={b.url}>
-            {b.state === "booked" ? "Booking" : "Book"}
-          </ActionChip>
-        )}
-        {b?.confirmation && (
-          <ActionChip icon="copy" onClick={() => copy(b.confirmation!, "Confirmation")}>
-            {b.confirmation}
-          </ActionChip>
-        )}
-        {c?.website && (
-          <ActionChip icon="globe" href={c.website}>
-            Website
-          </ActionChip>
-        )}
-        <ActionChip icon="sparkles" onClick={() => compose({ ask: true, itemId: item.id, text: "" })}>
-          Ask about this
-        </ActionChip>
+        </div>
       </div>
 
       {posts.length > 0 && (
-        <section aria-label="Saved posts" className="mt-4 px-4">
-          <h2 className="mb-2 text-sm font-bold text-muted">
+        <section aria-label="Saved posts" className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+          <h2 className="mb-3 text-sm font-bold text-muted">
             Posts <span className="tnum">{posts.length}</span>
           </h2>
           <PostGrid entries={posts} go={go} />
         </section>
       )}
 
-      <div className="mt-4 flex flex-col divide-y divide-line px-4">
+      <div className="flex flex-col divide-y divide-line rounded-3xl border border-line bg-surface px-5 py-1 shadow-lift">
         <Section title="When" onEdit={() => setEdit("when")}>
           {item.start ? (
             <p className="text-base">
@@ -145,19 +147,40 @@ export function ItemPage({ itemId, back, go }: { itemId: string; back: () => voi
 
         <Section title="Where" onEdit={() => setEdit("where")}>
           {item.place?.name || item.place?.address || item.place?.mapsUrl ? (
-            <div className="flex flex-col gap-1">
-              {item.place.name && <p className="text-base font-semibold">{item.place.name}</p>}
-              {item.place.address && (
-                <button type="button" onClick={() => copy(item.place!.address!, "Address")} className="text-left text-base text-muted">
-                  {item.place.address}
-                </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                {item.place.name && <p className="text-base font-semibold">{item.place.name}</p>}
+                {item.place.address && (
+                  <button type="button" onClick={() => copy(item.place!.address!, "Address")} className="text-left text-base text-muted">
+                    {item.place.address}
+                  </button>
+                )}
+              </div>
+              {placeEmbedUrl(item.place, trip) && (
+                <div className="h-44 w-full overflow-hidden rounded-2xl border border-line bg-[#0d1324]">
+                  <iframe
+                    src={placeEmbedUrl(item.place, trip)!}
+                    title={`Google Map of ${item.place.name || item.place.address || item.title}`}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="size-full border-0 [filter:invert(90%)_hue-rotate(180deg)_brightness(95%)_contrast(92%)]"
+                  />
+                </div>
               )}
-              {mapsLink(item.place, trip) && (
-                <a href={mapsLink(item.place, trip)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 self-start font-semibold text-accent">
-                  <Icon name="pin" className="size-4" />
-                  Open in Maps
-                </a>
-              )}
+              <div className="flex flex-wrap items-center gap-4">
+                {mapsLink(item.place, trip) && (
+                  <a href={mapsLink(item.place, trip)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent">
+                    <Icon name="pin" className="size-4" />
+                    Open in Maps
+                  </a>
+                )}
+                {dir && (
+                  <a href={dir} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent">
+                    <Icon name="directions" className="size-4" />
+                    Get directions
+                  </a>
+                )}
+              </div>
             </div>
           ) : (
             <Empty onClick={() => setEdit("where")}>Add an address or a Maps link</Empty>

@@ -65,8 +65,12 @@ export function ItemRow({ row, item, onOpen, showDate }: { row?: Row; item: Item
   const ending = row?.part === "end";
   const post = ending ? undefined : item.links?.find((l) => isPost(l.kind));
   return (
-    <li className={justChanged.has(item.id) ? "just-changed rounded-xl" : ""}>
-      <button type="button" onClick={onOpen} className="flex w-full items-start gap-3 rounded-xl px-1 py-3 text-left hover:bg-sunken/60">
+    <li className={justChanged.has(item.id) ? "just-changed rounded-2xl" : ""}>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full items-start gap-3 rounded-2xl border border-transparent bg-sunken/35 px-3 py-3 text-left transition-colors hover:border-line hover:bg-sunken"
+      >
         <span className="w-[4.75rem] shrink-0 pt-1.5 text-right whitespace-nowrap">
           {showDate && when && <span className="block text-sm font-semibold text-muted">{formatDay(when.date)}</span>}
           {when?.time ? (
@@ -80,12 +84,12 @@ export function ItemRow({ row, item, onOpen, showDate }: { row?: Row; item: Item
           <KindChip kind={item.kind} />
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
-          <span className={`text-base leading-snug font-semibold ${ending ? "text-muted" : ""}`}>{title}</span>
+          <span className={`text-base leading-snug font-bold ${ending ? "text-muted" : ""}`}>{title}</span>
           {place && !ending && <span className="truncate text-sm text-muted">{place}</span>}
           {!ending && <Marks item={item} />}
         </span>
         {post ? (
-          <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-sunken" aria-hidden="true">
+          <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-xl bg-sunken" aria-hidden="true">
             <PostImage tripId={tripId} entry={{ link: post, item }} />
           </span>
         ) : (

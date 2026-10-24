@@ -22,55 +22,74 @@ export function TripSettings() {
   const totals = costs(trip);
 
   return (
-    <div className="flex flex-col gap-8 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <header>
-        <h1 className="text-2xl font-bold">{trip.name}</h1>
-        <p className="text-base text-muted">
-          {formatRange(trip.startDate, trip.endDate)} in {trip.destination}
-        </p>
-        <button type="button" onClick={() => setEditing(true)} className={`${btn.quiet} -ml-3`}>
+    <div className="flex flex-col gap-6 px-3 pt-3 sm:px-4 md:px-0">
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-line bg-surface p-5 shadow-lift sm:p-6">
+        <div className="min-w-0">
+          <p className="text-xs font-bold tracking-wider text-accent uppercase">Trip Settings & Members</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{trip.name}</h1>
+          <p className="mt-1 text-base text-muted">
+            {formatRange(trip.startDate, trip.endDate)} in {trip.destination}
+          </p>
+        </div>
+        <button type="button" onClick={() => setEditing(true)} className={btn.secondary}>
           <Icon name="pencil" className="size-4" />
           Edit trip details
         </button>
       </header>
 
-      <People />
-      <AccountPanel />
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-6">
+          <div className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <People />
+          </div>
 
-      <section>
-        <SectionTitle>Trip notes</SectionTitle>
-        <TripNotes />
-      </section>
+          <div className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <SectionTitle>Account</SectionTitle>
+            <AccountPanel />
+          </div>
 
-      {totals.length > 0 && (
-        <section>
-          <SectionTitle>Costs</SectionTitle>
-          <dl className="flex flex-col gap-1 text-base">
-            {totals.map((t) => (
-              <div key={t.currency} className="flex justify-between gap-3">
-                <dt className="text-muted">{t.currency}</dt>
-                <dd className="tnum text-right">
-                  {money(t.booked, t.currency)} booked
-                  {t.toBook > 0 && <span className="text-muted">, {money(t.toBook, t.currency)} still to book</span>}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-1 text-sm text-muted">From the prices on reservations.</p>
-        </section>
-      )}
+          <section className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <SectionTitle>Trip notes</SectionTitle>
+            <TripNotes />
+          </section>
+        </div>
 
-      <Activity />
+        <div className="flex flex-col gap-6">
+          {totals.length > 0 && (
+            <section className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+              <SectionTitle>Costs</SectionTitle>
+              <dl className="flex flex-col gap-2 text-base">
+                {totals.map((t) => (
+                  <div key={t.currency} className="flex justify-between gap-3 rounded-xl bg-sunken/60 px-3.5 py-2.5">
+                    <dt className="font-bold text-muted">{t.currency}</dt>
+                    <dd className="tnum text-right font-semibold">
+                      {money(t.booked, t.currency)} booked
+                      {t.toBook > 0 && <span className="text-muted">, {money(t.toBook, t.currency)} still to book</span>}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-2 text-sm text-muted">From the prices on reservations.</p>
+            </section>
+          )}
 
-      <Display />
+          <div className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <Display />
+          </div>
 
-      <section className="flex flex-col gap-2 pb-4">
-        <p className="text-base text-muted">You&apos;re signed in to this trip as {me}.</p>
-        <Link href="/?all=1" className={`${btn.secondary} self-start`}>
-          <Icon name="suitcase" />
-          All trips
-        </Link>
-      </section>
+          <div className="rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <Activity />
+          </div>
+
+          <section className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-surface p-5 shadow-lift">
+            <p className="text-base text-muted">You&apos;re signed in to this trip as {me}.</p>
+            <Link href="/?all=1" className={btn.secondary}>
+              <Icon name="suitcase" />
+              All trips
+            </Link>
+          </section>
+        </div>
+      </div>
 
       {editing && <TripDetailsSheet onClose={() => setEditing(false)} />}
     </div>
