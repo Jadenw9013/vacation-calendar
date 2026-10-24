@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/ui/Icon";
 import { btn, field, label } from "@/ui/kit";
+import { AccountPanel } from "../account/AccountPanel";
 
 /**
  * One step in: your first name and the trip's passcode. An invite link can
  * carry the passcode after #code=, which never leaves the phone.
  */
-export function JoinForm({ tripId, tripName, hasPasscode, people }: { tripId: string; tripName: string; hasPasscode: boolean; people: string[] }) {
-  const [name, setName] = useState("");
+export function JoinForm({ tripId, tripName, hasPasscode, people, initialName = "" }: { tripId: string; tripName: string; hasPasscode: boolean; people: string[]; initialName?: string }) {
+  const [name, setName] = useState(initialName);
   const [pass, setPass] = useState("");
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,11 +22,11 @@ export function JoinForm({ tripId, tripName, hasPasscode, people }: { tripId: st
     if (code) setPass(code);
     try {
       const last = localStorage.getItem("trip-name");
-      if (last) setName(last);
+      if (last && !initialName) setName(last);
     } catch {
       // Not remembered on this phone.
     }
-  }, []);
+  }, [initialName]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,6 +104,7 @@ export function JoinForm({ tripId, tripName, hasPasscode, people }: { tripId: st
           {busy ? "Joining…" : hasPasscode ? "Join the trip" : "Set passcode and join"}
         </button>
       </form>
+      <AccountPanel />
     </main>
   );
 }

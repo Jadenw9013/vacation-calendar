@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { dayRows, ideas, nightOf, stayOn, tripDays } from "@/domain/derive";
 import { routeUrl } from "@/domain/links";
 import { formatRange, monthDay, weekday } from "@/domain/time";
@@ -14,6 +15,7 @@ import { useCompose } from "../composer/Composer";
 import { PostGrid, postsOf } from "../posts/Posts";
 import { ItemRow } from "../shared";
 import { SyncLine } from "../SyncLine";
+import { PastePlan } from "./PastePlan";
 
 /**
  * Plan, laid out like a profile: the trip at the top with its numbers, then
@@ -23,6 +25,7 @@ import { SyncLine } from "../SyncLine";
 export function Plan({ section = "days", go }: { section?: PlanSection; go: (v: View) => void }) {
   const { trip, me } = useTrip();
   const compose = useCompose();
+  const [pasting, setPasting] = useState(false);
   const open = (item: Item) => go({ tab: "item", itemId: item.id });
   const saved = ideas(trip);
   const posts = postsOf(trip);
@@ -39,6 +42,7 @@ export function Plan({ section = "days", go }: { section?: PlanSection; go: (v: 
   return (
     <div className="flex flex-col gap-5">
       <header className="flex flex-col gap-3 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <button type="button" onClick={() => setPasting(true)} className={`${btn.primary} self-start`}>Paste a travel plan</button>
         {trip.cover && (
           <div className="cover-photo relative h-36 overflow-hidden rounded-3xl bg-sunken sm:h-48">
             <Image src={trip.cover} alt="" fill priority sizes="(max-width: 768px) 100vw, 42rem" className="object-cover" />
@@ -91,7 +95,19 @@ export function Plan({ section = "days", go }: { section?: PlanSection; go: (v: 
         </div>
       </header>
 
+      {pasting && <PastePlan onClose={() => setPasting(false)} />}
       <div className="flex flex-col gap-8 px-4" role="tabpanel">
+        {trip.items.length === 0 && (
+          <section aria-label="Start planning" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+            <h2 className="text-xl font-bold">Make this trip yours</h2>
+            <p className="text-base text-muted">Start with a stay or flight, save ideas for later, or use the + button to import booking screenshots.</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => compose({ day: trip.startDate, kind: "stay" })} className={btn.primary}>Add a stay</button>
+              <button type="button" onClick={() => compose({ day: trip.startDate, kind: "flight" })} className={btn.secondary}>Add a flight</button>
+              <button type="button" onClick={() => compose({})} className={btn.secondary}>Save an idea</button>
+            </div>
+          </section>
+        )}
         {section === "days" && days.map((d) => <Day key={d} date={d} last={d === trip.endDate} onOpen={open} onAdd={() => compose({ day: d })} />)}
 
         {section === "ideas" && (

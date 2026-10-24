@@ -5,7 +5,7 @@ import { dayRows, missing, nights, nowNext, rowVerb, toBook } from "./derive";
 import { classifyLink, directionsUrl, extractUrls, mapsLink, whatsappUrl } from "./links";
 import { applyOp, type Op } from "./ops";
 import { parseLine } from "./parse";
-import { formatTime, instantOf, offsetOn, zonedInstant } from "./time";
+import { formatTime, instantOf, isDate, offsetOn, zonedInstant } from "./time";
 import type { Item, Trip, TripState } from "./types";
 
 const seed = seedTrip();
@@ -13,6 +13,13 @@ const state = (trip: Trip = seed, version = 1): TripState => ({ trip, version })
 const item = (id: string, trip: Trip = seed) => trip.items.find((i) => i.id === id)!;
 
 describe("time", () => {
+  it("rejects dates that would roll over into the next month", () => {
+    expect(isDate("2027-02-30")).toBe(false);
+    expect(isDate("2027-02-29")).toBe(false);
+    expect(isDate("2028-02-29")).toBe(true);
+    expect(isDate("2027-04-31")).toBe(false);
+    expect(isDate("2027-12-31")).toBe(true);
+  });
   it("turns wall-clock times in a zone into instants", () => {
     expect(zonedInstant("2026-11-24", "23:52", "America/Guatemala")).toBe(Date.parse("2026-11-24T23:52:00-06:00"));
     expect(zonedInstant("2026-11-24", "11:30", "America/Los_Angeles")).toBe(Date.parse("2026-11-24T11:30:00-08:00"));

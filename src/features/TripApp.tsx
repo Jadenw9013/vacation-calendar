@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import type { TripState } from "@/domain/types";
 import { useView, type View } from "@/client/router";
 import { TripProvider } from "@/client/store";
@@ -49,6 +50,10 @@ function Screens({ tripId, serverNow }: { tripId: string; serverNow: number }) {
     <div className="mx-auto min-h-dvh w-full max-w-2xl md:pt-16">
       <TopBar active={active} onPick={(t) => go({ tab: t } as View)} />
       <main id="main" className="pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-16">
+        <div className="flex flex-wrap justify-between gap-2 px-4 pt-2 text-sm font-semibold text-accent">
+          <Link href="/?all=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="suitcase" className="size-4" />All trips</Link>
+          <Link href="/?new=1" prefetch={false} className="flex min-h-11 items-center gap-2"><Icon name="plus" className="size-4" />Plan a new trip</Link>
+        </div>
         {view.tab === "today" && <Today day={view.day} go={go} serverNow={serverNow} />}
         {view.tab === "plan" && <Plan section={view.section} go={go} />}
         {view.tab === "todo" && <Todo go={go} />}

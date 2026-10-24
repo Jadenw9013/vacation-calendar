@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const b = parsed.body;
   const me = firstName(b.me);
   if (!me) return jsonError(400, "Your first name, one word.", { field: "me" });
-  if (typeof b.passcode !== "string" || b.passcode.trim().length < 4) return jsonError(400, "Pick a passcode of at least 4 characters.", { field: "passcode" });
+  if (typeof b.passcode !== "string" || b.passcode.trim().length < 4 || b.passcode.length > 100) return jsonError(400, "Pick a passcode of 4–100 characters.", { field: "passcode" });
 
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const name = str(b.name) || str(b.destination);

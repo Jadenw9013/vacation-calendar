@@ -16,6 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tri
   const { ops, key, confirmed } = parsed.body;
   const result = await getStore().apply(tripId, ops, {
     author: auth.session.name,
+    accountId: auth.session.accountId,
     confirmed: confirmed === true,
     ...(typeof key === "string" && KEY.test(key) ? { key } : {}),
   });
