@@ -226,12 +226,23 @@ export interface RedisLike {
   set(key: string, value: string, opts?: { nx?: true }): Promise<unknown>;
   mget(...keys: string[]): Promise<(string | null)[]>;
   lrange(key: string, start: number, stop: number): Promise<string[]>;
-  hgetall(key: string): Promise<Record<string, string> | null>;
+  hgetall(key: string): Promise<Record<string, string> | string[] | null>;
   hset(key: string, values: Record<string, string>): Promise<unknown>;
   eval(script: string, keys: string[], args: string[]): Promise<unknown>;
 }
 
 const k = (id: string) => ({ state: `t:${id}:state`, version: `t:${id}:version`, log: `t:${id}:log`, pass: `t:${id}:pass` });
+
+/** Disabling SDK deserialization also disables HGETALL's object conversion.
+ * Decode its alternating fields/values without parsing names or JSON twice. */
+function redisHash(raw: Record<string, string> | string[] | null): Record<string, string> {
+  if (!raw) return {};
+  if (Array.isArray(raw)) {
+    if (raw.length % 2) throw new Error("Invalid Redis hash response: missing value");
+    return Object.fromEntries(Array.from({ length: raw.length / 2 }, (_, i) => [raw[i * 2], raw[i * 2 + 1]]));
+  }
+  return Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, typeof value === "string" ? value : JSON.stringify(value)]));
+}
 
 /** KEYS: state, version, log. ARGV: expected version, new state, log entry, log limit. */
 const CAS = `
@@ -287,13 +298,12 @@ export class RedisBackend implements Backend {
     await this.redis.set(k(id).pass, hash);
   }
   async index() {
-    const all = (await this.redis.hgetall("trips")) ?? {};
-    return Object.fromEntries(Object.entries(all).map(([key, v]) => [key, typeof v === "string" ? v : JSON.stringify(v)]));
+    return redisHash(await this.redis.hgetall("trips"));
   }
   async putIndex(id: string, summary: string) {
     await this.redis.hset("trips", { [id]: summary });
   }
-  async accountTrips(accountId: string) { return (await this.redis.hgetall(`account:${accountId}:trips`)) ?? {}; }
+  async accountTrips(accountId: string) { return redisHash(await this.redis.hgetall(`account:${accountId}:trips`)); }
   async getPlanner(accountId: string) { return this.redis.get(`account:${accountId}:planner`); }
   async setPlanner(accountId: string, snapshot: string) { await this.redis.set(`account:${accountId}:planner`, snapshot); }
   async rememberTrip(accountId: string, tripId: string, name: string) {
